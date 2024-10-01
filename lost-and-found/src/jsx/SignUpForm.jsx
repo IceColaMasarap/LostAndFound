@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { auth } from '../config/firebase'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
-
-
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { auth } from '../config/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { setDoc, doc } from 'firebase/firestore'; // Import setDoc and doc
+import { db } from '../config/firebase'; // Ensure you import Firestore instance
 
 const SignUpForm = () => {
     const [studentNo, setStudentNo] = useState("");
