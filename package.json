@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "firebase": "^10.14.0"
+    "firebase": "^10.14.0",
+    "react-scroll": "^1.9.0"
   }
 }

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import './MyItems.css'; // Make sure to create this CSS file with the appropriate styles
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import "./MyItems.css"; // Make sure to create this CSS file with the appropriate styles
 
 const MyItemsPage = () => {
   const [notificationCount, setNotificationCount] = useState(0);
@@ -18,9 +18,15 @@ const MyItemsPage = () => {
           <h1 className="brand-name">Lost and Found</h1>
         </div>
         <nav className="nav-links">
-          <Link to="/" className="nav-link">Home</Link>
-          <Link to="/lost-items" className="nav-link">Lost Items</Link>
-          <Link to="/my-items" className="nav-link active">My Items</Link>
+          <Link to="/" className="nav-link">
+            Home
+          </Link>
+          <Link to="/lost-items" className="nav-link">
+            Lost Items
+          </Link>
+          <Link to="/my-items" className="nav-link active">
+            My Items
+          </Link>
         </nav>
         <button className="notification-bell" onClick={handleNotificationClick}>
           <img src="bell.png" alt="Notification" />

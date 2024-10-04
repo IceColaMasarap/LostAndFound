@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom'; // Import Link
-import '../styling/homepage.css';
+import React, { useState } from "react";
+import { Link } from "react-router-dom"; // Import Link
+import "../styling/homepage.css";
 
 const HomePage = () => {
   // State variables for lost and found items
@@ -12,14 +12,17 @@ const HomePage = () => {
 
   // Function to simulate a new report
   const issueReport = () => {
-    setLostItemsCount(prevCount => prevCount + 1); 
-    setNotificationCount(prevCount => prevCount + 1); // Increase notification count
-    setNotifications(prevNotifications => [...prevNotifications, `New report for lost item ${lostItemsCount + 1}`]);
+    setLostItemsCount((prevCount) => prevCount + 1);
+    setNotificationCount((prevCount) => prevCount + 1); // Increase notification count
+    setNotifications((prevNotifications) => [
+      ...prevNotifications,
+      `New report for lost item ${lostItemsCount + 1}`,
+    ]);
   };
 
   // Function to toggle the notification bar visibility
   const toggleNotification = () => {
-    setIsNotificationVisible(prevState => !prevState);
+    setIsNotificationVisible((prevState) => !prevState);
   };
 
   return (
@@ -30,13 +33,19 @@ const HomePage = () => {
           <h1 className="brand-name">Lost and Found</h1>
         </div>
         <nav className="nav-links">
-          <Link to="/" className="nav-link active">Home</Link>
-          <Link to="/lost-items" className="nav-link">Lost Items</Link>
-          <Link to="/my-items" className="nav-link">My Items</Link>
+          <Link to="/" className="nav-link active">
+            Home
+          </Link>
+          <Link to="/lost-items" className="nav-link">
+            Lost Items
+          </Link>
+          <Link to="/my-items" className="nav-link">
+            My Items
+          </Link>
         </nav>
-        <button 
-          className="notification-bell" 
-          onClick={toggleNotification} 
+        <button
+          className="notification-bell"
+          onClick={toggleNotification}
           title={`${notificationCount} notifications`}
           aria-label="Notifications"
         >
@@ -48,9 +57,7 @@ const HomePage = () => {
       {isNotificationVisible && (
         <div className="notification-bar">
           {notifications.length > 0 ? (
-            notifications.map((notif, index) => (
-              <p key={index}>{notif}</p>
-            ))
+            notifications.map((notif, index) => <p key={index}>{notif}</p>)
           ) : (
             <p>No new notifications</p>
           )}
@@ -61,7 +68,9 @@ const HomePage = () => {
         <div className="text-section">
           <h2 className="main-heading">The lost items are in DO’s hands.</h2>
           <p className="main-subheading">
-            Welcome to our page, the easy way to manage lost and found items on campus. Quickly report and locate missing belongings, helping students reconnect with their items.
+            Welcome to our page, the easy way to manage lost and found items on
+            campus. Quickly report and locate missing belongings, helping
+            students reconnect with their items.
           </p>
         </div>
 
