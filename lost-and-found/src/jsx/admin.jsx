@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../config/firebase'; // Make sure to import your Firebase configuration
+import { useNavigate } from 'react-router-dom'; // Import useNavigate from React Router
+import { db, auth } from '../config/firebase'; // Make sure to import your Firebase configuration
 import { collection, getDocs } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 
 function Admin() {
   const [foundItems, setFoundItems] = useState([]);
+  const navigate = useNavigate(); // Initialize useNavigate for redirection
 
   // Fetch data from Firestore when the component loads
   useEffect(() => {
@@ -26,6 +29,15 @@ function Admin() {
     fetchFoundItems(); // Call the function
   }, []);
 
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login'); // Redirect to /login after successful logout
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div>
       <h1>Found Items</h1>
@@ -40,6 +52,13 @@ function Admin() {
           </li>
         ))}
       </ul>
+
+      <div>
+        <button>Generate code</button>
+        <p>123</p>
+
+        <button onClick={logout}>Logout</button>
+      </div>
     </div>
   );
 }
