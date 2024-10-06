@@ -295,7 +295,7 @@ function ReportFoundItem() {
                     <h1>{code}</h1>
                     <p>Admin needs to confirm this code.</p>
                     <button onClick={prevStep}>Previous</button>
-                    <button onClick={nextStep} disabled={!confirmed && !field} >Next</button>
+                    <button onClick={nextStep} disabled={!confirmed} >Next</button>
                 </div>
             )}
 
