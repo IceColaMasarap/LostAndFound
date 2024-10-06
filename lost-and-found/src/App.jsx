@@ -10,6 +10,7 @@ import ReportFoundItem from "./jsx/ReportFoundItem.jsx";
 import PrivateRoute from "./config/PrivateRoute.jsx";
 import PublicRoute from "./config/PublicRoute.jsx";
 import AdminPage from "./admin/mainpage.jsx";
+import ReportLostItem from "./jsx/ReportLostItem.jsx";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/login" element={<Login />}></Route>
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/report-lost-item" element={<ReportLostItem />} />
             <Route
               path="/report-found-item"
               element={
