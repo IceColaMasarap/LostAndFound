@@ -1,55 +1,57 @@
 import React, { createContext, useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth"; 
-import { auth } from "./firebase"; // Import Firebase auth configuration
-import PropTypes from 'prop-types';
-// Rename this function to avoid conflict
-export const AuthComponent = () => {
-  return (
-    <div>auth</div>
-  );
-};
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "./firebase"; // Ensure Firestore is imported
+import { doc, getDoc } from "firebase/firestore";
+import PropTypes from "prop-types";
 
-// Create the context with default values
+// Create the AuthContext with default values
 export const AuthContext = createContext({
-    user: null,
-    isLoading: true,
+  user: null,
+  isLoading: true,
 });
 
 // Create the AuthProvider component
 export const AuthProvider = ({ children }) => {
-    // Manage user and loading state
-    const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true); // to handle loading state
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // to handle loading state
 
-    // Use effect to listen for auth state changes
-    useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        console.log("User detected:", user); // Add this to verify user detection
-        if (user) {
+  // Use effect to listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("User detected:", user); // Add this to verify user detection
+      if (user) {
+        // Fetch additional user details from Firestore
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          // Set user details including Firestore data
           setUser({
             id: user.uid,
-            name: user.displayName || "Anonymous",
-            email: user.email || "",
+            name: userDoc.data().firstName + " " + userDoc.data().lastName,
+            email: user.email,
+            contact: userDoc.data().contact, // Fetch contact from Firestore
           });
-        } else {
-          setUser(null);
         }
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
-    }, []);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
 
-    // Value passed to the provider's consumers
-    const value = {
-      user,
-      isLoading,
-    };
+    return () => unsubscribe();
+  }, []);
 
-    return (
-      <AuthContext.Provider value={value}>
-        {!isLoading && children}
-      </AuthContext.Provider>
-    );
+  // Value passed to the provider's consumers
+  const value = {
+    user,
+    isLoading,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!isLoading && children}
+    </AuthContext.Provider>
+  );
 };
 
 // Define PropTypes for prop validation
