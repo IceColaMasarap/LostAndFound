@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../config/firebase'; // Import your db and Firebase Storage instance
-import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'; // Import doc, setDoc, getDoc from Firestore
+import { doc, setDoc, onSnapshot } from 'firebase/firestore'; // Import Firestore methods
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
 
 function ReportFoundItem() {
     const [step, setStep] = useState(1);
-    const [category, setCategory] = useState(''); 
+    const [category, setCategory] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(false);
-    const [code, setCode] = useState(''); 
-    const [otherCategory, setOtherCategory] = useState(''); 
+    const [code, setCode] = useState('');
+    const [otherCategory, setOtherCategory] = useState('');
     const [contactNumber, setContactNumber] = useState('');
     const [brand, setBrand] = useState('');
     const [color, setColor] = useState('');
@@ -28,7 +28,7 @@ function ReportFoundItem() {
         setCode(generatedCode);
         console.log("Generated Code: ", generatedCode);
 
-        // Save the code with confirmed status as false initially
+        // Save only the code and confirmed status as false initially
         const initialData = {
             code: generatedCode,
             confirmed: false
@@ -41,31 +41,31 @@ function ReportFoundItem() {
         }
     };
 
+    // Generate code once the user reaches step 3
     useEffect(() => {
         if (step === 3 && !code) {
-            generateCode(); // Generate code when the user reaches step 3
+            generateCode();
         }
     }, [step, code]);
 
-
-    // Real-time confirmation status listener (Optional)
+    // Real-time confirmation status listener
     useEffect(() => {
         if (step === 4 && code) {
             const docRef = doc(db, "FoundItems", code);
             const unsubscribe = onSnapshot(docRef, (doc) => {
                 const data = doc.data();
-                if (data && data.confirmed) {
-                    setConfirmed(data.confirmed);
-                    console.log("Code confirmed in real-time");
+                if (data && data.confirmed && !confirmed) {
+                    // If the code is confirmed, submit the full form data
+                    setConfirmed(true);
+                    submitFullFormToFirestore();  // Automatically submit form when confirmed
+                    console.log("Form data automatically sent after admin confirmation");
                 }
             });
-
-            // Cleanup listener when unmounting
             return () => unsubscribe();
         }
     }, [step, code]);
 
-    // Upload image to Firebase Storage and get the download URL
+    // Handle image upload
     const handleImageUpload = async (file) => {
         if (!file) return;
         setUploading(true);
@@ -93,15 +93,15 @@ function ReportFoundItem() {
         );
     };
 
-    // Handle image file change
+    // Handle image change
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         setImage(file); // Store the selected image file
         handleImageUpload(file); // Upload the image file
     };
 
-    // Submit the full form to Firestore after step 3
-    const submitFormToFirestore = async () => {
+    // Submit the full form to Firestore after confirmation
+    const submitFullFormToFirestore = async () => {
         const formData = {
             category: category === 'Other' ? otherCategory : category,
             contactNumber,
@@ -110,24 +110,23 @@ function ReportFoundItem() {
             dateFound,
             locationFound,
             imageUrl,  // Store the download URL of the image
-            name: user?.name,   // Use the name from Firestore (firstName + lastName)
-            email: user?.email,  // Use the authenticated user's email
-            confirmed: false // Still waiting for admin confirmation
+            name: user?.name,   // Use the authenticated user's name
+            email: user?.email, // Use the authenticated user's email
+            confirmed: true     // The item is now confirmed
         };
 
         try {
-            // Update the document with the generated code and form data
             await setDoc(doc(db, "FoundItems", code), formData, { merge: true });
-            console.log("Form data submitted to Firestore after step 3.");
+            console.log("Full form data submitted to Firestore after confirmation.");
         } catch (error) {
             console.error("Error submitting form data:", error);
         }
     };
 
-    // Move to the next step, ensuring form data is sent after step 3
+    // Move to the next step
     const nextStep = async () => {
         if (step === 3) {
-            await submitFormToFirestore(); // Submit form data after step 3
+            // Move to step 4 and listen for confirmation
             setStep(4);
         } else if (step === 4) {
             if (confirmed) {
@@ -266,7 +265,7 @@ function ReportFoundItem() {
                         onChange={(e) => setLocationFound(e.target.value)}
                         required
                     />
-                    <label htmlFor="ImageInp">Upload Image:</label>
+                    <label htmlFor="ImageInp">Upload Image (optional):</label>
                     <input
                         type="file"
                         id="ImageInp"
@@ -275,9 +274,18 @@ function ReportFoundItem() {
                     />
                     {uploading && <p>Uploading image...</p>}
                     <button onClick={prevStep}>Previous</button>
-                    <button onClick={nextStep} disabled={uploading}>Next</button>
+                    {/* Disable "Next" if any required field is empty */}
+                    <button
+                        onClick={nextStep}
+                        disabled={
+                            !contactNumber || !brand || !color || !dateFound || !locationFound || uploading
+                        }
+                    >
+                        Next
+                    </button>
                 </div>
             )}
+
 
             {step === 4 && (
                 <div className="step4">
@@ -287,8 +295,7 @@ function ReportFoundItem() {
                     <h1>{code}</h1>
                     <p>Admin needs to confirm this code.</p>
                     <button onClick={prevStep}>Previous</button>
-                    {/* Disable the Next button if the code is not confirmed */}
-                    <button onClick={nextStep} disabled={!confirmed}>Next</button>
+                    <button onClick={nextStep} disabled={!confirmed && !field} >Next</button>
                 </div>
             )}
 
