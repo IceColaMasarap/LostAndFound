@@ -1,7 +1,62 @@
 import "./Admin.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import React, { useState } from "react"; // Ensure useState is imported from React
+import { setDoc, collectionGroup, query, where, getDocs } from "firebase/firestore";
+import { db } from "../config/firebase";
+import { ToastContainer, toast } from "react-toastify"; 
+import "react-toastify/dist/ReactToastify.css"; 
+
 function Dashboard() {
+
+
+  const [inputCode, setInputCode] = useState(""); 
+  const [message, setMessage] = useState(""); 
+
+
+  const handleCodeInput = (e) => {
+    setInputCode(e.target.value);
+  };
+
+  // Fetch the correct document by querying for inputCode across all users
+  const fetchItem = async () => {
+    try {
+      // Use collectionGroup to search across all "FoundItems" subcollections
+      const foundItemsQuery = query(
+        collectionGroup(db, "FoundItems"),
+        where("code", "==", inputCode) // Match the input code
+      );
+      const querySnapshot = await getDocs(foundItemsQuery);
+
+      if (!querySnapshot.empty) {
+        const docSnapshot = querySnapshot.docs[0]; 
+        const data = docSnapshot.data();
+
+        // Automatically confirm the item (set confirmed to true)
+        await confirmItem(docSnapshot.ref);
+        toast.success("Reported found item received successfully!");
+      } else {
+        setMessage("No matching item found for the given code.");
+      }
+    } catch (error) {
+      console.error("Error fetching document: ", error);
+      setMessage("Error fetching item. Please try again.");
+    }
+  };
+
+  // Confirm the item and update the Firestore document
+
+   const confirmItem = async (docRef) => {
+    try {
+      setInputCode("");
+      await setDoc(docRef, { confirmed: true }, { merge: true }); 
+    } catch (error) {
+      console.error("Error updating confirmation status:", error);
+      toast.error("Error confirming the item. Please try again.");
+    }
+  };
+
+
   return (
     <>
       <div className="adminnavbar">
@@ -10,8 +65,14 @@ function Dashboard() {
           <p>Welcome to NU Lost and Found!</p>
         </div>
         <div>
-          <input className="entercode" maxLength={6} placeholder="ENTER CODE" />
-          <button className="codebtn" id="entercodebtn">
+        <input
+            className="entercode"
+            maxLength={6}
+            placeholder="ENTER CODE"
+            value={inputCode}
+            onChange={handleCodeInput}
+          />
+          <button className="codebtn" id="entercodebtn" onClick={fetchItem}>
             <FontAwesomeIcon icon={faCheck} />
           </button>
         </div>
@@ -71,6 +132,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      <ToastContainer /> {/* Add the ToastContainer to render the toasts */}
     </>
   );
 }

@@ -22,6 +22,8 @@ function ReportFoundItem() {
 
     const { user, isLoading } = useAuth(); // Get the authenticated user's data and loading state
 
+
+
     useEffect(() => {
         if (user) {
             console.log('Authenticated user:', user);
@@ -134,7 +136,7 @@ function ReportFoundItem() {
     const submitFullFormToFirestore = async () => {
         const formData = {
             category: category === 'Other' ? otherCategory : category,
-            contactNumber,
+            contactNumber: user?.contact, 
             brand,
             color,
             dateFound,
@@ -259,14 +261,37 @@ function ReportFoundItem() {
                 <div className="step3">
                     <h2>REPORT A FOUND ITEM</h2>
                     <h3>Response Form</h3>
+                   
+                    <label htmlFor="NameInp">Name:</label>
+                    <input
+                        type="text"
+                        id="NameInp"
+                        value={user?.name}
+                        
+                        readOnly
+                        required
+                    />
+                  
+                    <label htmlFor="EmailInp">Email:</label>
+                    <input
+                        type="text"
+                        id="EmailInp"
+                        value={user?.email}
+                        
+                        readOnly
+                        required
+                    />              
+
                     <label htmlFor="ContactNumInp">Contact Number:</label>
                     <input
                         type="text"
                         id="ContactNumInp"
-                        value={contactNumber}
-                        onChange={(e) => setContactNumber(e.target.value)}
-                        required
+                        value={user?.contact}
+                        readOnly
+                        required                       
                     />
+
+
                     <label htmlFor="BrandInp">Brand:</label>
                     <input
                         type="text"
@@ -310,7 +335,7 @@ function ReportFoundItem() {
                     <button onClick={prevStep}>Previous</button>
                     <button
                         onClick={nextStep}
-                        disabled={!contactNumber || !brand || !color || !dateFound || !locationFound || uploading}
+                        disabled={ !brand || !color || !dateFound || !locationFound }
                     >
                         Next
                     </button>
