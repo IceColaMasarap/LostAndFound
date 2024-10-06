@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { db, storage } from '../config/firebase'; // Import your db and Firebase Storage instance
-import { doc, setDoc, onSnapshot } from 'firebase/firestore'; // Import Firestore methods
+import { db, storage } from '../config/firebase'; // Import Firebase instance
+import { doc, setDoc, onSnapshot } from 'firebase/firestore'; // Firestore methods
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
 
@@ -20,27 +20,48 @@ function ReportFoundItem() {
     const [uploading, setUploading] = useState(false); // To track upload status
     const [confirmed, setConfirmed] = useState(false); // To track code confirmation status
 
-    const { user } = useAuth(); // Get the authenticated user's data (email, name, etc.)
+    const { user, isLoading } = useAuth(); // Get the authenticated user's data and loading state
+
+    useEffect(() => {
+        if (user) {
+            console.log('Authenticated user:', user);
+        }
+    }, [user]);
+
+    // Check for loading or unauthenticated user
+    if (isLoading) {
+        return <div>Loading...</div>; // Add a loading state to ensure you're not trying to access the user too early
+    }
+
+    if (!user) {
+        return <div>User not authenticated. Please log in.</div>;
+    }
 
     // Generate the unique code and send it to Firestore with "confirmed: false"
+
     const generateCode = async () => {
+        if (!user || !user.id) {  // Use user.id instead of user.uid
+            console.error("User is not authenticated or UID is missing.");
+            return;
+        }
+
         const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         setCode(generatedCode);
         console.log("Generated Code: ", generatedCode);
 
-        // Save only the code and confirmed status as false initially
         const initialData = {
             code: generatedCode,
             confirmed: false
         };
+
         try {
-            await setDoc(doc(db, "FoundItems", generatedCode), initialData);
-            console.log("Initial code submitted with status false.");
+            // Use user.id to construct the Firestore path
+            await setDoc(doc(db, "users", user.id, "FoundItems", generatedCode), initialData);
+            console.log("Initial code submitted to user's FoundItems subcollection with status false.");
         } catch (error) {
             console.error("Error submitting initial code:", error);
         }
     };
-
     // Generate code once the user reaches step 3
     useEffect(() => {
         if (step === 3 && !code) {
@@ -51,19 +72,28 @@ function ReportFoundItem() {
     // Real-time confirmation status listener
     useEffect(() => {
         if (step === 4 && code) {
-            const docRef = doc(db, "FoundItems", code);
+            // Log the Firestore path being used
+            console.log("Listening to Firestore path: ", `users/${user.id}/FoundItems/${code}`);
+
+            const docRef = doc(db, "users", user.id, "FoundItems", code);
             const unsubscribe = onSnapshot(docRef, (doc) => {
-                const data = doc.data();
-                if (data && data.confirmed && !confirmed) {
-                    // If the code is confirmed, submit the full form data
-                    setConfirmed(true);
-                    submitFullFormToFirestore();  // Automatically submit form when confirmed
-                    console.log("Form data automatically sent after admin confirmation");
+                if (doc.exists()) {
+                    const data = doc.data();
+                    console.log("Received data: ", data); // Debug log
+                    if (data && data.confirmed && !confirmed) {
+                        setConfirmed(true);
+                        submitFullFormToFirestore();  // Automatically submit form when confirmed
+                        console.log("Form data automatically sent after admin confirmation");
+                    }
+                } else {
+                    console.log("Document does not exist.");
                 }
             });
+
             return () => unsubscribe();
         }
-    }, [step, code]);
+    }, [step, code, confirmed]);
+
 
     // Handle image upload
     const handleImageUpload = async (file) => {
@@ -83,7 +113,6 @@ function ReportFoundItem() {
                 setUploading(false);
             },
             () => {
-                // When upload is complete, get the download URL
                 getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
                     setImageUrl(downloadURL);
                     setUploading(false);
@@ -96,9 +125,10 @@ function ReportFoundItem() {
     // Handle image change
     const handleImageChange = (e) => {
         const file = e.target.files[0];
-        setImage(file); // Store the selected image file
-        handleImageUpload(file); // Upload the image file
+        setImage(file);
+        handleImageUpload(file);
     };
+
 
     // Submit the full form to Firestore after confirmation
     const submitFullFormToFirestore = async () => {
@@ -116,8 +146,10 @@ function ReportFoundItem() {
         };
 
         try {
-            await setDoc(doc(db, "FoundItems", code), formData, { merge: true });
-            console.log("Full form data submitted to Firestore after confirmation.");
+            const userDocRef = doc(db, "users", user.id);  // Use `user.uid` instead of `user.id`
+            console.log("Submitting form for code: ", code); // Debugging code
+            await setDoc(doc(userDocRef, "FoundItems", code), formData, { merge: true });
+            console.log("Full form data submitted to Firestore under the user's FoundItems subcollection.");
         } catch (error) {
             console.error("Error submitting form data:", error);
         }
@@ -126,22 +158,20 @@ function ReportFoundItem() {
     // Move to the next step
     const nextStep = async () => {
         if (step === 3) {
-            // Move to step 4 and listen for confirmation
             setStep(4);
         } else if (step === 4) {
             if (confirmed) {
-                setStep(5); // Proceed to step 5 only if the code is confirmed
+                setStep(5);  // Proceed to step 5 only if the code is confirmed
             } else {
                 alert("Your code is not yet confirmed by the admin. Please wait for confirmation.");
             }
         } else {
-            setStep(step + 1); // For other steps, proceed as normal
+            setStep(step + 1);
         }
     };
 
-    // Define prevStep to handle moving back steps
     const prevStep = () => {
-        setStep(step - 1); // Move to the previous step
+        setStep(step - 1);
     };
 
     return (
@@ -212,12 +242,16 @@ function ReportFoundItem() {
                                     placeholder="Other category"
                                     value={otherCategory}
                                     onChange={(e) => setOtherCategory(e.target.value)}
+                                    required // Ensure this field is mandatory when "Other" is selected
                                 />
                             )}
                         </label>
                     </form>
                     <button onClick={prevStep}>Previous</button>
-                    <button onClick={nextStep} disabled={!category}>Next</button>
+                    <button
+                        onClick={nextStep}
+                        disabled={!category || (category === 'Other' && !otherCategory)} // Disable button if "Other" is selected and no input is provided
+                    >Next </button>
                 </div>
             )}
 
@@ -274,18 +308,14 @@ function ReportFoundItem() {
                     />
                     {uploading && <p>Uploading image...</p>}
                     <button onClick={prevStep}>Previous</button>
-                    {/* Disable "Next" if any required field is empty */}
                     <button
                         onClick={nextStep}
-                        disabled={
-                            !contactNumber || !brand || !color || !dateFound || !locationFound || uploading
-                        }
+                        disabled={!contactNumber || !brand || !color || !dateFound || !locationFound || uploading}
                     >
                         Next
                     </button>
                 </div>
             )}
-
 
             {step === 4 && (
                 <div className="step4">
@@ -295,7 +325,7 @@ function ReportFoundItem() {
                     <h1>{code}</h1>
                     <p>Admin needs to confirm this code.</p>
                     <button onClick={prevStep}>Previous</button>
-                    <button onClick={nextStep} disabled={!confirmed} >Next</button>
+                    <button onClick={nextStep} disabled={!confirmed}>Next</button>
                 </div>
             )}
 

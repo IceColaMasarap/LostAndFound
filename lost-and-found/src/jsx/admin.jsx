@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { setDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore'; // Import collectionGroup
 import { db } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -11,24 +11,30 @@ function Admin() {
 
   const navigate = useNavigate();
 
-  // Fetch the correct document from Firestore using the code and confirm it
+  // Fetch the correct document by querying for inputCode across all users
   const fetchItem = async () => {
     try {
-      const docRef = doc(db, "FoundItems", inputCode); 
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const data = snapshot.data();
+      // Use collectionGroup to search across all "FoundItems" subcollections
+      const foundItemsQuery = query(
+        collectionGroup(db, 'FoundItems'),
+        where('code', '==', inputCode) // Match the input code
+      );
+      const querySnapshot = await getDocs(foundItemsQuery);
+
+      if (!querySnapshot.empty) {
+        const docSnapshot = querySnapshot.docs[0]; // Assuming we use the first match
+        const data = docSnapshot.data();
         setFoundItem(data);
 
         // Automatically confirm the item (set confirmed to true)
-        await confirmItem(docRef);
+        await confirmItem(docSnapshot.ref);
+        setMessage('Reported found item received successfully!');
       } else {
-        console.error("No matching document found!");
-        setMessage("No matching item found for the given code.");
+        setMessage('No matching item found for the given code.');
       }
     } catch (error) {
-      console.error("Error fetching document: ", error);
-      setMessage("Error fetching item. Please try again.");
+      console.error('Error fetching document: ', error);
+      setMessage('Error fetching item. Please try again.');
     }
   };
 
@@ -36,10 +42,10 @@ function Admin() {
   const confirmItem = async (docRef) => {
     try {
       await setDoc(docRef, { confirmed: true }, { merge: true });
-      setMessage("Reported found item received successfully!");
+      setMessage('Reported found item received successfully!');
     } catch (error) {
-      console.error("Error updating confirmation status:", error);
-      setMessage("Error confirming the item. Please try again.");
+      console.error('Error updating confirmation status:', error);
+      setMessage('Error confirming the item. Please try again.');
     }
   };
 
@@ -74,8 +80,6 @@ function Admin() {
           <p>{message}</p>
         </div>
       )}
-
-  
 
       <button onClick={logout}>Logout</button>
     </div>
