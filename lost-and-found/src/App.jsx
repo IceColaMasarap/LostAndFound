@@ -10,6 +10,7 @@ import ReportFoundItem from "./jsx/ReportFoundItem.jsx";
 import PrivateRoute from "./config/PrivateRoute.jsx";
 import PublicRoute from "./config/PublicRoute.jsx";
 import AdminPage from "./admin/mainpage.jsx";
+import ReportLostItem from "./jsx/ReportLostItem.jsx";
 
 function App() {
   return (
