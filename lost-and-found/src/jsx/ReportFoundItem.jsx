@@ -1,189 +1,276 @@
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from 'react';
+import { db, storage } from '../config/firebase'; // Import your db and Firebase Storage instance
+import { doc, setDoc } from 'firebase/firestore'; // Import doc and setDoc directly from Firestore
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
+import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
 
 function ReportFoundItem() {
-    // State to manage the step of the form
     const [step, setStep] = useState(1);
-    const [category, setCategory] = useState('');
+    const [category, setCategory] = useState(''); 
     const [termsAccepted, setTermsAccepted] = useState(false);
-  
-    // Function to move to the next step
+    const [code, setCode] = useState(''); 
+    const [otherCategory, setOtherCategory] = useState(''); 
+    const [contactNumber, setContactNumber] = useState('');
+    const [brand, setBrand] = useState('');
+    const [color, setColor] = useState('');
+    const [dateFound, setDateFound] = useState('');
+    const [locationFound, setLocationFound] = useState('');
+    const [image, setImage] = useState(null); // Store image locally
+    const [imageUrl, setImageUrl] = useState(''); // To store the download URL
+    const [uploading, setUploading] = useState(false); // To track upload status
+
+    const { user } = useAuth(); // Get the authenticated user's data (email, name, etc.)
+
+    // Generate the unique code and send it to Firestore with "confirmed: false"
+    const generateCode = async () => {
+        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+        setCode(generatedCode);
+        console.log("Generated Code: ", generatedCode);
+
+        // Save the code with confirmed status as false initially
+        const initialData = {
+            code: generatedCode,
+            confirmed: false
+        };
+        try {
+            await setDoc(doc(db, "FoundItems", generatedCode), initialData);
+            console.log("Initial code submitted with status false.");
+        } catch (error) {
+            console.error("Error submitting initial code:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (step === 3 && !code) {
+            generateCode(); // Generate code when the user reaches step 3
+        }
+    }, [step, code]);
+
+    // Upload image to Firebase Storage and get the download URL
+    const handleImageUpload = async (file) => {
+        if (!file) return;
+        setUploading(true);
+        const storageRef = ref(storage, `foundItems/${code}/${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log(`Upload is ${progress}% done`);
+            },
+            (error) => {
+                console.error('Error uploading image:', error);
+                setUploading(false);
+            },
+            () => {
+                // When upload is complete, get the download URL
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                    setImageUrl(downloadURL);
+                    setUploading(false);
+                    console.log('Image available at:', downloadURL);
+                });
+            }
+        );
+    };
+
+    // Handle image file change
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        setImage(file); // Store the selected image file
+        handleImageUpload(file); // Upload the image file
+    };
+
+    // Submit the full form to Firestore after admin confirmation
+    const handleSubmitAfterAdminConfirm = async () => {
+        const fullFormData = {
+            category: category === 'Other' ? otherCategory : category,
+            contactNumber,
+            brand,
+            color,
+            dateFound,
+            locationFound,
+            imageUrl,  // Store the download URL of the image
+            name: user?.name,   // Use the name from Firestore (firstName + lastName)
+            email: user?.email,  // Use the authenticated user's email
+            confirmed: true // Mark confirmed after admin approval
+        };
+
+        try {
+            // Update the document with the code and full form data
+            await setDoc(doc(db, "FoundItems", code), fullFormData, { merge: true });
+            console.log("Full data updated after admin confirmation.");
+        } catch (error) {
+            console.error("Error updating form data after admin confirmation:", error);
+        }
+    };
+
     const nextStep = () => {
-      setStep(step + 1);
+        if (step === 4) {
+            handleSubmitAfterAdminConfirm(); // Submit data after confirmation by admin
+        }
+        setStep(step + 1); // Move to the next step
     };
-  
-    // Function to move to the previous step
+
     const prevStep = () => {
-      setStep(step - 1);
+        setStep(step - 1);
     };
-  
 
-    
     return (
-      <div className="report-found-item-container">
-        {step === 1 && (
-          <div className="step1">
-            <h2>REPORT A FOUND ITEM</h2>
-            <p> Terms and Conditions</p>
-            <p>We appreciate your willingness to turn in the items you've found. By providing your information, you agree to these terms...</p>
-            <label>
-              <input
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={() => setTermsAccepted(!termsAccepted)}
-              />
-              I understand and agree.
-            </label>
-            <button disabled={!termsAccepted} onClick={nextStep}>Next</button> {/**disabled={!termsAccepted}: The button is disabled (cannot be clicked) unless termsAccepted is true.  */}
-          </div>
-        )}
-  
-        {step === 2 && (
-          <div className="step2">
-            <h2>REPORT A FOUND ITEM</h2>
-            <h3>Step 2: Choose Category</h3>
-            <form>
-              <label>
-                <input
-                  type="radio"
-                  name="category"
-                  value="Personal Belonging"
-                  onChange={(e) => setCategory(e.target.value)}
-                />
-                Personal Belonging (Wallet, Bag, etc.)
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="category"
-                  value="Electronics"
-                  onChange={(e) => setCategory(e.target.value)}
-                />
-                Electronics (Phones, Laptop, etc.)
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="category"
-                  value="Documents"
-                  onChange={(e) => setCategory(e.target.value)}
-                />
-                Documents (ID, Cards, etc.)
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="category"
-                  value="Other"
-                  onChange={(e) => setCategory(e.target.value)}
-                />
-                Other (Specify)
-                <input type="text" placeholder="Other category" />
-              </label>
-            </form>
-            <button onClick={prevStep}>Previous</button>
-            <button onClick={nextStep} disabled={!category}>Next</button>
-          </div>
-        )}
+        <div className="report-found-item-container">
+            {step === 1 && (
+                <div className="step1">
+                    <h2>REPORT A FOUND ITEM</h2>
+                    <p> Terms and Conditions</p>
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={() => setTermsAccepted(!termsAccepted)}
+                        />
+                        I understand and agree.
+                    </label>
+                    <button disabled={!termsAccepted} onClick={nextStep}>Next</button>
+                </div>
+            )}
 
+            {step === 2 && (
+                <div className="step2">
+                    <h2>REPORT A FOUND ITEM</h2>
+                    <h3>Step 2: Choose Category</h3>
+                    <form>
+                        <label>
+                            <input
+                                type="radio"
+                                name="category"
+                                value="Personal Belonging"
+                                checked={category === "Personal Belonging"}
+                                onChange={(e) => setCategory(e.target.value)}
+                            />
+                            Personal Belonging (Wallet, Bag, etc.)
+                        </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="category"
+                                value="Electronics"
+                                checked={category === "Electronics"}
+                                onChange={(e) => setCategory(e.target.value)}
+                            />
+                            Electronics (Phones, Laptop, etc.)
+                        </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="category"
+                                value="Documents"
+                                checked={category === "Documents"}
+                                onChange={(e) => setCategory(e.target.value)}
+                            />
+                            Documents (ID, Cards, etc.)
+                        </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="category"
+                                value="Other"
+                                checked={category === "Other"}
+                                onChange={(e) => setCategory(e.target.value)}
+                            />
+                            Other (Specify)
+                            {category === 'Other' && (
+                                <input
+                                    type="text"
+                                    placeholder="Other category"
+                                    value={otherCategory}
+                                    onChange={(e) => setOtherCategory(e.target.value)}
+                                />
+                            )}
+                        </label>
+                    </form>
+                    <button onClick={prevStep}>Previous</button>
+                    <button onClick={nextStep} disabled={!category}>Next</button>
+                </div>
+            )}
 
-  
-        {/* Add more steps here as per your requirements */}
-  
-        {step === 3 && (
-  <div className="step3">
-    <h2>REPORT A FOUND ITEM</h2>
-    <h3>Response Form</h3>
-    <div className="form-container">
-      
-      <label htmlFor="ContactNumInp">Contact Number:</label>    
-      <input 
-        type="text" 
-        id="ContactNumInp" 
-        required 
-      />
-      
-      <label htmlFor="BrandInp">Brand:</label>  
-      <input 
-        type="text" 
-        id="BrandInp" 
-        required 
-      />
-      
-      <label htmlFor="ColorInp">Color:</label>    
-      <input 
-        type="text" 
-        id="ColorInp"  
-        required 
-      />
-      
-      <label htmlFor="DateFoundInp">Date Found:</label>  
-      <input 
-        type="date" 
-        id="DateFoundInp" 
-        required 
-      />
-      
-      <label htmlFor="LocationFoundInp">Location Found:</label>    
-      <input 
-        type="text" 
-        id="LocationFoundInp" 
-        required 
-      />
-      
-      <label htmlFor="imageUpload">Upload Image:</label>
-      <input 
-        type="file" 
-        id="imageUpload" 
-        className="btn" 
-        accept="image/*" 
-        required
-      />
-    </div>
-    
-    <button onClick={prevStep}>Previous</button>
-    <button onClick={nextStep}>Next</button>
-  </div>
-)}
+            {step === 3 && (
+                <div className="step3">
+                    <h2>REPORT A FOUND ITEM</h2>
+                    <h3>Response Form</h3>
+                    <label htmlFor="ContactNumInp">Contact Number:</label>
+                    <input
+                        type="text"
+                        id="ContactNumInp"
+                        value={contactNumber}
+                        onChange={(e) => setContactNumber(e.target.value)}
+                        required
+                    />
+                    <label htmlFor="BrandInp">Brand:</label>
+                    <input
+                        type="text"
+                        id="BrandInp"
+                        value={brand}
+                        onChange={(e) => setBrand(e.target.value)}
+                        required
+                    />
+                    <label htmlFor="ColorInp">Color:</label>
+                    <input
+                        type="text"
+                        id="ColorInp"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        required
+                    />
+                    <label htmlFor="DateFoundInp">Date Found:</label>
+                    <input
+                        type="date"
+                        id="DateFoundInp"
+                        value={dateFound}
+                        onChange={(e) => setDateFound(e.target.value)}
+                        required
+                    />
+                    <label htmlFor="LocationFoundInp">Location Found:</label>
+                    <input
+                        type="text"
+                        id="LocationFoundInp"
+                        value={locationFound}
+                        onChange={(e) => setLocationFound(e.target.value)}
+                        required
+                    />
+                    <label htmlFor="ImageInp">Upload Image:</label>
+                    <input
+                        type="file"
+                        id="ImageInp"
+                        onChange={handleImageChange}
+                        accept="image/*"
+                    />
+                    {uploading && <p>Uploading image...</p>}
+                    <button onClick={prevStep}>Previous</button>
+                    <button onClick={nextStep} disabled={uploading}>Next</button>
+                </div>
+            )}
 
-    {step === 4 && (
-          <div className="step4">
-            <h2>REPORT A FOUND ITEM</h2>
-            <p> PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO 
-             SURRENDER FOUND ITEMS.   
-            </p>
-            <p>Show the Code</p>
-            <h1> * * *  * </h1>
+            {step === 4 && (
+                <div className="step4">
+                    <h2>REPORT A FOUND ITEM</h2>
+                    <p> PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO SURRENDER FOUND ITEMS. </p>
+                    <p>Show the Code</p>
+                    <h1>{code}</h1>
+                    <p>Admin needs to confirm this code.</p>
+                    <button onClick={prevStep}>Previous</button>
+                    <button onClick={nextStep}>Next</button>
+                </div>
+            )}
 
-            {/* You can add more form fields here */}
-            <button onClick={prevStep}>Previous</button>
-            <button onClick={nextStep}>Next</button>
-          </div>
-        )}   
-
-{step === 5 && (
-          <div className="step5">
-            <h2>REPORT A FOUND ITEM</h2>            
-            <h3>Thank You!  
-            </h3>
-            <p>Your honesty and effort will greatly assist the owner
-            in retrieving their belongings. We appreciate your
-            kindness and support!</p>
- 
-
-            {/* You can add more form fields here */}
-            <button onClick={prevStep}>Previous</button>
-            <button onClick={nextStep}>Next</button>
-          </div>
-        )}   
-
-      </div>
+            {step === 5 && (
+                <div className="step5">
+                    <h2>REPORT A FOUND ITEM</h2>
+                    <h3>Thank You!</h3>
+                    <p>Your honesty and effort will greatly assist the owner...</p>
+                </div>
+            )}
+        </div>
     );
+}
 
-    
-
-
-
-  }
-  
-  export default ReportFoundItem;
+export default ReportFoundItem;
