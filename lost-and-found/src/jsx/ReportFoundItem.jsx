@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../config/firebase'; // Import your db and Firebase Storage instance
-import { doc, setDoc } from 'firebase/firestore'; // Import doc and setDoc directly from Firestore
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'; // Import doc, setDoc, getDoc from Firestore
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
 
@@ -18,6 +18,7 @@ function ReportFoundItem() {
     const [image, setImage] = useState(null); // Store image locally
     const [imageUrl, setImageUrl] = useState(''); // To store the download URL
     const [uploading, setUploading] = useState(false); // To track upload status
+    const [confirmed, setConfirmed] = useState(false); // To track code confirmation status
 
     const { user } = useAuth(); // Get the authenticated user's data (email, name, etc.)
 
@@ -43,6 +44,24 @@ function ReportFoundItem() {
     useEffect(() => {
         if (step === 3 && !code) {
             generateCode(); // Generate code when the user reaches step 3
+        }
+    }, [step, code]);
+
+
+    // Real-time confirmation status listener (Optional)
+    useEffect(() => {
+        if (step === 4 && code) {
+            const docRef = doc(db, "FoundItems", code);
+            const unsubscribe = onSnapshot(docRef, (doc) => {
+                const data = doc.data();
+                if (data && data.confirmed) {
+                    setConfirmed(data.confirmed);
+                    console.log("Code confirmed in real-time");
+                }
+            });
+
+            // Cleanup listener when unmounting
+            return () => unsubscribe();
         }
     }, [step, code]);
 
@@ -81,9 +100,9 @@ function ReportFoundItem() {
         handleImageUpload(file); // Upload the image file
     };
 
-    // Submit the full form to Firestore after admin confirmation
-    const handleSubmitAfterAdminConfirm = async () => {
-        const fullFormData = {
+    // Submit the full form to Firestore after step 3
+    const submitFormToFirestore = async () => {
+        const formData = {
             category: category === 'Other' ? otherCategory : category,
             contactNumber,
             brand,
@@ -93,27 +112,37 @@ function ReportFoundItem() {
             imageUrl,  // Store the download URL of the image
             name: user?.name,   // Use the name from Firestore (firstName + lastName)
             email: user?.email,  // Use the authenticated user's email
-            confirmed: true // Mark confirmed after admin approval
+            confirmed: false // Still waiting for admin confirmation
         };
 
         try {
-            // Update the document with the code and full form data
-            await setDoc(doc(db, "FoundItems", code), fullFormData, { merge: true });
-            console.log("Full data updated after admin confirmation.");
+            // Update the document with the generated code and form data
+            await setDoc(doc(db, "FoundItems", code), formData, { merge: true });
+            console.log("Form data submitted to Firestore after step 3.");
         } catch (error) {
-            console.error("Error updating form data after admin confirmation:", error);
+            console.error("Error submitting form data:", error);
         }
     };
 
-    const nextStep = () => {
-        if (step === 4) {
-            handleSubmitAfterAdminConfirm(); // Submit data after confirmation by admin
+    // Move to the next step, ensuring form data is sent after step 3
+    const nextStep = async () => {
+        if (step === 3) {
+            await submitFormToFirestore(); // Submit form data after step 3
+            setStep(4);
+        } else if (step === 4) {
+            if (confirmed) {
+                setStep(5); // Proceed to step 5 only if the code is confirmed
+            } else {
+                alert("Your code is not yet confirmed by the admin. Please wait for confirmation.");
+            }
+        } else {
+            setStep(step + 1); // For other steps, proceed as normal
         }
-        setStep(step + 1); // Move to the next step
     };
 
+    // Define prevStep to handle moving back steps
     const prevStep = () => {
-        setStep(step - 1);
+        setStep(step - 1); // Move to the previous step
     };
 
     return (
@@ -258,7 +287,8 @@ function ReportFoundItem() {
                     <h1>{code}</h1>
                     <p>Admin needs to confirm this code.</p>
                     <button onClick={prevStep}>Previous</button>
-                    <button onClick={nextStep}>Next</button>
+                    {/* Disable the Next button if the code is not confirmed */}
+                    <button onClick={nextStep} disabled={!confirmed}>Next</button>
                 </div>
             )}
 
