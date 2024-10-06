@@ -1,0 +1,179 @@
+.mainbody {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: #e8e8e8;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  height: 100vh;
+  border-right: 2.5px solid #bbbcbe38;
+  width: 250px;
+  align-items: center; /* Center items horizontally */
+}
+
+.logo2 {
+  width: 150px;
+  height: auto;
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+.sidebar li,
+ul {
+  align-self: flex-start;
+  margin-bottom: 15px;
+}
+.sidebar a {
+  color: black;
+  font-family: "Poppins";
+  font-weight: 600;
+}
+.sidebar a:hover {
+  color: #35408f;
+  font-family: "Poppins";
+  font-weight: 600;
+}
+
+.sidebar .FontAwesomeIcon {
+  margin-right: 10px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take up the remaining space */
+  overflow-y: auto; /* Allow scrolling if content overflows */
+  padding: 0;
+}
+.adminnavbar {
+  width: 100%;
+  background-color: white;
+  margin: 0;
+  height: 90px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adminnavbar p {
+  margin: 0;
+  margin-left: 30px;
+  color: black;
+  text-shadow: none;
+  font-family: "Poppins";
+}
+
+.header {
+  font-weight: 500;
+  font-size: 25px;
+}
+
+.adminnavbar input {
+  height: 45px;
+  width: 150px;
+  border-radius: 8px;
+  background-color: white;
+  border: 2.5px solid #e8e8e8;
+  margin-right: 10px;
+  text-align: center;
+  font-family: "Poppins";
+  font-size: large;
+  letter-spacing: 10px;
+  color: black;
+}
+
+.adminnavbar input::placeholder {
+  color: #bbbcbe;
+  letter-spacing: normal;
+  font-size: medium;
+}
+
+.adminnavbar button {
+  background-color: #00aeff;
+  margin-right: 20px;
+}
+
+.dashboardbody {
+  background-color: #e8e8e8;
+  width: 100%;
+  flex: 1;
+  padding: 30px;
+}
+.panels {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30%;
+  height: 250px;
+  background: linear-gradient(170deg, #00aeff, #35408f); /* Blue gradient */
+  padding: 30px;
+  border-radius: 15px;
+}
+
+.panel p {
+  font-family: "Poppins";
+  text-shadow: none;
+}
+
+.panelh2 {
+  font-style: bold;
+  font-size: 90px;
+}
+.panelp {
+  font-style: bold;
+  font-size: 28px;
+}
+.ptag {
+  text-shadow: none;
+  color: #2f2f2f;
+  font-family: "Poppins";
+  font-size: large;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.table-container {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  border: 2px solid #35408f; /* Outer border color */
+  overflow: hidden; /* To ensure rounded corners are visible */
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse; /* Collapses table borders */
+  outline: 2px solid #35408f; /* Add outline around the table */
+}
+
+.report-table thead {
+  background-color: #35408f; /* Header background color */
+  color: white; /* Header text color */
+}
+
+.report-table th,
+.report-table td {
+  font-family: "Poppins";
+  padding: 12px; /* Cell padding */
+  text-align: left; /* Align text to the left */
+  border-bottom: 1px solid lightgray; /* Bottom border for cells */
+}
+.report-table th {
+  padding: 12px; /* Cell padding */
+  text-align: center; /* Align text to the left */
+  border-bottom: 1px solid lightgray; /* Bottom border for cells */
+  font-weight: normal; /* Change header text to normal (not bold) */
+  font-size: large;
+}
+.report-table td {
+  color: #464646;
+  background-color: white;
+  outline: 1px solid #35408f; /* Outline for body cells */
+}

@@ -3,6 +3,8 @@ import logo from "../assets/nulogo.svg";
 import notif from "../assets/notif.svg";
 import img1 from "../assets/info-1-1.png";
 import img2 from "../assets/info-2-2.png";
+import Report1_Img from "../assets/Report1_Img.png";
+import Report2_Img from "../assets/Report2_Img.png";
 
 function Homepage2() {
   return (
@@ -12,11 +14,14 @@ function Homepage2() {
           <img src={logo} alt="NU Logo" className="logo" />
           <label>NU LOST AND FOUND DASMARIÑAS</label>
         </div>
-        <nav className="nav">
-          <a href="#body1">Home</a>
-          <a href="#body2">Memorandum</a>
-          <a href="#body3">Report</a>
-        </nav>
+        <div className="navs">
+          <nav className="nav">
+            <a href="#body1">Home</a>
+            <a href="#body2">Memorandum</a>
+            <a href="#body3">Report</a>
+          </nav>
+        </div>
+
         <img src={notif} alt="NU Logo" className="notif" />
       </div>
       <div className="sections">
@@ -93,28 +98,44 @@ function Homepage2() {
           <img src={img2} alt="NU Logo" className="large" id="large2" />
         </div>
 
-        <div id="body3" className="body3">
-          <img src={img1} alt="NU Logo" className="large" />
+        <div id="body4" className="body3">
+          <img src={Report1_Img} alt="NU Logo" className="large" />
           <div className="paragraphs2">
             <h1 className="text" id="h5">
-              Memorandum for the Disposal of Found Items.
+              Report an Item that you Found.
             </h1>
+            <p>
+              When reporting a found item, please follow the necessary steps
+              below to help us identify the item and the person who surrendered
+              it.
+            </p>
             <ul className="h4" id="text">
-              <li>
-                Unclaimed property that easily decays, releases odor, or is
-                perishable will be disposed of within 48 hours. Proper
-                documentation, such as a picture, will be provided.
-              </li>
-              <li>
-                Unclaimed non-perishable property will be disposed of after the
-                end of the academic year.
-              </li>
-              <li>
-                All items shredded or disposed of must be recorded in the Lost
-                and Found Property Logbook.
-              </li>
+              <li>Please read the Terms and Conditions.</li>
+              <li>Describe the item you found.</li>
+              <li>Fill out the Response Form.</li>
             </ul>
+            <button className="ReportFoundbtn">Report a Found Item</button>
           </div>
+        </div>
+
+        <div id="body3" className="body3">
+          <div className="paragraphs5">
+            <h1 className="text" id="h5">
+              Report an Item that you Lost.
+            </h1>
+            <p>
+              When reporting a missing item, please follow the necessary steps
+              below to help us identify you and check for matching items based
+              on your description.
+            </p>
+            <ul className="h4" id="text">
+              <li>Please read the Terms and Conditions.</li>
+              <li>Describe the item you lost.</li>
+              <li>Fill out the Response Form.</li>
+            </ul>
+            <button className="ReportFoundbtn">Report a Missing Item</button>
+          </div>
+          <img src={Report2_Img} alt="NU Logo" className="large" id="large2" />
         </div>
       </div>
     </div>

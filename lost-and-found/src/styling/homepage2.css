@@ -5,7 +5,7 @@
 }
 /* Apply white background to the main container */
 body {
-  background-image: url("../assets/background2.png");
+  background-image: url("../assets/background3.png");
   background-size: cover; /* Ensures the image covers the entire div */
   background-position: center;
   background-repeat: no-repeat;
@@ -42,22 +42,48 @@ html {
   z-index: 100; /* Ensure it's on top of other elements */
   border-bottom: 5px solid #ffd41f; /* Yellow bottom border */
 }
-
-.nav {
+.navs {
   position: absolute; /* Absolute positioning */
   left: 50%; /* Center the nav horizontally */
   transform: translateX(-50%); /* Adjust to account for the element's width */
   display: flex; /* Use flexbox for layout */
-  justify-content: center; /* Center the links horizontally */
+  justify-content: space-between; /* Center the links horizontally */
   align-items: center; /* Vertically center items */
   gap: 15px; /* Space between links */
 }
+.nav {
+  position: relative; /* Needed for the positioning of child elements */
+}
 
 .nav a {
-  color: white;
-  text-decoration: none;
-  padding: 10px;
-  font-size: 18px;
+  position: relative; /* Required for the pseudo-element */
+  color: rgb(255, 255, 255); /* Default text color */
+  text-decoration: none; /* Remove default underline */
+  margin: 7px;
+  font-family: "Poppins";
+  padding: 5px 0; /* Space for the underline effect */
+  display: inline-block; /* Required for proper spacing */
+}
+
+.nav a:hover {
+  color: #6ce5e8; /* Change text color on hover */
+}
+
+.nav a::after {
+  content: ""; /* Required for pseudo-element */
+  position: absolute; /* Position it below the text */
+  left: 0;
+  bottom: -3px; /* Adjust for spacing below the text */
+  width: 100%; /* Full width of the text */
+  height: 2px; /* Height of the underline */
+  border-radius: 5px;
+  background: #6ce5e8; /* Color of the underline */
+  transform: scaleX(0); /* Start with no width */
+  transition: transform 0.3s ease; /* Smooth transition */
+}
+
+.nav a:hover::after {
+  transform: scaleX(1); /* Full width on hover */
 }
 
 .start {
@@ -187,6 +213,9 @@ p {
   font-family: "Poppins";
 }
 
+#body4 {
+  border-top: 5px solid #36408e;
+}
 .body3 {
   display: flex;
   padding-top: 60px;
@@ -195,16 +224,36 @@ p {
   width: 100vw;
   justify-content: center;
   align-items: center;
-  background-image: url("../assets/background3.png");
-  background-size: cover; /* Ensures the image covers the entire div */
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: aliceblue;
 }
 
+.body3 h1 {
+  font-family: "Poppins";
+  color: black;
+  margin-bottom: 20px;
+}
+.body3 p {
+  font-family: "Poppins";
+  color: black;
+  text-shadow: none;
+  font-size: larger;
+}
+
+.body3 button {
+  background-color: #36408e;
+  font-family: "Poppins";
+}
+.body3 ul {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
 .body3 li {
-  color: white;
+  margin: 0;
+  font-size: large;
+  font-family: "Poppins";
 }
 
-#h5 {
-  color: white;
+.paragraphs5 {
+  margin-left: 10%;
+  padding-right: 20px;
 }
