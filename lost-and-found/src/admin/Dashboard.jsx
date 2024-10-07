@@ -2,17 +2,20 @@ import "./Admin.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import React, { useState } from "react"; // Ensure useState is imported from React
-import { setDoc, collectionGroup, query, where, getDocs } from "firebase/firestore";
+import {
+  setDoc,
+  collectionGroup,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
-import { ToastContainer, toast } from "react-toastify"; 
-import "react-toastify/dist/ReactToastify.css"; 
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function Dashboard() {
-
-
-  const [inputCode, setInputCode] = useState(""); 
-  const [message, setMessage] = useState(""); 
-
+  const [inputCode, setInputCode] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleCodeInput = (e) => {
     setInputCode(e.target.value);
@@ -29,7 +32,7 @@ function Dashboard() {
       const querySnapshot = await getDocs(foundItemsQuery);
 
       if (!querySnapshot.empty) {
-        const docSnapshot = querySnapshot.docs[0]; 
+        const docSnapshot = querySnapshot.docs[0];
         const data = docSnapshot.data();
 
         // Automatically confirm the item (set confirmed to true)
@@ -46,16 +49,15 @@ function Dashboard() {
 
   // Confirm the item and update the Firestore document
 
-   const confirmItem = async (docRef) => {
+  const confirmItem = async (docRef) => {
     try {
       setInputCode("");
-      await setDoc(docRef, { confirmed: true }, { merge: true }); 
+      await setDoc(docRef, { confirmed: true }, { merge: true });
     } catch (error) {
       console.error("Error updating confirmation status:", error);
       toast.error("Error confirming the item. Please try again.");
     }
   };
-
 
   return (
     <>
@@ -65,7 +67,7 @@ function Dashboard() {
           <p>Welcome to NU Lost and Found!</p>
         </div>
         <div>
-        <input
+          <input
             className="entercode"
             maxLength={6}
             placeholder="ENTER CODE"
@@ -77,7 +79,6 @@ function Dashboard() {
           </button>
         </div>
       </div>
-
       <div className="dashboardbody">
         <div className="panels">
           <div className="panel">

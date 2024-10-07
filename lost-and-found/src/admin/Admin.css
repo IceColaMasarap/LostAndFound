@@ -53,6 +53,7 @@ ul {
   background-color: white;
   margin: 0;
   height: 90px;
+  min-height: 90px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -176,4 +177,126 @@ ul {
   color: #464646;
   background-color: white;
   outline: 1px solid #35408f; /* Outline for body cells */
+}
+
+.categoryx {
+  display: flex;
+  align-items: center;
+}
+.categoryx p {
+  margin-right: 15px;
+}
+
+.categoryx button {
+  background-color: #e8e8e8;
+  color: rgb(49, 49, 49);
+  font-size: small;
+}
+.categorybutton {
+  height: 30px;
+  font-family: "Poppins";
+  border-radius: 25px;
+  padding: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.adminh2 {
+  color: black;
+  font-family: "Poppins";
+  margin-right: 25px;
+  font-size: 2.8em;
+  font-weight: 500;
+}
+.containerlostdata {
+  padding: 30px;
+  width: 100%;
+}
+.lostitemcontainer {
+  width: 100%;
+  display: flex;
+  background-color: white;
+  border-radius: 25px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.132);
+  justify-self: center;
+}
+.lostitemcontainer hr {
+  margin: 0;
+  width: 100%;
+}
+.lostitembody {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+}
+.lostitembody1 {
+  display: flex;
+  flex-direction: row;
+}
+.lostitemimg {
+  width: 180px;
+  height: 180px;
+  background-color: #e6e6e6;
+  border-radius: 25px;
+  align-self: center;
+}
+.lostitemtop {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1.2px solid #bbbcbe;
+  align-items: center;
+}
+.lostitemcontainer label {
+  color: #2f2f2f;
+  font-family: "Poppins";
+  margin: 0;
+}
+
+label.lostitemlabel {
+  font-weight: 800px;
+  color: rgb(53, 53, 53);
+  font-size: 1.2em;
+}
+
+.lostitempanel1 {
+  display: flex;
+  width: 200px;
+  margin-right: 20px;
+  flex-direction: column;
+}
+.lostitempanel2 {
+  display: flex;
+  width: 200px;
+  margin-right: 20px;
+  flex-direction: column;
+}
+label.lostitemlabel2 {
+  color: #bbbcbe;
+  font-size: 0.7em;
+  margin: 0;
+}
+label.lostitemlabel {
+  color: #222222;
+  font-size: 1.5em;
+  font-weight: 900px;
+}
+.lostitemicon {
+  width: 30px;
+  height: auto;
+  margin-left: 8px;
+}
+
+.lostitemimg2 {
+  width: 35px;
+  padding: 5px;
+  height: 35px;
+  background-color: #35408f;
+  margin-bottom: 5px;
+}
+
+.sidebar svg {
+  width: 30px;
 }
