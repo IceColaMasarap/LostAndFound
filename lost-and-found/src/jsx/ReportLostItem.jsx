@@ -29,7 +29,9 @@ function ReportLostItem() {
 
   const [image, setImage] = useState(null); // State to store the uploaded image
   const [imageUrl, setImageUrl] = useState(""); // State to store the image URL after upload
-
+  const user = auth.currentUser;
+  const uid = user.uid;
+  const userDocRef = doc(db, "users", uid);
   //Gets user info and displays them in text field at step 3
   useEffect(() => {
     const user = auth.currentUser;
@@ -83,20 +85,24 @@ function ReportLostItem() {
   };
 
   // Save the lost item details to Firestore
-  const saveLostItem = async () => {
-    try {
-      const uploadedImageUrl = await uploadImage(); // First, upload the image
-      const newItemData = {
-        category: category === "Other" ? otherCategory : category,
-        brand: itemDetails.brand,
-        color: itemDetails.color,
-        dateFound: itemDetails.dateFound,
-        timeFound: itemDetails.timeFound,
-        locationFound: itemDetails.locationFound,
-        imageUrl: uploadedImageUrl, // Store the image URL
-        userId: auth.currentUser.uid, // Optional: Store the user ID who reported the item
-      };
-      await addDoc(collection(db, "lostItems"), newItemData); // Save data in Firestore
+const saveLostItem = async () => {
+  try {
+    const uploadedImageUrl = await uploadImage(); // First, upload the image
+    const newItemData = {
+      category: category === "Other" ? otherCategory : category,
+      brand: itemDetails.brand,
+      color: itemDetails.color,
+      dateFound: itemDetails.dateFound,
+      timeFound: itemDetails.timeFound,
+      locationFound: itemDetails.locationFound,
+      imageUrl: uploadedImageUrl, // Store the image URL
+      userDetails: {  // Save user details (name, email, contact number)
+        name: userData.name, 
+        email: userData.email,
+        contactNumber: userData.contactNumber,
+      },
+    };
+      await addDoc(collection(userDocRef, "lostItems"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step
     } catch (error) {
       console.error("Error adding document: ", error);
