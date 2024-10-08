@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../config/firebase'; // Import Firebase instance
-import { doc, setDoc, onSnapshot, collection, addDoc, Timestamp  } from 'firebase/firestore'; // Ensure addDoc and collection are imported
+import { doc, setDoc, onSnapshot, collection, addDoc, getDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
 
@@ -25,8 +25,8 @@ function ReportFoundItem() {
     const [docId, setDocId] = useState("");
     const [generatedCode, setGeneratedCode] = useState("");  // Store the generated code for display
     const { user, isLoading } = useAuth(); // Get the authenticated user's data and loading state
-
-
+    const [codeExpired, setCodeExpired] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(30);
 
 
 
@@ -45,34 +45,69 @@ function ReportFoundItem() {
         return <div>User not authenticated. Please log in.</div>;
     }
 
-    // Generate the unique code and send it to Firestore with "confirmed: false"
+
+    // Function to generate a code and handle auto-deletion after 30 seconds
     const generateCode = async () => {
-        if (!user || !user.id) {
-            console.error("User is not authenticated or UID is missing.");
-            return;
-        }
-
-        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();  // Generate a random code
-        setGeneratedCode(generatedCode);  // Store the generated code for display in UI
-        console.log("Generated Code: ", generatedCode);
-
+        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedCode(generatedCode);
+        setCodeExpired(false);  // Reset expired status on new generation
+        setTimeLeft(30);  // Reset countdown
+        setConfirmed(false);  // Reset confirmation status
+    
         const initialData = {
-            code: generatedCode,  // Store generated code in Firestore, but not as the document ID
-            confirmed: false
+            code: generatedCode,
+            confirmed: false,
+            createdAt: Timestamp.now(),
         };
-
+    
         try {
-            // Create a new document with an auto-generated unique ID in the user's FoundItems subcollection
             const docRef = await addDoc(collection(db, "users", user.id, "FoundItems"), initialData);
-
-            // Store the Firestore-generated document ID for Firestore operations
             setDocId(docRef.id);
-            console.log("Unique document ID:", docRef.id);  // Log the auto-generated document ID
-            console.log("Initial code submitted to user's FoundItems subcollection with status false.");
+    
+            // Start countdown and check confirmation every second
+            const interval = setInterval(async () => {
+                setTimeLeft((prevTime) => {
+                    if (prevTime <= 1) {
+                        clearInterval(interval); // Stop interval once timer hits 0
+                        // If the code is not confirmed when the timer hits 0, expire it
+                        expireCode(docRef.id);
+                    }
+                    return prevTime - 1;
+                });
+    
+                // Continuously check if the code is confirmed
+                const snapshot = await getDoc(doc(db, "users", user.id, "FoundItems", docRef.id));
+                if (snapshot.exists() && snapshot.data().confirmed) {
+                    clearInterval(interval);  // Stop countdown if code is confirmed
+                    setConfirmed(true);  // Code confirmed
+                    setCodeExpired(false);  // Code should not expire
+                }
+            }, 1000); // Check every second
         } catch (error) {
-            console.error("Error submitting initial code:", error);
+            console.error("Error generating or deleting code:", error);
         }
     };
+    
+    // Function to expire the code
+    const expireCode = async (docId) => {
+        try {
+            const snapshot = await getDoc(doc(db, "users", user.id, "FoundItems", docId));
+            if (snapshot.exists() && !snapshot.data().confirmed) {
+                await deleteDoc(doc(db, "users", user.id, "FoundItems", docId));
+                setCodeExpired(true);  // Mark code as expired
+            }
+        } catch (error) {
+            console.error("Error expiring code:", error);
+        }
+    };
+
+ 
+
+    useEffect(() => {
+        if (!generatedCode && !codeExpired) {
+            generateCode();
+        }
+    }, [generatedCode, codeExpired]);
 
 
     // Generate code once the user reaches step 3
@@ -149,7 +184,9 @@ function ReportFoundItem() {
     const submitFullForm = async () => {
         const formData = {
             category: category === 'Other' ? otherCategory : category,
-            contactNumber: user?.contact,
+            contactNumber: user?.contact,        
+            Name: user?.name,     
+            Email: user?.email,     
             objectName,
             brand,
             color,
@@ -377,15 +414,31 @@ function ReportFoundItem() {
             )}
 
             {step === 4 && (
-                <div className="step4">
-                    <h2>REPORT A FOUND ITEM</h2>
-                    <p> PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO SURRENDER FOUND ITEMS. </p>
-                    <p>Show the Code</p>
-                    <h1>{generatedCode}</h1> {/* Display the manually generated code here */}
-                    <p>Admin needs to confirm this code.</p>
-                    <button onClick={prevStep}>Previous</button>
-                    <button onClick={nextStep} disabled={!confirmed}>Next</button>
-                </div>
+          <div className="step4">
+          <h2>REPORT A FOUND ITEM</h2>
+          <p>PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO SURRENDER FOUND ITEMS.</p>
+          <p>Show the Code</p>
+          <div>
+            {codeExpired ? (
+              <div>
+                <p>Code expired. Please generate a new code.</p>
+                <button onClick={generateCode}>Generate New Code</button>
+              </div>
+            ) : confirmed ? (
+              <div>
+                <p>Code confirmed</p>
+              </div>
+            ) : (
+              <div>
+                <p>Time left before code expires: {timeLeft} seconds</p>
+                <h1>{generatedCode}</h1>
+                <p>Admin needs to confirm this code.</p>
+              </div>
+            )}
+          </div>
+          <button onClick={prevStep} disabled={confirmed}>Previous</button>
+          <button onClick={nextStep} disabled={!confirmed}>Next</button>
+        </div>
             )}
 
             {step === 5 && (

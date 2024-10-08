@@ -1,10 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
-
+import { db } from "../config/firebase"; // Import Firebase config
+import { collection, onSnapshot } from "firebase/firestore"; 
 function LostItems() {
+  const [lostItems, setLostItems] = useState([]);
+  
+ // Fetch lost items from Firestore
+ useEffect(() => {
+  const fetchItems = onSnapshot(collection(db, "FoundItems"), (snapshot) => {
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    setLostItems(items); // Set the lost items to state
+  });
+
+  return () => fetchItems(); // Cleanup the listener on unmount
+}, []);
+
+
   return (
     <>
       <div className="adminnavbar">
@@ -62,6 +76,28 @@ function LostItems() {
           </div>
         </div>
       </div>
+
+      <div className="lost-items-container">
+      {lostItems.length > 0 ? (
+        lostItems.map((item) => (
+          <div key={item.id} className="lost-item-card">
+            <h3>Item Details</h3>
+            <p><strong>Category:</strong> {item.category}</p>
+            <p><strong>Name:</strong> {item.Name}</p>
+            <p><strong>Brand:</strong> {item.brand}</p>
+            <p><strong>Color:</strong> {item.color}</p>
+            <p><strong>Date Found:</strong> {item.dateFound}</p>
+            <p><strong>Time Found:</strong> {item.timeFound}</p>
+            <p><strong>Location Found:</strong> {item.locationFound}</p>
+            <p><strong>Email:</strong> {item.Email}</p>
+            <p><strong>Contact Number:</strong> {item.contactNumber}</p>
+          </div>
+        ))
+      ) : (
+        <p>No lost items found</p>
+      )}
+    </div>
+
     </>
   );
 }
