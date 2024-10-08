@@ -313,3 +313,10 @@ label.lostitemlabel {
 .sidebar svg {
   width: 30px;
 }
+
+input[type="date"] {
+  width: auto; 
+  height: 40px;  
+  padding: 0px;  
+  font-size: 16px;  
+} 
