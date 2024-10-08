@@ -59,7 +59,6 @@ function Dashboard() {
   useEffect(() => {
     // Listen for updates in the "lostItems" collection
     const foundItemsQuery = collectionGroup(db, "FoundItems");
-    const userQuery = collectionGroup(db, "users");
 
     // Set up a real-time listener
     const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
