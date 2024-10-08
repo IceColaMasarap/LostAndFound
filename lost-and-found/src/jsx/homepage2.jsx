@@ -18,6 +18,10 @@ function Homepage2() {
     navigate("/report-lost-item"); // Navigate to /report-lost-item
   };
 
+  const GoToReportFoundItem = () => {
+    navigate("/report-found-item"); // Navigate to /report-lost-item
+  };
+
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
 
@@ -154,7 +158,7 @@ function Homepage2() {
               <li>Describe the item you found.</li>
               <li>Fill out the Response Form.</li>
             </ul>
-            <button className="ReportFoundbtn">Report a Found Item</button>
+            <button className="ReportFoundbtn"onClick={GoToReportFoundItem} >Report a Found Item</button>
           </div>
         </div>
 
