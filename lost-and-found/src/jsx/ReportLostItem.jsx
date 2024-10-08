@@ -24,6 +24,7 @@ function ReportLostItem() {
     dateFound: "",
     locationFound: "",
     timeFound: "",
+    objectName: "",
   });
 
   const [image, setImage] = useState(null); // State to store the uploaded image
@@ -94,6 +95,7 @@ function ReportLostItem() {
         dateFound: itemDetails.dateFound,
         timeFound: itemDetails.timeFound,
         locationFound: itemDetails.locationFound,
+        objectName: itemDetails.objectName,
         imageUrl: uploadedImageUrl, // Store the image URL
         userDetails: {
           // Save user details (name, email, contact number)
@@ -114,7 +116,8 @@ function ReportLostItem() {
     itemDetails.color &&
     itemDetails.dateFound &&
     itemDetails.timeFound &&
-    itemDetails.locationFound;
+    itemDetails.locationFound &&
+    itemDetails.objectName;
 
   // Handle changes for category input
   const handleCategoryChange = (e) => {
@@ -168,10 +171,15 @@ function ReportLostItem() {
           <button disabled={!termsAccepted} onClick={() => setStep(step + 1)}>
             Next
           </button>
-          <button onClick={() => {
-  navigate("/homepage");
-  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100);
-}}>
+          <button
+            onClick={() => {
+              navigate("/homepage");
+              setTimeout(
+                () => window.scrollTo(0, document.body.scrollHeight),
+                100
+              );
+            }}
+          >
             Return to homepage
           </button>
         </div>
@@ -275,6 +283,18 @@ function ReportLostItem() {
                 readOnly
               />
             </label>
+
+            <label>Object Name:</label>
+            <input
+              type="text"
+              id="objectName"
+              value={itemDetails.objectName}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, objectName: e.target.value })
+              }
+              required
+              placeholder="Ex. Wallet, Watch, Glasses"
+            />
 
             {/* Editable Fields */}
             <label>Brand:</label>
