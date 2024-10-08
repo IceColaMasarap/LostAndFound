@@ -30,11 +30,11 @@ function ReportFoundItem() {
 
 
 
-    useEffect(() => {
+    /**useEffect(() => {
         if (user) {
-            console.log('Authenticated user:', user);
+            //console.log('Authenticated user:', user);
         }
-    }, [user]);
+    }, [user]); **/
 
     // Check for loading or unauthenticated user
     if (isLoading) {
@@ -103,11 +103,7 @@ function ReportFoundItem() {
 
  
 
-    useEffect(() => {
-        if (!generatedCode && !codeExpired) {
-            generateCode();
-        }
-    }, [generatedCode, codeExpired]);
+
 
 
     // Generate code once the user reaches step 3
