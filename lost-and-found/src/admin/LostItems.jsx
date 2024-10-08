@@ -1,9 +1,9 @@
 import React from "react";
 import "./Admin.css";
-import image from "../assets/logo.png";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
+
 function LostItems() {
   return (
     <>

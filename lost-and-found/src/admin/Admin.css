@@ -236,6 +236,7 @@ ul {
   display: flex;
   flex-direction: row;
 }
+
 .lostitemimg {
   width: 180px;
   height: 180px;
@@ -263,13 +264,20 @@ label.lostitemlabel {
 
 .lostitempanel1 {
   display: flex;
-  width: 200px;
+  width: 30%;
+  margin-right: 20px;
+  flex-direction: column;
+}
+
+.lostitempanel5 {
+  display: flex;
+  width: 50%;
   margin-right: 20px;
   flex-direction: column;
 }
 .lostitempanel2 {
   display: flex;
-  width: 200px;
+  width: 40%;
   margin-right: 20px;
   flex-direction: column;
 }
