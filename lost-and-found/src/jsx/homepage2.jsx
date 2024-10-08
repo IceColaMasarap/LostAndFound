@@ -6,12 +6,46 @@ import img2 from "../assets/info-2-2.png";
 import Report1_Img from "../assets/Report1_Img.png";
 import Report2_Img from "../assets/Report2_Img.png";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase"; // Import Firestore instance
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
+
 function Homepage2() {
   const navigate = useNavigate();
 
   const GoToReportLostItem = () => {
     navigate("/report-lost-item"); // Navigate to /report-lost-item
   };
+
+  const [loading, setLoading] = useState(true);
+  const [uid, setUid] = useState(null);
+
+  useEffect(() => {
+    // Fetch the current logged-in user using Firebase Auth
+    const fetchAuthenticatedUserUid = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser; // Get the current authenticated user
+
+      if (user) {
+        // Set the logged-in user's UID
+        setUid(user.uid);
+      } else {
+        console.log("No user is logged in");
+      }
+
+      setLoading(false);
+    };
+
+    fetchAuthenticatedUserUid();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && uid === "4skSWo0Ld2YnIZG1hGRaNQd3Kg72") {
+      // If the user's uid matches the admin uid, navigate to the admin page
+      navigate("/adminpage");
+    }
+  }, [loading, uid, navigate]);
 
   return (
     <div className="homepage-main">

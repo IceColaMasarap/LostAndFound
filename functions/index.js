@@ -1,38 +1,3 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-admin.initializeApp();
-
-// Function to delete old unconfirmed items every 10 seconds
-exports.deleteOldUnconfirmedItems = functions.pubsub
-  .schedule('every 10 seconds') // Schedule to run every 10 seconds
-  .onRun(async (context) => {
-    const db = admin.firestore();
-    const threshold = Date.now() - 10 * 1000; // 10 seconds ago
-
-    try {
-      const unconfirmedItemsQuery = await db
-        .collectionGroup('FoundItems')
-        .where('confirmed', '==', false)
-        .where('createdAt', '<=', new Date(threshold))
-        .get();
-
-      if (!unconfirmedItemsQuery.empty) {
-        const batch = db.batch();
-        unconfirmedItemsQuery.forEach((doc) => {
-          batch.delete(doc.ref);
-        });
-
-        await batch.commit();
-        console.log(`Deleted ${unconfirmedItemsQuery.size} old unconfirmed items.`);
-      } else {
-        console.log('No unconfirmed items to delete.');
-      }
-    } catch (error) {
-      console.error('Error deleting old unconfirmed items:', error);
-    }
-  });
-
-
 /**
  * Import function triggers from their respective submodules:
  *
@@ -44,6 +9,28 @@ exports.deleteOldUnconfirmedItems = functions.pubsub
 
 const {onRequest} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+
+admin.initializeApp();
+
+// Cloud function to assign admin role
+exports.addAdminRole = functions.https.onCall((data, context) => {
+  // Get the user and add custom claim (admin)
+  return admin.auth().getUserByEmail(data.email)
+    .then(user => {
+      return admin.auth().setCustomUserClaims(user.uid, {
+        admin: true,
+      });
+    })
+    .then(() => {
+      return { message: `Success! ${data.email} has been made an admin.` };
+    })
+    .catch(err => {
+      return { error: err.message };
+    });
+});
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started

@@ -2,7 +2,50 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../config/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { useEffect } from "react";
+import { db } from './firebase';  // Import Firestore instance from firebase.js
+
 import "../styling/login.css";
+
+const FetchUserRole = () => {
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        // Reference to the specific document in the 'users' collection
+        const docRef = doc(db, "users", "4skSWo0Ld2YnIZG1hGRaNQd3Kg72");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          // Accessing the 'Role' field from the document
+          const userData = docSnap.data();
+          setRole(userData.Role); // Set the role value in state
+        } else {
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div>
+      <h1>User Role: {role}</h1>
+    </div>
+  );
+};
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,7 +59,13 @@ const Login = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       console.log("Login Successfully");
-      navigate("/homepage"); // Trigger redirection to /admin
+
+      
+
+
+      navigate("/homepage"); 
+
+      // Trigger redirection to /admin
     } catch (err) {
       setError(err.message); // Handle error
       console.log(err);
