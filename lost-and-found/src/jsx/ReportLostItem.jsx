@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, storage } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import these for image upload
 import "../styling/App.css";
@@ -85,23 +84,24 @@ function ReportLostItem() {
   };
 
   // Save the lost item details to Firestore
-const saveLostItem = async () => {
-  try {
-    const uploadedImageUrl = await uploadImage(); // First, upload the image
-    const newItemData = {
-      category: category === "Other" ? otherCategory : category,
-      brand: itemDetails.brand,
-      color: itemDetails.color,
-      dateFound: itemDetails.dateFound,
-      timeFound: itemDetails.timeFound,
-      locationFound: itemDetails.locationFound,
-      imageUrl: uploadedImageUrl, // Store the image URL
-      userDetails: {  // Save user details (name, email, contact number)
-        name: userData.name, 
-        email: userData.email,
-        contactNumber: userData.contactNumber,
-      },
-    };
+  const saveLostItem = async () => {
+    try {
+      const uploadedImageUrl = await uploadImage(); // First, upload the image
+      const newItemData = {
+        category: category === "Other" ? otherCategory : category,
+        brand: itemDetails.brand,
+        color: itemDetails.color,
+        dateFound: itemDetails.dateFound,
+        timeFound: itemDetails.timeFound,
+        locationFound: itemDetails.locationFound,
+        imageUrl: uploadedImageUrl, // Store the image URL
+        userDetails: {
+          // Save user details (name, email, contact number)
+          name: userData.name,
+          email: userData.email,
+          contactNumber: userData.contactNumber,
+        },
+      };
       await addDoc(collection(userDocRef, "lostItems"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step
     } catch (error) {
@@ -167,6 +167,12 @@ const saveLostItem = async () => {
           </label>
           <button disabled={!termsAccepted} onClick={() => setStep(step + 1)}>
             Next
+          </button>
+          <button onClick={() => {
+  navigate("/homepage");
+  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100);
+}}>
+            Return to homepage
           </button>
         </div>
       )}
@@ -287,7 +293,9 @@ const saveLostItem = async () => {
               type="text"
               id="color"
               value={itemDetails.color}
-              onChange={(e) => setItemDetails({ ...itemDetails, color: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, color: e.target.value })
+              }
               required
               placeholder="Ex. red, blue, black"
             />
@@ -297,7 +305,9 @@ const saveLostItem = async () => {
               type="date"
               id="dateFound"
               value={itemDetails.dateFound}
-              onChange={(e) => setItemDetails({ ...itemDetails, dateFound: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, dateFound: e.target.value })
+              }
               required
             />
 
@@ -306,7 +316,9 @@ const saveLostItem = async () => {
               type="time"
               id="timeFound"
               value={itemDetails.timeFound}
-              onChange={(e) => setItemDetails({ ...itemDetails, timeFound: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, timeFound: e.target.value })
+              }
               required
             />
 
@@ -315,7 +327,12 @@ const saveLostItem = async () => {
               type="text"
               id="locationFound"
               value={itemDetails.locationFound}
-              onChange={(e) => setItemDetails({ ...itemDetails, locationFound: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({
+                  ...itemDetails,
+                  locationFound: e.target.value,
+                })
+              }
               required
               placeholder="Please include what floor"
             />
