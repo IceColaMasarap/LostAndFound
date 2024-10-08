@@ -2,15 +2,14 @@
   display: flex;
   width: 100vw;
   height: 100vh;
-  background-color: #e8e8e8;
+  background-color: #ffffff;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  background-color: white;
+  background-color: #eaf5ff;
   height: 100vh;
-  border-right: 2.5px solid #bbbcbe38;
   width: 250px;
   align-items: center; /* Center items horizontally */
 }
@@ -24,12 +23,14 @@
 .sidebar li,
 ul {
   align-self: flex-start;
+  list-style-type: none; /* Removes bullets */
   margin-bottom: 15px;
 }
 .sidebar a {
-  color: black;
+  color: rgb(0, 9, 29);
   font-family: "Poppins";
-  font-weight: 600;
+  font-weight: 400;
+  font-size: large;
 }
 .sidebar a:hover {
   color: #35408f;
@@ -50,10 +51,11 @@ ul {
 }
 .adminnavbar {
   width: 100%;
-  background-color: white;
+  background-color: #ffffff;
   margin: 0;
   height: 90px;
   min-height: 90px;
+  border-bottom: 2px solid #e8e8e8;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -99,7 +101,7 @@ ul {
 }
 
 .dashboardbody {
-  background-color: #e8e8e8;
+  background-color: #ffffff;
   width: 100%;
   flex: 1;
   padding: 30px;
@@ -222,16 +224,19 @@ ul {
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.132);
   justify-self: center;
 }
+
 .lostitemcontainer hr {
   margin: 0;
   width: 100%;
 }
+
 .lostitembody {
   width: 100%;
   display: flex;
   flex-direction: column;
   padding-left: 20px;
 }
+
 .lostitembody1 {
   display: flex;
   flex-direction: row;
