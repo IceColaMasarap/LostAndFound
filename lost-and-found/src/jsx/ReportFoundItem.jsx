@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../config/firebase'; // Import Firebase instance
-import { doc, setDoc, onSnapshot } from 'firebase/firestore'; // Firestore methods
+import { doc, setDoc, onSnapshot, collection, addDoc } from 'firebase/firestore'; // Ensure addDoc and collection are imported
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
+
 
 function ReportFoundItem() {
     const [step, setStep] = useState(1);
@@ -10,7 +11,8 @@ function ReportFoundItem() {
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [code, setCode] = useState('');
     const [otherCategory, setOtherCategory] = useState('');
-    const [contactNumber, setContactNumber] = useState('');
+
+    const [timeFound, setTimeFound] = useState('');
     const [brand, setBrand] = useState('');
     const [color, setColor] = useState('');
     const [dateFound, setDateFound] = useState('');
@@ -19,7 +21,8 @@ function ReportFoundItem() {
     const [imageUrl, setImageUrl] = useState(''); // To store the download URL
     const [uploading, setUploading] = useState(false); // To track upload status
     const [confirmed, setConfirmed] = useState(false); // To track code confirmation status
-
+    const [docId, setDocId] = useState("");
+    const [generatedCode, setGeneratedCode] = useState("");  // Store the generated code for display
     const { user, isLoading } = useAuth(); // Get the authenticated user's data and loading state
 
 
@@ -40,61 +43,68 @@ function ReportFoundItem() {
     }
 
     // Generate the unique code and send it to Firestore with "confirmed: false"
-
     const generateCode = async () => {
-        if (!user || !user.id) {  // Use user.id instead of user.uid
+        if (!user || !user.id) {
             console.error("User is not authenticated or UID is missing.");
             return;
         }
 
-        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-        setCode(generatedCode);
+        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();  // Generate a random code
+        setGeneratedCode(generatedCode);  // Store the generated code for display in UI
         console.log("Generated Code: ", generatedCode);
 
         const initialData = {
-            code: generatedCode,
+            code: generatedCode,  // Store generated code in Firestore, but not as the document ID
             confirmed: false
         };
 
         try {
-            // Use user.id to construct the Firestore path
-            await setDoc(doc(db, "users", user.id, "FoundItems", generatedCode), initialData);
+            // Create a new document with an auto-generated unique ID in the user's FoundItems subcollection
+            const docRef = await addDoc(collection(db, "users", user.id, "FoundItems"), initialData);
+
+            // Store the Firestore-generated document ID for Firestore operations
+            setDocId(docRef.id);
+            console.log("Unique document ID:", docRef.id);  // Log the auto-generated document ID
             console.log("Initial code submitted to user's FoundItems subcollection with status false.");
         } catch (error) {
             console.error("Error submitting initial code:", error);
         }
     };
+
+
     // Generate code once the user reaches step 3
     useEffect(() => {
-        if (step === 3 && !code) {
+        if (step === 4 && !code) {
             generateCode();
         }
     }, [step, code]);
 
+
     // Real-time confirmation status listener
     useEffect(() => {
-        if (step === 4 && code) {
-            // Log the Firestore path being used
-            console.log("Listening to Firestore path: ", `users/${user.id}/FoundItems/${code}`);
-
-            const docRef = doc(db, "users", user.id, "FoundItems", code);
+        if (step === 4 && docId) {
+            console.log("Listening to Firestore path:", `users/${user.id}/FoundItems/${docId}`);
+    
+            // Listen for real-time updates on the 'FoundItems' document with the Firestore-generated document ID
+            const docRef = doc(db, "users", user.id, "FoundItems", docId);  // Use the Firestore-generated document ID
             const unsubscribe = onSnapshot(docRef, (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
-                    console.log("Received data: ", data); // Debug log
+                    console.log("Received data:", data);
                     if (data && data.confirmed && !confirmed) {
                         setConfirmed(true);
-                        submitFullFormToFirestore();  // Automatically submit form when confirmed
+                        submitFullForm();  // Automatically submit form when confirmed
                         console.log("Form data automatically sent after admin confirmation");
                     }
                 } else {
                     console.log("Document does not exist.");
                 }
             });
-
-            return () => unsubscribe();
+    
+            return () => unsubscribe();  // Cleanup listener
         }
-    }, [step, code, confirmed]);
+    }, [step, docId, confirmed]);
+
 
 
     // Handle image upload
@@ -133,29 +143,30 @@ function ReportFoundItem() {
 
 
     // Submit the full form to Firestore after confirmation
-    const submitFullFormToFirestore = async () => {
-        const formData = {
-            category: category === 'Other' ? otherCategory : category,
-            contactNumber: user?.contact, 
-            brand,
-            color,
-            dateFound,
-            locationFound,
-            imageUrl,  // Store the download URL of the image
-            name: user?.name,   // Use the authenticated user's name
-            email: user?.email, // Use the authenticated user's email
-            confirmed: true     // The item is now confirmed
-        };
-
-        try {
-            const userDocRef = doc(db, "users", user.id);  // Use `user.uid` instead of `user.id`
-            console.log("Submitting form for code: ", code); // Debugging code
-            await setDoc(doc(userDocRef, "FoundItems", code), formData, { merge: true });
-            console.log("Full form data submitted to Firestore under the user's FoundItems subcollection.");
-        } catch (error) {
-            console.error("Error submitting form data:", error);
-        }
+const submitFullForm = async () => {
+    const formData = {
+        category: category === 'Other' ? otherCategory : category,
+        contactNumber: user?.contact,
+        brand,
+        color,
+        dateFound,
+        timeFound,
+        locationFound,
+        imageUrl,  // Store the download URL of the image
+        confirmed: true,
     };
+
+    try {
+        // Use the Firestore-generated document ID (docId) instead of code
+        const docRef = doc(db, "users", user.id, "FoundItems", docId);  // Correct path with Firestore document ID (docId)
+        console.log("Submitting form for document ID:", docId);
+        await setDoc(docRef, formData, { merge: true });  // Update the document with the full form data
+        console.log("Full form data submitted to Firestore under the user's FoundItems subcollection.");
+    } catch (error) {
+        console.error("Error submitting form data:", error);
+    }
+};
+
 
     // Move to the next step
     const nextStep = async () => {
@@ -177,6 +188,9 @@ function ReportFoundItem() {
     };
 
     return (
+        // FROM HERE TO BOTTOM KAYO GUMAWA NG CHANGES PAG GAGAWIN NYO YUNG UI
+        // FROM HERE TO BOTTOM KAYO GUMAWA NG CHANGES PAG GAGAWIN NYO YUNG UI
+        // FROM HERE TO BOTTOM KAYO GUMAWA NG CHANGES PAG GAGAWIN NYO YUNG UI
         <div className="report-found-item-container">
             {step === 1 && (
                 <div className="step1">
@@ -261,26 +275,26 @@ function ReportFoundItem() {
                 <div className="step3">
                     <h2>REPORT A FOUND ITEM</h2>
                     <h3>Response Form</h3>
-                   
+
                     <label htmlFor="NameInp">Name:</label>
                     <input
                         type="text"
                         id="NameInp"
                         value={user?.name}
-                        
+
                         readOnly
                         required
                     />
-                  
+
                     <label htmlFor="EmailInp">Email:</label>
                     <input
                         type="text"
                         id="EmailInp"
                         value={user?.email}
-                        
+
                         readOnly
                         required
-                    />              
+                    />
 
                     <label htmlFor="ContactNumInp">Contact Number:</label>
                     <input
@@ -288,7 +302,7 @@ function ReportFoundItem() {
                         id="ContactNumInp"
                         value={user?.contact}
                         readOnly
-                        required                       
+                        required
                     />
 
 
@@ -316,6 +330,15 @@ function ReportFoundItem() {
                         onChange={(e) => setDateFound(e.target.value)}
                         required
                     />
+                    <label>Time Found:</label>
+                    <label htmlFor="TimeFoundInp">Time Found:</label> {/* Added Time Found */}
+                    <input
+                        type="time"
+                        id="TimeFoundInp"
+                        value={timeFound}
+                        onChange={(e) => setTimeFound(e.target.value)} // Update timeFound value
+                        required
+                    />
                     <label htmlFor="LocationFoundInp">Location Found:</label>
                     <input
                         type="text"
@@ -335,7 +358,7 @@ function ReportFoundItem() {
                     <button onClick={prevStep}>Previous</button>
                     <button
                         onClick={nextStep}
-                        disabled={ !brand || !color || !dateFound || !locationFound }
+                        disabled={!brand || !color || !dateFound || !locationFound || !timeFound}
                     >
                         Next
                     </button>
@@ -347,7 +370,7 @@ function ReportFoundItem() {
                     <h2>REPORT A FOUND ITEM</h2>
                     <p> PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO SURRENDER FOUND ITEMS. </p>
                     <p>Show the Code</p>
-                    <h1>{code}</h1>
+                    <h1>{generatedCode}</h1> {/* Display the manually generated code here */}
                     <p>Admin needs to confirm this code.</p>
                     <button onClick={prevStep}>Previous</button>
                     <button onClick={nextStep} disabled={!confirmed}>Next</button>
