@@ -14,6 +14,7 @@ function ReportFoundItem() {
 
     const [timeFound, setTimeFound] = useState('');
     const [brand, setBrand] = useState('');
+    const [objectName, setObjectName] = useState('');
     const [color, setColor] = useState('');
     const [dateFound, setDateFound] = useState('');
     const [locationFound, setLocationFound] = useState('');
@@ -24,6 +25,8 @@ function ReportFoundItem() {
     const [docId, setDocId] = useState("");
     const [generatedCode, setGeneratedCode] = useState("");  // Store the generated code for display
     const { user, isLoading } = useAuth(); // Get the authenticated user's data and loading state
+
+
 
 
 
@@ -84,7 +87,7 @@ function ReportFoundItem() {
     useEffect(() => {
         if (step === 4 && docId) {
             console.log("Listening to Firestore path:", `users/${user.id}/FoundItems/${docId}`);
-    
+
             // Listen for real-time updates on the 'FoundItems' document with the Firestore-generated document ID
             const docRef = doc(db, "users", user.id, "FoundItems", docId);  // Use the Firestore-generated document ID
             const unsubscribe = onSnapshot(docRef, (doc) => {
@@ -100,7 +103,7 @@ function ReportFoundItem() {
                     console.log("Document does not exist.");
                 }
             });
-    
+
             return () => unsubscribe();  // Cleanup listener
         }
     }, [step, docId, confirmed]);
@@ -143,29 +146,30 @@ function ReportFoundItem() {
 
 
     // Submit the full form to Firestore after confirmation
-const submitFullForm = async () => {
-    const formData = {
-        category: category === 'Other' ? otherCategory : category,
-        contactNumber: user?.contact,
-        brand,
-        color,
-        dateFound,
-        timeFound,
-        locationFound,
-        imageUrl,  // Store the download URL of the image
-        confirmed: true,
-    };
+    const submitFullForm = async () => {
+        const formData = {
+            category: category === 'Other' ? otherCategory : category,
+            contactNumber: user?.contact,
+            objectName,
+            brand,
+            color,
+            dateFound,
+            timeFound,
+            locationFound,
+            imageUrl,  // Store the download URL of the image
+            confirmed: true,
+        };
 
-    try {
-        // Use the Firestore-generated document ID (docId) instead of code
-        const docRef = doc(db, "users", user.id, "FoundItems", docId);  // Correct path with Firestore document ID (docId)
-        console.log("Submitting form for document ID:", docId);
-        await setDoc(docRef, formData, { merge: true });  // Update the document with the full form data
-        console.log("Full form data submitted to Firestore under the user's FoundItems subcollection.");
-    } catch (error) {
-        console.error("Error submitting form data:", error);
-    }
-};
+        try {
+            // Use the Firestore-generated document ID (docId) instead of code
+            const docRef = doc(db, "users", user.id, "FoundItems", docId);  // Correct path with Firestore document ID (docId)
+            console.log("Submitting form for document ID:", docId);
+            await setDoc(docRef, formData, { merge: true });  // Update the document with the full form data
+            console.log("Full form data submitted to Firestore under the user's FoundItems subcollection.");
+        } catch (error) {
+            console.error("Error submitting form data:", error);
+        }
+    };
 
 
     // Move to the next step
@@ -305,7 +309,14 @@ const submitFullForm = async () => {
                         required
                     />
 
-
+                    <label htmlFor="ObjectNameInp">Object name:</label>
+                    <input
+                        type="text"
+                        id="ObjectNameInp"
+                        value={objectName}
+                        onChange={(e) => setObjectName(e.target.value)}
+                        required
+                    />
                     <label htmlFor="BrandInp">Brand:</label>
                     <input
                         type="text"
@@ -358,7 +369,7 @@ const submitFullForm = async () => {
                     <button onClick={prevStep}>Previous</button>
                     <button
                         onClick={nextStep}
-                        disabled={!brand || !color || !dateFound || !locationFound || !timeFound}
+                        disabled={!objectName || !color || !dateFound || !locationFound || !timeFound}
                     >
                         Next
                     </button>

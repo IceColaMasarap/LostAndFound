@@ -2,13 +2,7 @@ import "./Admin.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import React, { useState } from "react"; // Ensure useState is imported from React
-import {
-  setDoc,
-  collectionGroup,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import {setDoc, collectionGroup, query, where, getDocs,} from "firebase/firestore";
 import { db } from "../config/firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -58,6 +52,7 @@ function Dashboard() {
       toast.error("Error confirming the item. Please try again.");
     }
   };
+
 
   return (
     <>

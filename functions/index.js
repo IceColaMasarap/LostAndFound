@@ -1,3 +1,38 @@
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+admin.initializeApp();
+
+// Function to delete old unconfirmed items every 10 seconds
+exports.deleteOldUnconfirmedItems = functions.pubsub
+  .schedule('every 10 seconds') // Schedule to run every 10 seconds
+  .onRun(async (context) => {
+    const db = admin.firestore();
+    const threshold = Date.now() - 10 * 1000; // 10 seconds ago
+
+    try {
+      const unconfirmedItemsQuery = await db
+        .collectionGroup('FoundItems')
+        .where('confirmed', '==', false)
+        .where('createdAt', '<=', new Date(threshold))
+        .get();
+
+      if (!unconfirmedItemsQuery.empty) {
+        const batch = db.batch();
+        unconfirmedItemsQuery.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        console.log(`Deleted ${unconfirmedItemsQuery.size} old unconfirmed items.`);
+      } else {
+        console.log('No unconfirmed items to delete.');
+      }
+    } catch (error) {
+      console.error('Error deleting old unconfirmed items:', error);
+    }
+  });
+
+
 /**
  * Import function triggers from their respective submodules:
  *
