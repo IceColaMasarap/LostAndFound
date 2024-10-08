@@ -3,9 +3,12 @@ import { db, storage } from '../config/firebase'; // Import Firebase instance
 import { doc, setDoc, onSnapshot, collection, addDoc, getDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Firebase storage methods
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook to access authenticated user
+import { useNavigate } from 'react-router-dom';
 
 
 function ReportFoundItem() {
+    const navigate = useNavigate();
+
     const [step, setStep] = useState(1);
     const [category, setCategory] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(false);
@@ -241,6 +244,18 @@ function ReportFoundItem() {
                         />
                         I understand and agree.
                     </label>
+                    <button
+            onClick={() => {
+              navigate("/homepage"); // Navigates to the specified route
+              setTimeout(() => {
+                // Scroll to slightly above the bottom of the page
+                const scrollOffset = 1800; // Adjust this value to change the scroll distance
+                window.scrollTo(0, document.body.scrollHeight - scrollOffset);
+              }, 100); // Delay in milliseconds before the scroll action is executed
+            }}
+          >
+            Return to homepage
+          </button>
                     <button disabled={!termsAccepted} onClick={nextStep}>Next</button>
                 </div>
             )}
@@ -442,6 +457,9 @@ function ReportFoundItem() {
                     <h2>REPORT A FOUND ITEM</h2>
                     <h3>Thank You!</h3>
                     <p>Your honesty and effort will greatly assist the owner...</p>
+                    <button onClick={() => navigate("/homepage#body1")}>
+            Return to homepage
+          </button>
                 </div>
             )}
         </div>
