@@ -1,8 +1,16 @@
 import "./Admin.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
-import React, { useState } from "react"; // Ensure useState is imported from React
-import {setDoc, collectionGroup, query, where, getDocs,} from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import {
+  setDoc,
+  collectionGroup,
+  collection,
+  query,
+  getDocs,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -10,26 +18,23 @@ import "react-toastify/dist/ReactToastify.css";
 function Dashboard() {
   const [inputCode, setInputCode] = useState("");
   const [message, setMessage] = useState("");
+  const [foundItems, setFoundItems] = useState([]);
 
   const handleCodeInput = (e) => {
     setInputCode(e.target.value);
   };
 
-  // Fetch the correct document by querying for inputCode across all users
   const fetchItem = async () => {
     try {
-      // Use collectionGroup to search across all "FoundItems" subcollections
       const foundItemsQuery = query(
         collectionGroup(db, "FoundItems"),
-        where("code", "==", inputCode) // Match the input code
+        where("code", "==", inputCode)
       );
       const querySnapshot = await getDocs(foundItemsQuery);
 
       if (!querySnapshot.empty) {
         const docSnapshot = querySnapshot.docs[0];
         const data = docSnapshot.data();
-
-        // Automatically confirm the item (set confirmed to true)
         await confirmItem(docSnapshot.ref);
         toast.success("Reported found item received successfully!");
       } else {
@@ -41,8 +46,6 @@ function Dashboard() {
     }
   };
 
-  // Confirm the item and update the Firestore document
-
   const confirmItem = async (docRef) => {
     try {
       setInputCode("");
@@ -53,6 +56,30 @@ function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    // Listen for updates in the "lostItems" collection
+    const foundItemsQuery = collectionGroup(db, "FoundItems");
+    const userQuery = collectionGroup(db, "users");
+
+    // Set up a real-time listener
+    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
+      const items = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
+
+        return {
+          id: doc.id,
+          ...data,
+          userName, // Add the userName to the item object
+        };
+      });
+
+      setFoundItems(items);
+    });
+
+    // Clean up the listener on component unmount
+    return () => unsubscribe();
+  }, []);
 
   return (
     <>
@@ -105,30 +132,32 @@ function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {/* Add your data rows here */}
-                <tr>
-                  <td>John Doe</td>
-                  <td>Lost Item</td>
-                  <td>Umbrella</td>
-                  <td>2024-10-01</td>
-                  <td>Pending</td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td>Jane Smith</td>
-                  <td>Found Item</td>
-                  <td>Backpack</td>
-                  <td>2024-10-02</td>
-                  <td>Claimed</td>
-                  <td>John Doe</td>
-                </tr>
-                {/* Add more rows as needed */}
+                {foundItems.length > 0 ? (
+                  foundItems.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.userName}</td> {/* Display the user's name */}
+                      <td>{item.category}</td>
+                      <td>{item.objectName}</td>
+                      <td>
+                        {item.createdAt
+                          ? item.createdAt.toDate().toLocaleString()
+                          : "N/A"}
+                      </td>
+                      <td>{item.confirmed ? "Claimed" : "Pending"}</td>
+                      <td>{item.confirmed ? "Claimed" : "N/A"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6">No data available</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
-      <ToastContainer /> {/* Add the ToastContainer to render the toasts */}
+      <ToastContainer />
     </>
   );
 }
