@@ -36,17 +36,24 @@ function Pending() {
     return () => unsubscribe();
   }, []);
 
-  // Function to filter items based on category, color, and date range
-  const filteredItems = foundItems.filter(item => {
-    const matchesCategory = categoryFilter ? item.category === categoryFilter : true;
-    const matchesColor = colorFilter ? item.color === colorFilter : true;
+ // Function to filter items based on category, color, and date range
+const filteredItems = foundItems.filter((item) => {
+  // Match the selected category
+  const matchesCategory =
+    categoryFilter === "Others"
+      ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category) // Exclude specific categories
+      : categoryFilter
+      ? item.category === categoryFilter // Match selected category
+      : true; // If no category filter, include all items
 
-    const itemDate = new Date(item.dateFound); // Assuming dateFound is in a valid date format
-    const matchesDateRange =
-      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-      (!dateRange.end || itemDate <= new Date(dateRange.end));
+  const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-    return matchesCategory && matchesColor && matchesDateRange;
+  const itemDate = new Date(item.dateFound); // Assuming dateFound is in a valid date format
+  const matchesDateRange =
+    (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
+    (!dateRange.end || itemDate <= new Date(dateRange.end));
+
+  return matchesCategory && matchesColor && matchesDateRange;
   });
 
   return (
@@ -78,7 +85,13 @@ function Pending() {
               <option value="Red">Red</option>
               <option value="Blue">Blue</option>
               <option value="Green">Green</option>
+              <option value="Yellow">Yellow</option>
+              <option value="Orange">Orange</option>
+              <option value="Purple">Purple</option>
+              <option value="Pink">Pink</option>
+              <option value="Black">Black</option>
               <option value="White">White</option>
+              <option value="Gray">Gray</option>
               {/* Add more colors as needed */}
             </select>
 
@@ -86,12 +99,16 @@ function Pending() {
               <input
                 type="date"
                 value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, start: e.target.value })
+                }
               />
               <input
                 type="date"
                 value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, end: e.target.value })
+                }
               />
             </div>
           </div>
