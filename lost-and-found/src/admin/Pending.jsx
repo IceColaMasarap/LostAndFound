@@ -1,155 +1,159 @@
+import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
-import React, { useEffect, useState } from "react";
-import { getDocs, collection } from "firebase/firestore";
-import { db } from "../jsx/firebase";
+import { db } from "../config/firebase"; // Import Firebase config
+import { collectionGroup, onSnapshot } from "firebase/firestore";
 
 function Pending() {
-  const [itemsData, setItemsData] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  // Function to fetch data from Firestore
-
-  const fetchItemsData = async () => {
-    const collectionRef = collection(
-      db,
-      "users",
-      "aTpg8vREUYTYtl1kASj5YAN6YlB3",
-      "lostItems"
-    );
-    const querySnapshot = await getDocs(collectionRef);
-
-    const items = querySnapshot.docs.map((doc) => ({
-      id: doc.id, // in case you want to track the document ID
-      ...doc.data(),
-    }));
-
-    setItemsData(items);
-  };
+  const [foundItems, setFoundItems] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [colorFilter, setColorFilter] = useState("");
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   useEffect(() => {
-    fetchItemsData();
+    // Listen for updates in the "lostItems" collection
+    const foundItemsQuery = collectionGroup(db, "lostItems");
+
+    // Set up a real-time listener
+    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
+      const items = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
+
+        return {
+          id: doc.id,
+          ...data,
+          userName, // Add the userName to the item object
+        };
+      });
+
+      setFoundItems(items);
+    });
+
+    // Clean up the listener on component unmount
+    return () => unsubscribe();
   }, []);
 
-  // Handle next item
-  const handleNext = () => {
-    if (currentIndex < itemsData.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
+  // Function to filter items based on category, color, and date range
+  const filteredItems = foundItems.filter(item => {
+    const matchesCategory = categoryFilter ? item.category === categoryFilter : true;
+    const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-  // Handle previous item
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
+    const itemDate = new Date(item.dateFound); // Assuming dateFound is in a valid date format
+    const matchesDateRange =
+      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
+      (!dateRange.end || itemDate <= new Date(dateRange.end));
 
-  if (itemsData.length === 0) {
-    return <p>Loading...</p>;
-  }
-
-  const currentItem = itemsData[currentIndex];
+    return matchesCategory && matchesColor && matchesDateRange;
+  });
 
   return (
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">Pending Reports</p>
+          <p className="header">Pending Claims</p>
           <div className="categoryx">
             <p>Filter</p>
-            <button className="categorybutton">Category</button>
-            <button className="categorybutton">Color</button>
-            <button className="categorybutton">Date Range</button>
+            <select
+              className="categorybutton"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">All Categories</option>
+              <option value="Personal Belonging">Personal Belonging</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Documents">Documents</option>
+              <option value="Others">Others</option>
+              {/* Add more categories as needed */}
+            </select>
+
+            <select
+              className="categorybutton"
+              value={colorFilter}
+              onChange={(e) => setColorFilter(e.target.value)}
+            >
+              <option value="">All Colors</option>
+              <option value="Red">Red</option>
+              <option value="Blue">Blue</option>
+              <option value="Green">Green</option>
+              <option value="White">White</option>
+              {/* Add more colors as needed */}
+            </select>
+
+            <div>
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              />
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              />
+            </div>
           </div>
         </div>
-        <label className="adminh2">100</label>
+        <label className="adminh2">{filteredItems.length}</label>
       </div>
 
       <div className="containerlostdata">
-        <div className="lostitemcontainer">
-          <img className="lostitemimg" src={placeholder} alt="picture" />
-          <div className="lostitembody">
-            <div className="lostitemtop">
-              <label className="lostitemlabel">Description</label>
-              <div className="buttonslost">
-                <button className="lostitemimg2" id="removelostitem">
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>{" "}
-                <button className="lostitemimg2" id="checklostitem">
-                  <FontAwesomeIcon icon={faCheck} />
-                </button>
+        {filteredItems.map((item) => (
+          <div key={item.id} className="lostitemcontainer">
+            <img
+              className="lostitemimg"
+              src={item.imageUrl || placeholder}
+              alt="Lost Item"
+            />
+            <div className="lostitembody">
+              <div className="lostitemtop">
+                <label className="lostitemlabel">{item.objectName}</label>
+                <div className="buttonslost">
+                  <button className="lostitemimg2" id="removelostitem">
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                  <button className="lostitemimg2" id="checklostitem">
+                    <FontAwesomeIcon icon={faCheck} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="lostitembody1">
-              <div className="lostitempanel1">
-                <label className="lostitemlabel2">Category</label>
-                <label className="lostitemlabel3">
-                  {" "}
-                  <p>
-                    <strong>Category:</strong> {currentItem.category}
-                  </p>
-                </label>
-                <label className="lostitemlabel2">Brand</label>
-                <label className="lostitemlabel3">
-                  <p>
-                    <strong>Brand:</strong> {currentItem.brand}
-                  </p>
-                </label>
-                <label className="lostitemlabel2">Color</label>
-                <label className="lostitemlabel3">
-                  {" "}
-                  <p>
-                    <strong>Color:</strong> {currentItem.color}
-                  </p>
-                </label>
-              </div>
-              <div className="lostitempanel1">
-                <label className="lostitemlabel2">Reported by:</label>
-                <label className="lostitemlabel3">
-                  {" "}
-                  <p>
-                    <strong>Name:</strong> {currentItem.userDetails?.name}
-                  </p>
-                </label>
-                <label className="lostitemlabel2">Contact Number:</label>
-                <label className="lostitemlabel3">
-                  {" "}
-                  <p>
-                    <strong>Contact Number:</strong>{" "}
-                    {currentItem.userDetails?.contactNumber}
-                  </p>
-                </label>
-                <label className="lostitemlabel2">Email:</label>
-                <label className="lostitemlabel3">
-                  <p>
-                    <strong>Email:</strong> {currentItem.userDetails?.email}
-                  </p>
-                </label>
-              </div>
-              <div className="lostitempanel2">
-                <label className="lostitemlabel2">Date Found</label>
-                <label className="lostitemlabel3">
-                  {" "}
-                  <p>
-                    <strong>Date Found:</strong> {currentItem.dateFound}
-                  </p>{" "}
-                  <p>
-                    <strong>Time Found:</strong> {currentItem.timeFound}
-                  </p>{" "}
-                </label>
-                <label className="lostitemlabel2">Location Found</label>
-                <label className="lostitemlabel3">
-                  {" "}
-                  <p>
-                    <strong>Location Found:</strong> {currentItem.locationFound}
-                  </p>
-                </label>
+              <div className="lostitembody1">
+                <div className="lostitempanel1">
+                  <label className="lostitemlabel2">Category</label>
+                  <label className="lostitemlabel3">{item.category}</label>
+                  <label className="lostitemlabel2">Brand</label>
+                  <label className="lostitemlabel3">{item.brand}</label>
+                  <label className="lostitemlabel2">Color</label>
+                  <label className="lostitemlabel3">{item.color}</label>
+                </div>
+                <div className="lostitempanel1">
+                  <label className="lostitemlabel2">Reported by:</label>
+                  <label className="lostitemlabel3">
+                    {item.userDetails?.name}
+                  </label>
+                  <label className="lostitemlabel2">Contact Number</label>
+                  <label className="lostitemlabel3">
+                    {item.userDetails?.contactNumber}
+                  </label>
+                  <label className="lostitemlabel2">Email</label>
+                  <label className="lostitemlabel3">
+                    {item.userDetails?.email}
+                  </label>
+                </div>
+                <div className="lostitempanel2">
+                  <label className="lostitemlabel2">Date Found</label>
+                  <label className="lostitemlabel3">
+                    {item.dateFound} at {item.timeFound}
+                  </label>
+                  <label className="lostitemlabel2">Location Found</label>
+                  <label className="lostitemlabel3">{item.locationFound}</label>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
     </>
   );
