@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, storage } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import these for image upload
 import "../styling/App.css";
@@ -29,7 +28,9 @@ function ReportLostItem() {
 
   const [image, setImage] = useState(null); // State to store the uploaded image
   const [imageUrl, setImageUrl] = useState(""); // State to store the image URL after upload
-
+  const user = auth.currentUser;
+  const uid = user.uid;
+  const userDocRef = doc(db, "users", uid);
   //Gets user info and displays them in text field at step 3
   useEffect(() => {
     const user = auth.currentUser;
@@ -94,9 +95,14 @@ function ReportLostItem() {
         timeFound: itemDetails.timeFound,
         locationFound: itemDetails.locationFound,
         imageUrl: uploadedImageUrl, // Store the image URL
-        userId: auth.currentUser.uid, // Optional: Store the user ID who reported the item
+        userDetails: {
+          // Save user details (name, email, contact number)
+          name: userData.name,
+          email: userData.email,
+          contactNumber: userData.contactNumber,
+        },
       };
-      await addDoc(collection(db, "lostItems"), newItemData); // Save data in Firestore
+      await addDoc(collection(userDocRef, "lostItems"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -161,6 +167,12 @@ function ReportLostItem() {
           </label>
           <button disabled={!termsAccepted} onClick={() => setStep(step + 1)}>
             Next
+          </button>
+          <button onClick={() => {
+  navigate("/homepage");
+  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100);
+}}>
+            Return to homepage
           </button>
         </div>
       )}
@@ -281,7 +293,9 @@ function ReportLostItem() {
               type="text"
               id="color"
               value={itemDetails.color}
-              onChange={(e) => setItemDetails({ ...itemDetails, color: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, color: e.target.value })
+              }
               required
               placeholder="Ex. red, blue, black"
             />
@@ -291,7 +305,9 @@ function ReportLostItem() {
               type="date"
               id="dateFound"
               value={itemDetails.dateFound}
-              onChange={(e) => setItemDetails({ ...itemDetails, dateFound: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, dateFound: e.target.value })
+              }
               required
             />
 
@@ -300,7 +316,9 @@ function ReportLostItem() {
               type="time"
               id="timeFound"
               value={itemDetails.timeFound}
-              onChange={(e) => setItemDetails({ ...itemDetails, timeFound: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({ ...itemDetails, timeFound: e.target.value })
+              }
               required
             />
 
@@ -309,7 +327,12 @@ function ReportLostItem() {
               type="text"
               id="locationFound"
               value={itemDetails.locationFound}
-              onChange={(e) => setItemDetails({ ...itemDetails, locationFound: e.target.value })}
+              onChange={(e) =>
+                setItemDetails({
+                  ...itemDetails,
+                  locationFound: e.target.value,
+                })
+              }
               required
               placeholder="Please include what floor"
             />

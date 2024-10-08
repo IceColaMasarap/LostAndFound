@@ -5,8 +5,14 @@ import img1 from "../assets/info-1-1.png";
 import img2 from "../assets/info-2-2.png";
 import Report1_Img from "../assets/Report1_Img.png";
 import Report2_Img from "../assets/Report2_Img.png";
-
+import { useNavigate } from "react-router-dom";
 function Homepage2() {
+  const navigate = useNavigate();
+
+  const GoToReportLostItem = () => {
+    navigate("/report-lost-item"); // Navigate to /report-lost-item
+  };
+
   return (
     <div className="homepage-main">
       <div className="navbar">
@@ -133,7 +139,9 @@ function Homepage2() {
               <li>Describe the item you lost.</li>
               <li>Fill out the Response Form.</li>
             </ul>
-            <button className="ReportFoundbtn">Report a Missing Item</button>
+            <button className="ReportLostbtn" onClick={GoToReportLostItem}>
+              Report a Missing Item
+            </button>
           </div>
           <img src={Report2_Img} alt="NU Logo" className="large" id="large2" />
         </div>
