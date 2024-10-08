@@ -21,16 +21,16 @@ function App() {
             <Route path="/" element={<SignUpForm />}></Route>
             <Route path="/login" element={<Login />}></Route>
             <Route path="/homepage" element={<HomePage />} />
-            <Route path="/report-lost-item" element={<ReportLostItem />} />
+            <Route path="/report-lost-item/*" element={<ReportLostItem />} />
             <Route
-              path="/report-found-item"
+              path="/report-found-item/*"
               element={
                 <PrivateRoute>
                   <ReportFoundItem />{" "}
                 </PrivateRoute>
               }
             />
-            
+
             <Route path="/adminpage/*" element={<AdminPage />}></Route>
           </Routes>
         </BrowserRouter>

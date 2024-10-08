@@ -6,7 +6,6 @@ import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase"; // Import Firebase config
 import { collectionGroup, onSnapshot } from "firebase/firestore";
 
-
 function LostItems() {
   const [foundItems, setFoundItems] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -42,7 +41,9 @@ function LostItems() {
     // Match the selected category
     const matchesCategory =
       categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category) // Exclude specific categories
+        ? !["Personal Belonging", "Electronics", "Documents"].includes(
+            item.category
+          ) // Exclude specific categories
         : categoryFilter
         ? item.category === categoryFilter // Match selected category
         : true; // If no category filter, include all items
@@ -97,30 +98,30 @@ function LostItems() {
             </select>
 
             <div>
-  <input
-    type="date"
-    value={dateRange.start}
-    onChange={(e) => {
-      const newStart = e.target.value;
-      setDateRange((prev) => ({
-        ...prev,
-        start: newStart,
-        end: prev.end && prev.end < newStart ? newStart : prev.end, // Ensure end date is not before start date
-      }));
-    }}
-  />
-  <input
-    type="date"
-    value={dateRange.end}
-    onChange={(e) =>
-      setDateRange((prev) => ({
-        ...prev,
-        end: e.target.value,
-      }))
-    }
-    min={dateRange.start} // Prevent selecting an end date earlier than the start date
-  />
-</div>
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  setDateRange((prev) => ({
+                    ...prev,
+                    start: newStart,
+                    end: prev.end && prev.end < newStart ? newStart : prev.end, // Ensure end date is not before start date
+                  }));
+                }}
+              />
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) =>
+                  setDateRange((prev) => ({
+                    ...prev,
+                    end: e.target.value,
+                  }))
+                }
+                min={dateRange.start} // Prevent selecting an end date earlier than the start date
+              />
+            </div>
           </div>
         </div>
         <label className="adminh2">{filteredItems.length}</label>
@@ -157,17 +158,11 @@ function LostItems() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">
-                    {item.Name}
-                  </label>
+                  <label className="lostitemlabel3">{item.Name}</label>
                   <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">
-                    {item.contactNumber}
-                  </label>
+                  <label className="lostitemlabel3">{item.contactNumber}</label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">
-                    {item.Email}
-                  </label>
+                  <label className="lostitemlabel3">{item.Email}</label>
                 </div>
                 <div className="lostitempanel2">
                   <label className="lostitemlabel2">Date Found</label>
