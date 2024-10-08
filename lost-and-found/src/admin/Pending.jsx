@@ -36,24 +36,26 @@ function Pending() {
     return () => unsubscribe();
   }, []);
 
- // Function to filter items based on category, color, and date range
-const filteredItems = foundItems.filter((item) => {
-  // Match the selected category
-  const matchesCategory =
-    categoryFilter === "Others"
-      ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category) // Exclude specific categories
-      : categoryFilter
-      ? item.category === categoryFilter // Match selected category
-      : true; // If no category filter, include all items
+  // Function to filter items based on category, color, and date range
+  const filteredItems = foundItems.filter((item) => {
+    // Match the selected category
+    const matchesCategory =
+      categoryFilter === "Others"
+        ? !["Personal Belonging", "Electronics", "Documents"].includes(
+            item.category
+          ) // Exclude specific categories
+        : categoryFilter
+        ? item.category === categoryFilter // Match selected category
+        : true; // If no category filter, include all items
 
-  const matchesColor = colorFilter ? item.color === colorFilter : true;
+    const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-  const itemDate = new Date(item.dateFound); // Assuming dateFound is in a valid date format
-  const matchesDateRange =
-    (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-    (!dateRange.end || itemDate <= new Date(dateRange.end));
+    const itemDate = new Date(item.dateFound); // Assuming dateFound is in a valid date format
+    const matchesDateRange =
+      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
+      (!dateRange.end || itemDate <= new Date(dateRange.end));
 
-  return matchesCategory && matchesColor && matchesDateRange;
+    return matchesCategory && matchesColor && matchesDateRange;
   });
 
   return (
@@ -99,9 +101,14 @@ const filteredItems = foundItems.filter((item) => {
               <input
                 type="date"
                 value={dateRange.start}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, start: e.target.value })
-                }
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  setDateRange((prev) => ({
+                    ...prev,
+                    start: newStart,
+                    end: prev.end < newStart ? newStart : prev.end, // Update end date if necessary
+                  }));
+                }}
               />
               <input
                 type="date"
@@ -109,11 +116,12 @@ const filteredItems = foundItems.filter((item) => {
                 onChange={(e) =>
                   setDateRange({ ...dateRange, end: e.target.value })
                 }
+                min={dateRange.start} // Set the minimum date to the selected start date
               />
             </div>
           </div>
         </div>
-        <label className="adminh2">{filteredItems.length}</label>
+        <label className="adminh2">{filteredItems.length} </label>
       </div>
 
       <div className="containerlostdata">

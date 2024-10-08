@@ -316,7 +316,7 @@ label.lostitemlabel {
 
 input[type="date"] {
   width: auto; 
-  height: 40px; 
-  padding: 0;  
-  font-size: 16px; 
-}
+  height: 40px;  
+  padding: 0px;  
+  font-size: 16px;  
+} 
