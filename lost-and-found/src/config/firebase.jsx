@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import {getAuth} from 'firebase/auth';
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-
+import { createClient } from '@supabase/supabase-js'
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -24,13 +24,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const storage = getStorage(app);
 const db = getFirestore(app);
- export { auth, storage, db };
-
- 
-import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://mxqzohhojkveomcyfxuv.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cXpvaGhvamt2ZW9tY3lmeHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkwMDM4MDMsImV4cCI6MjA0NDU3OTgwM30.hVZUxMf-LINa4lLEst63cHnW5yBBps78QAtI0kWm73k'
 const supabase = createClient(supabaseUrl, supabaseKey)
-
-export {supabase};
+ export { auth, storage, db, supabase };

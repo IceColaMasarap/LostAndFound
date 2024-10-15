@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../config/firebase"; // Firebase imports
+import { auth, db, supabase } from "../config/firebase"; // Firebase imports
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
+import { v4 as uuidv4 } from 'uuid'; // Import the uuid generator
 import "../styling/login.css";
 
 const SignUpForm = () => {
@@ -22,14 +23,7 @@ const SignUpForm = () => {
     setError("");
     setSuccessMessage("");
 
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !contact ||
-      !password ||
-      !confirmPassword
-    ) {
+    if (!firstName || !lastName || !email || !contact || !password || !confirmPassword) {
       setError("Please fill in all fields");
       return;
     }
@@ -41,11 +35,7 @@ const SignUpForm = () => {
 
     try {
       // Step 1: Create user in Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       // Step 2: Store user details in Firebase Firestore
@@ -58,56 +48,46 @@ const SignUpForm = () => {
 
       console.log("Data stored in Firebase");
 
-      // Step 3: Store user details in Supabase
-      const { data, error: supabaseError } = await supabase.from("users").insert([
-        {
-          id: user.uid,
-          firstName,
-          lastName,
-          email,
-          contact,
-        },
-      ]);
+      // Step 3: Generate a UUID for Supabase and insert user data
+      const uuid = uuidv4(); // Generate a valid UUID
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
+  // Step 3: Store user details in Supabase (ensure firebase_uid is passed)
+  const { data, error: supabaseError } = await supabase.from("users").insert([
+    {
+      firebase_uid: user.uid, // Pass Firebase UID into Supabase
+      firstName: firstName,   // Ensure correct casing for Supabase table columns
+      lastName: lastName,
+      email: email,
+      contact: contact,
+    },
+  ]);
 
-      console.log("Data stored in Supabase");
+  if (supabaseError) {
+    throw new Error(supabaseError.message);
+  }
 
-      setSuccessMessage("Account created successfully in Firebase and Supabase!");
-      // Optional: Redirect the user after success
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (err) {
-      setError(err.message);
-      console.log(err);
-    }
-  };
+  console.log("Data stored in Supabase");
 
-  const goToRegister = () => {
-    navigate("/login");
-  };
-
+  setSuccessMessage("Account created successfully in Firebase and Supabase!");
+  // Optional: Redirect the user after success
+  setTimeout(() => navigate("/login"), 2000);
+} catch (err) {
+  setError(err.message);
+  console.log(err);
+}
+};
   return (
     <div className="signup-container">
       <h1>LOST AND FOUND</h1>
       <div className="buttons">
         <button
-          style={{
-            backgroundColor: "transparent",
-            color: "white",
-            border: "none",
-          }}
-          onClick={goToRegister}
+          style={{ backgroundColor: "transparent", color: "white", border: "none" }}
+          onClick={() => navigate("/login")}
         >
           Login
         </button>
         <button
-          style={{
-            backgroundColor: "white",
-            color: "#36408e",
-            border: "none",
-          }}
+          style={{ backgroundColor: "white", color: "#36408e", border: "none" }}
           disabled={true}
         >
           Register
@@ -127,7 +107,6 @@ const SignUpForm = () => {
             placeholder="Last Name"
             onChange={(e) => setLastName(e.target.value)}
           />
-
           <input
             type="number"
             placeholder="Contact Number"
