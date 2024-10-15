@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
-import { auth } from "../config/firebase";
+import { useNavigate } from "react-router-dom";
+import { auth, db } from "../config/firebase"; // Firebase imports
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc } from "firebase/firestore"; // Import setDoc and doc
-import { db } from "../config/firebase"; // Ensure you import Firestore instance
+import { setDoc, doc } from "firebase/firestore";
 import "../styling/login.css";
 
 const SignUpForm = () => {
@@ -14,14 +13,15 @@ const SignUpForm = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState(""); // Add this line
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const navigate = useNavigate(); // Use navigate hook for redirection
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
+
     if (
       !firstName ||
       !lastName ||
@@ -31,7 +31,7 @@ const SignUpForm = () => {
       !confirmPassword
     ) {
       setError("Please fill in all fields");
-      return; // Stop the form submission if any field is empty
+      return;
     }
 
     if (password !== confirmPassword) {
@@ -40,7 +40,7 @@ const SignUpForm = () => {
     }
 
     try {
-      // Create user in Auth
+      // Step 1: Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -48,7 +48,7 @@ const SignUpForm = () => {
       );
       const user = userCredential.user;
 
-      // Store additional details in Firestore
+      // Step 2: Store user details in Firebase Firestore
       await setDoc(doc(db, "users", user.uid), {
         firstName,
         lastName,
@@ -56,8 +56,28 @@ const SignUpForm = () => {
         contact,
       });
 
-      console.log("Account Created and Data Stored");
-      setSuccessMessage("Account Created Sucessfully!"); // Update this line
+      console.log("Data stored in Firebase");
+
+      // Step 3: Store user details in Supabase
+      const { data, error: supabaseError } = await supabase.from("users").insert([
+        {
+          id: user.uid,
+          firstName,
+          lastName,
+          email,
+          contact,
+        },
+      ]);
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      console.log("Data stored in Supabase");
+
+      setSuccessMessage("Account created successfully in Firebase and Supabase!");
+      // Optional: Redirect the user after success
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       setError(err.message);
       console.log(err);
@@ -65,8 +85,9 @@ const SignUpForm = () => {
   };
 
   const goToRegister = () => {
-    navigate("/login"); // Navigate to ./register route
+    navigate("/login");
   };
+
   return (
     <div className="signup-container">
       <h1>LOST AND FOUND</h1>
@@ -94,7 +115,7 @@ const SignUpForm = () => {
       </div>
 
       <form className="signup-form" onSubmit={handleSubmit}>
-        <label id="signxup">Create a new Account</label>
+        <label id="signup">Create a new Account</label>
         <div className="names">
           <input
             type="text"
@@ -116,7 +137,7 @@ const SignUpForm = () => {
         </div>
         <div className="emails">
           <input
-            type="email" // Use 'email' for better validation
+            type="email"
             placeholder="Email Address"
             onChange={(e) => setEmail(e.target.value)}
           />
