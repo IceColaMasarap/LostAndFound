@@ -11,6 +11,7 @@ import {
   where,
   onSnapshot,
 } from "firebase/firestore";
+
 import { db } from "../config/firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -27,7 +28,7 @@ function Dashboard() {
   const fetchItem = async () => {
     try {
       const foundItemsQuery = query(
-        collectionGroup(db, "FoundItems"),
+        collectionGroup(db, "itemReports"),
         where("code", "==", inputCode)
       );
       const querySnapshot = await getDocs(foundItemsQuery);
@@ -57,10 +58,8 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    // Listen for updates in the "lostItems" collection
-    const foundItemsQuery = collectionGroup(db, "FoundItems");
+    const foundItemsQuery = collectionGroup(db, "itemReports");
 
-    // Set up a real-time listener
     const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
       const items = querySnapshot.docs.map((doc) => {
         const data = doc.data();
@@ -69,14 +68,13 @@ function Dashboard() {
         return {
           id: doc.id,
           ...data,
-          userName, // Add the userName to the item object
+          userName,
         };
       });
 
       setFoundItems(items);
     });
 
-    // Clean up the listener on component unmount
     return () => unsubscribe();
   }, []);
 
@@ -134,12 +132,12 @@ function Dashboard() {
                 {foundItems.length > 0 ? (
                   foundItems.map((item) => (
                     <tr key={item.id}>
-                      <td>{item.userName}</td> {/* Display the user's name */}
+                      <td>{item.userName}</td>
                       <td>{item.category}</td>
                       <td>{item.objectName}</td>
                       <td>
                         {item.createdAt
-                          ? item.createdAt.toDate().toLocaleString()
+                          ? item.createdAt.toLocaleString()
                           : "N/A"}
                       </td>
                       <td>{item.confirmed ? "Claimed" : "Pending"}</td>

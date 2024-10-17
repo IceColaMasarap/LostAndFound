@@ -247,6 +247,9 @@ ul {
 .lostitemimg {
   width: 180px;
   height: 180px;
+  padding: 5px;
+  min-width: 180px;
+  width: 180px;
   background-color: #e6e6e6;
   border-radius: 25px;
   align-self: center;

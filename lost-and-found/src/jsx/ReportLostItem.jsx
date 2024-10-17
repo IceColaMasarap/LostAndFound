@@ -88,23 +88,32 @@ function ReportLostItem() {
   const saveLostItem = async () => {
     try {
       const uploadedImageUrl = await uploadImage(); // First, upload the image
+      const now = new Date();
+
+      // Full Date and Time
+      const fullDateTime = now.toLocaleString(); // e.g., "10/17/2024, 10:51 PM"
+
       const newItemData = {
         category: category === "Other" ? otherCategory : category,
         brand: itemDetails.brand,
         color: itemDetails.color,
-        dateFound: itemDetails.dateFound,
-        timeFound: itemDetails.timeFound,
-        locationFound: itemDetails.locationFound,
+        dateLost: itemDetails.dateLost,
+        timeLost: itemDetails.timeLost,
+        locationLost: itemDetails.locationLost,
         objectName: itemDetails.objectName,
         imageUrl: uploadedImageUrl, // Store the image URL
-        userDetails: {
-          // Save user details (name, email, contact number)
-          name: userData.name,
-          email: userData.email,
-          contactNumber: userData.contactNumber,
-        },
+
+        // Save user details (name, email, contact number)
+        name: userData.name,
+        email: userData.email,
+        contactNumber: userData.contactNumber,
+        status: "pending",
+
+        // Add createdAt timestamp
+        createdAt: fullDateTime, // Current date and time in ISO format
       };
-      await addDoc(collection(userDocRef, "lostItems"), newItemData); // Save data in Firestore
+
+      await addDoc(collection(userDocRef, "itemReports"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -114,9 +123,9 @@ function ReportLostItem() {
   // Check if all required fields in the form are complete
   const isFormComplete =
     itemDetails.color &&
-    itemDetails.dateFound &&
-    itemDetails.timeFound &&
-    itemDetails.locationFound &&
+    itemDetails.dateLost &&
+    itemDetails.timeLost &&
+    itemDetails.locationLost &&
     itemDetails.objectName;
 
   // Handle changes for category input
@@ -247,15 +256,11 @@ function ReportLostItem() {
           <h2>REPORT A MISSING ITEM</h2>
           <h3>Response Form</h3>
           <div className="form-container">
-            {/* Prefilled Name (Non-Editable) */}
             <label>
               Name:
               <input
                 type="text"
-                value={userData.name}
-                onChange={(e) =>
-                  setUserData({ ...userData, name: e.target.value })
-                }
+                value={userData.name || ""} // Default to empty string if undefined
                 readOnly
               />
             </label>
@@ -264,10 +269,7 @@ function ReportLostItem() {
               Email:
               <input
                 type="email"
-                value={userData.email}
-                onChange={(e) =>
-                  setUserData({ ...userData, email: e.target.value })
-                }
+                value={userData.email || ""} // Default fallback
                 readOnly
               />
             </label>
@@ -276,10 +278,7 @@ function ReportLostItem() {
               Contact Number:
               <input
                 type="text"
-                value={userData.contactNumber}
-                onChange={(e) =>
-                  setUserData({ ...userData, contactNumber: e.target.value })
-                }
+                value={userData.contactNumber || ""} // Ensure a controlled value
                 readOnly
               />
             </label>
@@ -288,7 +287,7 @@ function ReportLostItem() {
             <input
               type="text"
               id="objectName"
-              value={itemDetails.objectName}
+              value={itemDetails.objectName || ""} // Ensure it's always controlled
               onChange={(e) =>
                 setItemDetails({ ...itemDetails, objectName: e.target.value })
               }
@@ -296,12 +295,11 @@ function ReportLostItem() {
               placeholder="Ex. Wallet, Watch, Glasses"
             />
 
-            {/* Editable Fields */}
             <label>Brand:</label>
             <input
               type="text"
               id="brand"
-              value={itemDetails.brand}
+              value={itemDetails.brand || ""} // Fix: Add fallback to avoid undefined
               onChange={(e) =>
                 setItemDetails({ ...itemDetails, brand: e.target.value })
               }
@@ -312,7 +310,7 @@ function ReportLostItem() {
             <input
               type="text"
               id="color"
-              value={itemDetails.color}
+              value={itemDetails.color || ""} // Fix: Ensure it's always controlled
               onChange={(e) =>
                 setItemDetails({ ...itemDetails, color: e.target.value })
               }
@@ -320,37 +318,35 @@ function ReportLostItem() {
               placeholder="Ex. red, blue, black"
             />
 
-            <label>Date Found:</label>
+            <label>Date Lost:</label>
             <input
               type="date"
-              id="dateFound"
-              value={itemDetails.dateFound}
+              id="dateLost"
+              value={itemDetails.dateLost || ""}
               onChange={(e) =>
-                setItemDetails({ ...itemDetails, dateFound: e.target.value })
+                setItemDetails({ ...itemDetails, dateLost: e.target.value })
               }
               required
             />
 
-            <label>Time Found:</label>
+            <label>Time Lost:</label>
             <input
               type="time"
-              id="timeFound"
-              value={itemDetails.timeFound}
-              onChange={(e) =>
-                setItemDetails({ ...itemDetails, timeFound: e.target.value })
-              }
+              id="timeLost"
+              value={itemDetails.timeLost || ""}
+              onChange={handleInputChange}
               required
             />
 
-            <label>Location Found:</label>
+            <label>Location Lost:</label>
             <input
               type="text"
-              id="locationFound"
-              value={itemDetails.locationFound}
+              id="locationLost"
+              value={itemDetails.locationLost || ""}
               onChange={(e) =>
                 setItemDetails({
                   ...itemDetails,
-                  locationFound: e.target.value,
+                  locationLost: e.target.value,
                 })
               }
               required

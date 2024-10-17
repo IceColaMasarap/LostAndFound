@@ -14,7 +14,7 @@ function LostItems() {
 
   useEffect(() => {
     // Listen for updates in the "FoundItems" collection
-    const foundItemsQuery = collectionGroup(db, "FoundItems");
+    const foundItemsQuery = collectionGroup(db, "itemReports");
 
     // Set up a real-time listener
     const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
@@ -36,35 +36,43 @@ function LostItems() {
     return () => unsubscribe();
   }, []);
 
-  // Function to filter items based on category, color, and date range, and confirmed status
+  // Function to filter items based on category, color, date range, confirmed status, and "lost" status
   const filteredItems = foundItems.filter((item) => {
-    // Match the selected category
+    const isLost = item.status === "lost"; // Check if item status is "lost"
+
     const matchesCategory =
       categoryFilter === "Others"
         ? !["Personal Belonging", "Electronics", "Documents"].includes(
             item.category
-          ) // Exclude specific categories
+          )
         : categoryFilter
-        ? item.category === categoryFilter // Match selected category
-        : true; // If no category filter, include all items
+        ? item.category === categoryFilter
+        : true;
 
     const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-    const itemDate = new Date(item.dateFound); // Assuming dateFound is in a valid date format
+    const itemDate = new Date(item.dateFound);
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
       (!dateRange.end || itemDate <= new Date(dateRange.end));
 
-    const isConfirmed = item.confirmed === true; // Only show confirmed items
+    const isConfirmed = item.confirmed === true;
 
-    return matchesCategory && matchesColor && matchesDateRange && isConfirmed;
+    // Ensure the item is "lost" before including it
+    return (
+      isLost &&
+      matchesCategory &&
+      matchesColor &&
+      matchesDateRange &&
+      isConfirmed
+    );
   });
 
   return (
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">Found Items</p>
+          <p className="header">Lost Item Reports</p>
           <div className="categoryx">
             <p>Filter</p>
             <select
@@ -110,6 +118,7 @@ function LostItems() {
                   }));
                 }}
               />
+
               <input
                 type="date"
                 value={dateRange.end}
