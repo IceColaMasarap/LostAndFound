@@ -4,7 +4,7 @@ import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase"; // Import Firebase config
-import { collectionGroup, onSnapshot } from "firebase/firestore";
+import { collectionGroup, onSnapshot, doc, updateDoc } from "firebase/firestore"; // Import updateDoc
 
 function LostItems() {
   const [foundItems, setFoundItems] = useState([]);
@@ -16,23 +16,21 @@ function LostItems() {
     // Listen for updates in the "FoundItems" collection
     const foundItemsQuery = collectionGroup(db, "itemReports");
 
-    // Set up a real-time listener
     const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
       const items = querySnapshot.docs.map((doc) => {
         const data = doc.data();
-        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
+        const userName = data.userDetails?.name || "N/A";
 
         return {
           id: doc.id,
           ...data,
-          userName, // Add the userName to the item object
+          userName,
         };
       });
 
       setFoundItems(items);
     });
 
-    // Clean up the listener on component unmount
     return () => unsubscribe();
   }, []);
 
@@ -48,9 +46,12 @@ function LostItems() {
         : categoryFilter
         ? item.category === categoryFilter
         : true;
+        ? item.category === categoryFilter
+        : true;
 
     const matchesColor = colorFilter ? item.color === colorFilter : true;
 
+    const itemDate = new Date(item.dateFound);
     const itemDate = new Date(item.dateFound);
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
@@ -114,7 +115,7 @@ function LostItems() {
                   setDateRange((prev) => ({
                     ...prev,
                     start: newStart,
-                    end: prev.end && prev.end < newStart ? newStart : prev.end, // Ensure end date is not before start date
+                    end: prev.end && prev.end < newStart ? newStart : prev.end,
                   }));
                 }}
               />
@@ -128,7 +129,7 @@ function LostItems() {
                     end: e.target.value,
                   }))
                 }
-                min={dateRange.start} // Prevent selecting an end date earlier than the start date
+                min={dateRange.start}
               />
             </div>
           </div>
@@ -151,7 +152,11 @@ function LostItems() {
                   <button className="lostitemimg2" id="removelostitem">
                     <FontAwesomeIcon icon={faTrash} />
                   </button>
-                  <button className="lostitemimg2" id="checklostitem">
+                  <button
+                    className="lostitemimg2"
+                    id="checklostitem"
+                    onClick={() => claimItem(item.id)} // Call claimItem with the item ID
+                  >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
                 </div>
@@ -167,11 +172,11 @@ function LostItems() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">{item.Name}</label>
+                  <label className="lostitemlabel3">{item.userName}</label>
                   <label className="lostitemlabel2">Contact Number</label>
                   <label className="lostitemlabel3">{item.contactNumber}</label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">{item.Email}</label>
+                  <label className="lostitemlabel3">{item.email}</label>
                 </div>
                 <div className="lostitempanel2">
                   <label className="lostitemlabel2">Date Found</label>
