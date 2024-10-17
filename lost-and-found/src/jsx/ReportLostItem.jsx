@@ -97,12 +97,11 @@ function ReportLostItem() {
         locationFound: itemDetails.locationFound,
         objectName: itemDetails.objectName,
         imageUrl: uploadedImageUrl, // Store the image URL
-        userDetails: {
-          // Save user details (name, email, contact number)
           name: userData.name,
           email: userData.email,
           contactNumber: userData.contactNumber,
-        },
+          confirmed: true,
+          status: "pendingItem"
       };
       await addDoc(collection(userDocRef, "lostItems"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step

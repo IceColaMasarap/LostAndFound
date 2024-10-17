@@ -194,6 +194,7 @@ function ReportFoundItem() {
             locationFound,
             imageUrl,  // Store the download URL of the image
             confirmed: true,
+            status: "lostItem"
         };
 
         try {
