@@ -4,7 +4,12 @@ import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase"; // Import Firebase config
-import { collectionGroup, onSnapshot, doc, updateDoc } from "firebase/firestore"; // Import updateDoc
+import {
+  collectionGroup,
+  onSnapshot,
+  doc,
+  updateDoc,
+} from "firebase/firestore"; // Import updateDoc
 
 function LostItems() {
   const [foundItems, setFoundItems] = useState([]);
@@ -46,12 +51,9 @@ function LostItems() {
         : categoryFilter
         ? item.category === categoryFilter
         : true;
-        ? item.category === categoryFilter
-        : true;
 
     const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-    const itemDate = new Date(item.dateFound);
     const itemDate = new Date(item.dateFound);
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
@@ -152,11 +154,7 @@ function LostItems() {
                   <button className="lostitemimg2" id="removelostitem">
                     <FontAwesomeIcon icon={faTrash} />
                   </button>
-                  <button
-                    className="lostitemimg2"
-                    id="checklostitem"
-                    onClick={() => claimItem(item.id)} // Call claimItem with the item ID
-                  >
+                  <button className="lostitemimg2" id="checklostitem">
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
                 </div>
