@@ -13,6 +13,7 @@ import {
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Firebase storage methods
 import { useAuth } from "../hooks/useAuth"; // Import useAuth hook to access authenticated user
 import { useNavigate } from "react-router-dom";
+import "../styling/ReportFoundItem.css";
 
 function ReportFoundItem() {
   const navigate = useNavigate();
