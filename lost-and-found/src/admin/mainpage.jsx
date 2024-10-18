@@ -5,6 +5,7 @@ import LostItems from "./LostItems";
 import Pending from "./Pending";
 import Claimed from "./Claimed";
 import All from "./All";
+import Archive from "./Archive";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFileExcel,
@@ -12,6 +13,7 @@ import {
   faClock,
   faClipboardCheck,
   faBorderAll,
+  faBoxArchive,
 } from "@fortawesome/free-solid-svg-icons";
 import logo from "../assets/logo.png";
 import "./Admin.css";
@@ -48,6 +50,11 @@ function MainPage() {
               <FontAwesomeIcon icon={faBorderAll} /> All Reports
             </Link>
           </li>
+          <li>
+            <Link to="/adminpage/archive">
+              <FontAwesomeIcon icon={faBoxArchive} /> Archived Reports
+            </Link>
+          </li>
         </ul>
       </div>
       <div className="content">
@@ -57,6 +64,7 @@ function MainPage() {
           <Route path="/pending" element={<Pending />} />
           <Route path="/claimed" element={<Claimed />} />
           <Route path="/all" element={<All />} />
+          <Route path="/archive" element={<Archive />} />
         </Routes>
       </div>
     </div>

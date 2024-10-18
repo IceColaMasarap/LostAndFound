@@ -136,14 +136,6 @@ function Claimed() {
             <div className="lostitembody">
               <div className="lostitemtop">
                 <label className="lostitemlabel">{item.objectName}</label>
-                <div className="buttonslost">
-                  <button className="lostitemimg2" id="removelostitem">
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                  <button className="lostitemimg2" id="checklostitem">
-                    <FontAwesomeIcon icon={faCheck} />
-                  </button>
-                </div>
               </div>
               <div className="lostitembody1">
                 <div className="lostitempanel1">

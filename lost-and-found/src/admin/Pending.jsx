@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faBoxArchive, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase";
 import { collectionGroup, onSnapshot } from "firebase/firestore";
 
@@ -11,7 +11,15 @@ function Pending() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [colorFilter, setColorFilter] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
-
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [currentItemId, setCurrentItemId] = useState(null);
+  const [remark, setArchiveRemark] = useState("");
+  const [claimerDetails, setClaimerDetails] = useState({
+    claimedBy: "",
+    claimContactNumber: "",
+    claimEmail: "",
+  });
   useEffect(() => {
     const foundItemsQuery = collectionGroup(db, "itemReports");
 
@@ -32,7 +40,15 @@ function Pending() {
 
     return () => unsubscribe();
   }, []);
+  const openRemoveModal = (itemId) => {
+    setCurrentItemId(itemId);
+    setShowRemoveModal(true);
+  };
 
+  const openClaimModal = (itemId) => {
+    setCurrentItemId(itemId);
+    setShowClaimModal(true);
+  };
   const filteredItems = foundItems.filter((item) => {
     const isPending = item.status === "pending";
 
@@ -55,6 +71,21 @@ function Pending() {
     // Ensure only pending items are included
     return isPending && matchesCategory && matchesColor && matchesDateRange;
   });
+  const handleArchiveItem = async (itemId) => {
+    if (!itemId || !remark.trim()) return;
+
+    const itemRef = db.collection("itemReports").doc(itemId);
+
+    try {
+      await itemRef.update({
+        status: "archived",
+        archiveRemark: remark, // Save the remark here
+      });
+      setRemark(""); // Clear the remark input after archiving
+    } catch (error) {
+      console.error("Error archiving item: ", error);
+    }
+  };
 
   // Sort the filtered items by dateLost and then by timeLost in descending order
   const sortedFilteredItems = filteredItems.sort((a, b) => {
@@ -144,10 +175,18 @@ function Pending() {
               <div className="lostitemtop">
                 <label className="lostitemlabel">{item.objectName}</label>
                 <div className="buttonslost">
-                  <button className="lostitemimg2" id="removelostitem">
-                    <FontAwesomeIcon icon={faTrash} />
+                  <button
+                    className="lostitemimg2"
+                    id="removelostitem"
+                    onClick={() => openRemoveModal(item.id)} // Open the remove modal with the item ID
+                  >
+                    <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
-                  <button className="lostitemimg2" id="checklostitem">
+                  <button
+                    className="lostitemimg2"
+                    id="checklostitem"
+                    onClick={() => openClaimModal(item.id)} // Open the claim modal with the item ID
+                  >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
                 </div>
@@ -182,6 +221,90 @@ function Pending() {
           </div>
         ))}
       </div>
+      {showRemoveModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <p>Archive this item?</p>
+            <input
+              placeholder="Archive Reason"
+              value={remark} // Bind to state
+              onChange={(e) => setArchiveRemark(e.target.value)} // Update state on change
+            />
+            <div className="modalBtnDiv">
+              <button
+                onClick={() => {
+                  handleArchiveItem(currentItemId);
+                  setShowRemoveModal(false); // Close modal after archiving
+                }}
+                disabled={!remark.trim()} // Disable if remark is empty
+              >
+                Yes
+              </button>
+              <button onClick={() => setShowRemoveModal(false)}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showClaimModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Claim Item</h2>
+
+            <label>Claimed By:</label>
+            <input
+              type="text"
+              value={claimerDetails.claimedBy}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimedBy: e.target.value,
+                })
+              }
+              required
+            />
+
+            <label>Contact Number:</label>
+            <input
+              type="number"
+              value={claimerDetails.claimContactNumber}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimContactNumber: e.target.value,
+                })
+              }
+              required
+              onWheel={(e) => e.target.blur()} // Prevent number scroll behavior
+            />
+
+            <label>Email:</label>
+            <input
+              type="email"
+              value={claimerDetails.claimEmail}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimEmail: e.target.value,
+                })
+              }
+              required
+            />
+
+            <div className="modal-buttons">
+              <button onClick={() => setShowClaimModal(false)}>Cancel</button>
+              <button
+                disabled={
+                  !claimerDetails.claimedBy.trim() ||
+                  !claimerDetails.claimContactNumber.trim() ||
+                  !claimerDetails.claimEmail.trim()
+                }
+              >
+                Confirm Claim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

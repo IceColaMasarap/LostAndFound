@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faBoxArchive, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase";
 import {
   collectionGroup,
@@ -10,12 +10,24 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
+import { getDoc } from "firebase/firestore";
 
 function LostItems() {
   const [foundItems, setFoundItems] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [colorFilter, setColorFilter] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [remark, setArchiveRemark] = useState("");
+
+  const [currentItemId, setCurrentItemId] = useState(null);
+  const [claimerDetails, setClaimerDetails] = useState({
+    claimedBy: "",
+    claimContactNumber: "",
+    claimEmail: "",
+  });
 
   useEffect(() => {
     const foundItemsQuery = collectionGroup(db, "itemReports");
@@ -25,14 +37,15 @@ function LostItems() {
         .map((doc) => {
           const data = doc.data();
           const userName = data.userDetails?.name || "N/A";
+          const userId = doc.ref.parent.parent.id; // Get userId from the document path
 
           return {
             id: doc.id,
+            userId, // Add userId to the item data
             ...data,
             userName,
           };
         })
-        // Sort items by dateFound in descending order
         .sort((a, b) => new Date(b.dateFound) - new Date(a.dateFound));
 
       setFoundItems(items);
@@ -40,7 +53,6 @@ function LostItems() {
 
     return () => unsubscribe();
   }, []);
-
   const filteredItems = foundItems.filter((item) => {
     const isLost = item.status === "lost";
     const matchesCategory =
@@ -71,16 +83,80 @@ function LostItems() {
   });
 
   const sortedFilteredItems = filteredItems.sort((a, b) => {
-    // Compare dateFound
     const dateComparison = b.dateFound.localeCompare(a.dateFound);
-
-    // If the dates are the same, compare timeFound
     if (dateComparison === 0) {
       return b.timeFound.localeCompare(a.timeFound);
     }
-
     return dateComparison;
   });
+
+  // Functions for handling item removal and claims
+  const handleArchiveItem = async (itemId, userId) => {
+    try {
+      const itemRef = doc(db, `users/${userId}/itemReports`, itemId);
+
+      // Check if the document exists
+      const docSnap = await getDoc(itemRef);
+      if (!docSnap.exists()) {
+        console.error("No such document!");
+        return; // Handle this case appropriately
+      }
+
+      // Update the document
+      await updateDoc(itemRef, {
+        status: "archived",
+        remark, // Include the remark
+      });
+
+      console.log("Item archived successfully");
+      // Reset remark state after archiving
+      setArchiveRemark("");
+    } catch (error) {
+      console.error("Error archiving item:", error);
+    }
+  };
+  const handleClaimButtonClick = (item) => {
+    setShowClaimModal(true);
+    setCurrentItemId(item.id);
+    setCurrentUserId(item.userId); // Store the userId when opening the modal
+  };
+  const handleClaimItem = async () => {
+    try {
+      const itemRef = doc(
+        db,
+        `users/${currentUserId}/itemReports`,
+        currentItemId
+      ); // Use the currentUserId here
+
+      // Check if the document exists
+      const docSnap = await getDoc(itemRef);
+      if (!docSnap.exists()) {
+        console.error("No such document!");
+        return; // or set some error state to display to the user
+      }
+
+      // Update the document
+      await updateDoc(itemRef, {
+        claimedBy: claimerDetails.claimedBy,
+        claimContactNumber: claimerDetails.claimContactNumber,
+        claimEmail: claimerDetails.claimEmail,
+        dateClaimed: new Date().toISOString(),
+        confirmed: true,
+        status: "claimed",
+      });
+
+      setShowClaimModal(false);
+      setCurrentItemId(null);
+      setCurrentUserId(null); // Reset after claim
+      setClaimerDetails({
+        claimedBy: "",
+        claimContactNumber: "",
+        claimEmail: "",
+      });
+    } catch (error) {
+      console.error("Error claiming item:", error);
+    }
+  };
 
   return (
     <>
@@ -163,10 +239,23 @@ function LostItems() {
               <div className="lostitemtop">
                 <label className="lostitemlabel">{item.objectName}</label>
                 <div className="buttonslost">
-                  <button className="lostitemimg2" id="removelostitem">
-                    <FontAwesomeIcon icon={faTrash} />
+                  <button
+                    className="lostitemimg2"
+                    id="removelostitem"
+                    onClick={() => {
+                      setShowRemoveModal(true);
+                      setCurrentItemId(item.id);
+                      // Assuming `userId` is part of the item data
+                      setCurrentUserId(item.userId);
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
-                  <button className="lostitemimg2" id="checklostitem">
+                  <button
+                    className="lostitemimg2"
+                    id="checklostitem"
+                    onClick={() => handleClaimButtonClick(item)} // Updated to use the new function
+                  >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
                 </div>
@@ -201,6 +290,92 @@ function LostItems() {
           </div>
         ))}
       </div>
+
+      {showRemoveModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <p>Archive this item?</p>
+            <input
+              placeholder="Archive Reason"
+              value={remark} // Bind to state
+              onChange={(e) => setArchiveRemark(e.target.value)} // Update state on change
+            />
+            <div className="modalBtnDiv">
+              <button
+                onClick={() => {
+                  handleArchiveItem(currentItemId, currentUserId);
+                  setShowRemoveModal(false); // Close modal after archiving
+                }}
+                disabled={!remark.trim()} // Disable if remark is empty
+              >
+                Yes
+              </button>
+              <button onClick={() => setShowRemoveModal(false)}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showClaimModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Claim Item</h2>
+
+            <label>Claimed By:</label>
+            <input
+              type="text"
+              value={claimerDetails.claimedBy}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimedBy: e.target.value,
+                })
+              }
+              required
+            />
+
+            <label>Contact Number:</label>
+            <input
+              type="number"
+              value={claimerDetails.claimContactNumber}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimContactNumber: e.target.value,
+                })
+              }
+              required
+              onWheel={(e) => e.target.blur()} // Prevent number scroll behavior
+            />
+
+            <label>Email:</label>
+            <input
+              type="email"
+              value={claimerDetails.claimEmail}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimEmail: e.target.value,
+                })
+              }
+              required
+            />
+
+            <div className="modal-buttons">
+              <button onClick={() => setShowClaimModal(false)}>Cancel</button>
+              <button
+                onClick={handleClaimItem}
+                disabled={
+                  !claimerDetails.claimedBy.trim() ||
+                  !claimerDetails.claimContactNumber.trim() ||
+                  !claimerDetails.claimEmail.trim()
+                }
+              >
+                Confirm Claim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

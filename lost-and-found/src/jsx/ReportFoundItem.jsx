@@ -210,7 +210,7 @@ function ReportFoundItem() {
       imageUrl, // Store the download URL of the image
       confirmed: true,
       status: "lost",
-      type: "lost",
+      type: "Found",
     };
 
     try {

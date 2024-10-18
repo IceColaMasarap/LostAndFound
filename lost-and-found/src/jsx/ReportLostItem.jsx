@@ -109,7 +109,7 @@ function ReportLostItem() {
         email: userData.email,
         contactNumber: userData.contactNumber,
         status: "pending",
-        type: "lost",
+        type: "Lost",
 
         // Add createdAt timestamp
         createdAt: fullDateTime, // Current date and time in ISO format

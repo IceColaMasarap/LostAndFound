@@ -3,7 +3,7 @@ import "./Admin.css";
 import { collectionGroup, onSnapshot } from "firebase/firestore";
 import { db } from "../config/firebase"; // Firebase config
 
-function All() {
+function Archive() {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("all"); // Default filter state
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -13,46 +13,40 @@ function All() {
 
   // Columns state to manage visibility
   const [visibleColumns, setVisibleColumns] = useState({
-    type: true,
+    reportType: true,
     category: true,
     brand: true,
     color: true,
     objectName: true,
-    name: true,
-    contactNumber: true,
-    email: true,
+    reportedByName: true,
+    reportedByContact: true,
+    reportedByEmail: true,
     dateFound: true,
     locationFound: true,
     dateLost: true,
     locationLost: true,
-    claimedBy: true,
-    claimEmail: true,
-    claimContactNumber: true,
-    dateClaimed: true,
     status: true,
+    remark: true,
   });
   const showCustomCheckbox = () => {
     setShowCheckboxContainer((prev) => !prev);
   };
   // Mapping for column display names
   const columnLabels = {
-    type: "Report Type",
+    reportType: "Report Type",
     category: "Category",
     brand: "Brand",
     color: "Color",
     objectName: "Object Name",
-    name: "Reported By Name",
-    contactNumber: "Reported By Contact",
-    email: "Reported By Email",
+    reportedByName: "Reported By Name",
+    reportedByContact: "Reported By Contact",
+    reportedByEmail: "Reported By Email",
     dateFound: "Date Found",
     locationFound: "Location Found",
     dateLost: "Date Lost",
     locationLost: "Location Lost",
-    claimedBy: "Claimer's Name",
-    claimEmail: "Claimer's Email",
-    claimContactNumber: "Claimer's Contact",
-    dateClaimed: "Date Claimed",
     status: "Status",
+    remark: "Archive Reason",
   };
   // Select all columns
   const selectAllColumns = () => {
@@ -77,11 +71,8 @@ function All() {
       locationFound: true,
       dateLost: false,
       locationLost: false,
-      claimedBy: false,
-      claimedByEmail: false,
-      claimedByContact: false,
-      dateClaimed: false,
       status: true,
+      remark: true,
     },
     pending: {
       reportType: true,
@@ -96,11 +87,8 @@ function All() {
       locationFound: false,
       dateLost: true,
       locationLost: true,
-      claimedBy: false,
-      claimedByEmail: false,
-      claimedByContact: false,
-      dateClaimed: false,
       status: true,
+      remark: true,
     },
     claimed: {
       reportType: true,
@@ -115,11 +103,8 @@ function All() {
       locationFound: false,
       dateLost: false,
       locationLost: false,
-      claimedBy: true,
-      claimedByEmail: true,
-      claimedByContact: true,
-      dateClaimed: true,
       status: true,
+      remark: true,
     },
     all: {
       reportType: true,
@@ -134,11 +119,8 @@ function All() {
       locationFound: true,
       dateLost: true,
       locationLost: true,
-      claimedBy: true,
-      claimedByEmail: true,
-      claimedByContact: true,
-      dateClaimed: true,
       status: true,
+      remark: true,
     },
   };
 
@@ -197,13 +179,15 @@ function All() {
 
     // Only include items where confirmed is not false
     const isConfirmed = item.confirmed !== false;
+    const archived = item.status === "archived";
 
     return (
       matchesStatus &&
       matchesCategory &&
       matchesColor &&
       matchesDateRange &&
-      isConfirmed // Ensure only confirmed items are included
+      isConfirmed &&
+      archived
     );
   });
 
@@ -344,4 +328,4 @@ function All() {
   );
 }
 
-export default All;
+export default Archive;
