@@ -13,29 +13,29 @@ function Claimed() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   useEffect(() => {
-    // Listen for updates in the "ClaimedItems" collection
-    const claimedItemsQuery = collectionGroup(db, "ClaimedItems");
+    const foundItemsQuery = collectionGroup(db, "itemReports");
 
-    // Set up a real-time listener
-    const unsubscribe = onSnapshot(claimedItemsQuery, (querySnapshot) => {
+    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
       const items = querySnapshot.docs.map((doc) => {
         const data = doc.data();
+        const userName = data.userDetails?.name || "N/A";
+
         return {
           id: doc.id,
           ...data,
+          userName,
         };
       });
 
       setClaimedItems(items);
     });
 
-    // Clean up the listener on component unmount
     return () => unsubscribe();
   }, []);
 
-  // Function to filter items based on category, color, and date range
   const filteredItems = claimedItems.filter((item) => {
-    // Match the selected category
+    const isPending = item.status === "claimed";
+
     const matchesCategory =
       categoryFilter === "Others"
         ? !["Personal Belonging", "Electronics", "Documents"].includes(
@@ -43,16 +43,17 @@ function Claimed() {
           )
         : categoryFilter
         ? item.category === categoryFilter
-        : true; // Include all items if no filter is set
+        : true;
 
     const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-    const itemDate = new Date(item.dateClaimed); // Assuming dateClaimed is in a valid date format
+    const itemDate = new Date(item.dateFound);
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
       (!dateRange.end || itemDate <= new Date(dateRange.end));
 
-    return matchesCategory && matchesColor && matchesDateRange;
+    // Ensure only pending items are included
+    return isPending && matchesCategory && matchesColor && matchesDateRange;
   });
 
   return (
@@ -92,7 +93,7 @@ function Claimed() {
               <option value="Gray">Gray</option>
             </select>
 
-            <div>
+            <div className="dateDiv">
               <input
                 type="date"
                 value={dateRange.start}
@@ -105,6 +106,8 @@ function Claimed() {
                   }));
                 }}
               />
+              <label className="tolabel">–</label>
+
               <input
                 type="date"
                 value={dateRange.end}
@@ -152,12 +155,14 @@ function Claimed() {
                   <label className="lostitemlabel3">{item.color}</label>
                 </div>
                 <div className="lostitempanel1">
-                  <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">{item.reportedBy}</label>
+                  <label className="lostitemlabel2">Claimed by:</label>
+                  <label className="lostitemlabel3">{item.claimedBy}</label>
                   <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">{item.contactNumber}</label>
+                  <label className="lostitemlabel3">
+                    {item.claimContactNumber}
+                  </label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">{item.email}</label>
+                  <label className="lostitemlabel3">{item.claimEmail}</label>
                   <label className="lostitemlabel2">Date Claimed</label>
                   <label className="lostitemlabel3">{item.dateClaimed}</label>
                 </div>

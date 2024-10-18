@@ -26,6 +26,7 @@ function ReportLostItem() {
     timeFound: "",
     objectName: "",
   });
+  const [otherColor, setOtherColor] = useState(null); // State to store the uploaded image
 
   const [image, setImage] = useState(null); // State to store the uploaded image
   const [imageUrl, setImageUrl] = useState(""); // State to store the image URL after upload
@@ -108,6 +109,7 @@ function ReportLostItem() {
         email: userData.email,
         contactNumber: userData.contactNumber,
         status: "pending",
+        type: "lost",
 
         // Add createdAt timestamp
         createdAt: fullDateTime, // Current date and time in ISO format
@@ -307,16 +309,38 @@ function ReportLostItem() {
             />
 
             <label>Color:</label>
-            <input
-              type="text"
-              id="color"
-              value={itemDetails.color || ""} // Fix: Ensure it's always controlled
-              onChange={(e) =>
-                setItemDetails({ ...itemDetails, color: e.target.value })
-              }
+            <select
+              id="ColorInp"
+              value={itemDetails.color}
+              onChange={(e) => {
+                const selectedColor = e.target.value;
+                setItemDetails({ ...itemDetails, color: selectedColor });
+              }}
               required
-              placeholder="Ex. red, blue, black"
-            />
+            >
+              <option value="">Select a color</option>
+              <option value="Red">Red</option>
+              <option value="Blue">Blue</option>
+              <option value="Green">Green</option>
+              <option value="Yellow">Yellow</option>
+              <option value="Orange">Orange</option>
+              <option value="Purple">Purple</option>
+              <option value="Pink">Pink</option>
+              <option value="Black">Black</option>
+              <option value="White">White</option>
+              <option value="Gray">Gray</option>
+              <option value="Others">Other</option>
+            </select>
+
+            {itemDetails.color === "Others" && (
+              <input
+                type="text"
+                placeholder="Specify color"
+                value={otherColor}
+                onChange={(e) => setOtherColor(e.target.value)}
+                required
+              />
+            )}
 
             <label>Date Lost:</label>
             <input

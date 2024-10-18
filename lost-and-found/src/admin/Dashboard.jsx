@@ -5,7 +5,6 @@ import React, { useState, useEffect } from "react";
 import {
   setDoc,
   collectionGroup,
-  collection,
   query,
   getDocs,
   where,
@@ -35,7 +34,6 @@ function Dashboard() {
 
       if (!querySnapshot.empty) {
         const docSnapshot = querySnapshot.docs[0];
-        const data = docSnapshot.data();
         await confirmItem(docSnapshot.ref);
         toast.success("Reported found item received successfully!");
       } else {
@@ -78,6 +76,17 @@ function Dashboard() {
     return () => unsubscribe();
   }, []);
 
+  // Count the items based on their status
+  const lostItemsCount = foundItems.filter(
+    (item) => item.status === "lost"
+  ).length;
+  const pendingClaimsCount = foundItems.filter(
+    (item) => item.status === "pending"
+  ).length;
+  const claimedItemsCount = foundItems.filter(
+    (item) => item.status === "claimed"
+  ).length;
+
   return (
     <>
       <div className="adminnavbar">
@@ -101,15 +110,21 @@ function Dashboard() {
       <div className="dashboardbody">
         <div className="panels">
           <div className="panel">
-            <p className="panelh2">100</p>
+            <p id="lostitemcount" className="panelh2">
+              {lostItemsCount}
+            </p>
             <p className="panelp">Lost Items</p>
           </div>
           <div className="panel">
-            <p className="panelh2">100</p>
+            <p id="pendingclaimcount" className="panelh2">
+              {pendingClaimsCount}
+            </p>
             <p className="panelp">Pending Claims</p>
           </div>
           <div className="panel">
-            <p className="panelh2">100</p>
+            <p id="claimeditemscount" className="panelh2">
+              {claimedItemsCount}
+            </p>
             <p className="panelp">Claimed Items</p>
           </div>
         </div>
@@ -122,28 +137,42 @@ function Dashboard() {
                 <tr>
                   <th>Reported By</th>
                   <th>Category</th>
-                  <th>Description</th>
+                  <th>Object Name</th>
                   <th>Reported Date</th>
-                  <th>Status</th>
+                  <th>Type</th>
                   <th>Claimed By</th>
                 </tr>
               </thead>
               <tbody>
                 {foundItems.length > 0 ? (
-                  foundItems.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.userName}</td>
-                      <td>{item.category}</td>
-                      <td>{item.objectName}</td>
-                      <td>
-                        {item.createdAt
-                          ? item.createdAt.toLocaleString()
-                          : "N/A"}
-                      </td>
-                      <td>{item.confirmed ? "Claimed" : "Pending"}</td>
-                      <td>{item.confirmed ? "Claimed" : "N/A"}</td>
-                    </tr>
-                  ))
+                  foundItems
+                    .filter((item) => item.status) // Filter out items without status
+                    .sort(
+                      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    ) // Sort in descending order by date
+                    .slice(0, 5) // Limit to 5 rows
+                    .map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.name}</td>
+                        <td>{item.category}</td>
+                        <td>{item.objectName}</td>
+                        <td>
+                          {item.createdAt
+                            ? new Date(item.createdAt).toLocaleString() // Convert string to Date for display
+                            : "N/A"}
+                        </td>
+                        <td>
+                          {item.status === "lost"
+                            ? "Lost"
+                            : item.status === "pending"
+                            ? "Missing"
+                            : item.status === "claimed"
+                            ? "Claimed"
+                            : "N/A"}
+                        </td>
+                        <td>{item.claimedBy ? item.claimedBy : "N/A"}</td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
                     <td colSpan="6">No data available</td>

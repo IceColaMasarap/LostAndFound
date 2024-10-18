@@ -3,13 +3,13 @@ import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faCheck } from "@fortawesome/free-solid-svg-icons";
-import { db } from "../config/firebase"; // Import Firebase config
+import { db } from "../config/firebase";
 import {
   collectionGroup,
   onSnapshot,
   doc,
   updateDoc,
-} from "firebase/firestore"; // Import updateDoc
+} from "firebase/firestore";
 
 function LostItems() {
   const [foundItems, setFoundItems] = useState([]);
@@ -18,20 +18,22 @@ function LostItems() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   useEffect(() => {
-    // Listen for updates in the "FoundItems" collection
     const foundItemsQuery = collectionGroup(db, "itemReports");
 
     const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const userName = data.userDetails?.name || "N/A";
+      const items = querySnapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          const userName = data.userDetails?.name || "N/A";
 
-        return {
-          id: doc.id,
-          ...data,
-          userName,
-        };
-      });
+          return {
+            id: doc.id,
+            ...data,
+            userName,
+          };
+        })
+        // Sort items by dateFound in descending order
+        .sort((a, b) => new Date(b.dateFound) - new Date(a.dateFound));
 
       setFoundItems(items);
     });
@@ -39,10 +41,8 @@ function LostItems() {
     return () => unsubscribe();
   }, []);
 
-  // Function to filter items based on category, color, date range, confirmed status, and "lost" status
   const filteredItems = foundItems.filter((item) => {
-    const isLost = item.status === "lost"; // Check if item status is "lost"
-
+    const isLost = item.status === "lost";
     const matchesCategory =
       categoryFilter === "Others"
         ? !["Personal Belonging", "Electronics", "Documents"].includes(
@@ -61,7 +61,6 @@ function LostItems() {
 
     const isConfirmed = item.confirmed === true;
 
-    // Ensure the item is "lost" before including it
     return (
       isLost &&
       matchesCategory &&
@@ -71,11 +70,23 @@ function LostItems() {
     );
   });
 
+  const sortedFilteredItems = filteredItems.sort((a, b) => {
+    // Compare dateFound
+    const dateComparison = b.dateFound.localeCompare(a.dateFound);
+
+    // If the dates are the same, compare timeFound
+    if (dateComparison === 0) {
+      return b.timeFound.localeCompare(a.timeFound);
+    }
+
+    return dateComparison;
+  });
+
   return (
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">Lost Item Reports</p>
+          <p className="header">Found Item Reports</p>
           <div className="categoryx">
             <p>Filter</p>
             <select
@@ -108,7 +119,7 @@ function LostItems() {
               <option value="Gray">Gray</option>
             </select>
 
-            <div>
+            <div className="dateDiv">
               <input
                 type="date"
                 value={dateRange.start}
@@ -121,6 +132,7 @@ function LostItems() {
                   }));
                 }}
               />
+              <label className="tolabel">–</label>
 
               <input
                 type="date"
@@ -140,7 +152,7 @@ function LostItems() {
       </div>
 
       <div className="containerlostdata">
-        {filteredItems.map((item) => (
+        {sortedFilteredItems.map((item) => (
           <div key={item.id} className="lostitemcontainer">
             <img
               className="lostitemimg"

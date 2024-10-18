@@ -34,7 +34,7 @@ function Pending() {
   }, []);
 
   const filteredItems = foundItems.filter((item) => {
-    const isPending = item.status === "pending"; // Check if the status is "pending"
+    const isPending = item.status === "pending";
 
     const matchesCategory =
       categoryFilter === "Others"
@@ -47,7 +47,7 @@ function Pending() {
 
     const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-    const itemDate = new Date(item.dateFound);
+    const itemDate = new Date(item.dateLost);
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
       (!dateRange.end || itemDate <= new Date(dateRange.end));
@@ -56,11 +56,22 @@ function Pending() {
     return isPending && matchesCategory && matchesColor && matchesDateRange;
   });
 
+  // Sort the filtered items by dateLost and then by timeLost in descending order
+  const sortedFilteredItems = filteredItems.sort((a, b) => {
+    const dateComparison = b.dateLost.localeCompare(a.dateLost);
+
+    if (dateComparison === 0) {
+      return b.timeLost.localeCompare(a.timeLost);
+    }
+
+    return dateComparison;
+  });
+
   return (
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">Missing Items</p>
+          <p className="header">Missing Item Reports</p>
           <div className="categoryx">
             <p>Filter</p>
             <select
@@ -93,7 +104,7 @@ function Pending() {
               <option value="Gray">Gray</option>
             </select>
 
-            <div>
+            <div className="dateDiv">
               <input
                 type="date"
                 value={dateRange.start}
@@ -106,6 +117,7 @@ function Pending() {
                   }));
                 }}
               />
+              <label className="tolabel">–</label>
               <input
                 type="date"
                 value={dateRange.end}
@@ -121,7 +133,7 @@ function Pending() {
       </div>
 
       <div className="containerlostdata">
-        {filteredItems.map((item) => (
+        {sortedFilteredItems.map((item) => (
           <div key={item.id} className="lostitemcontainer">
             <img
               className="lostitemimg"
@@ -151,25 +163,19 @@ function Pending() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">
-                    {item.userDetails?.name}
-                  </label>
+                  <label className="lostitemlabel3">{item.name}</label>
                   <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">
-                    {item.userDetails?.contactNumber}
-                  </label>
+                  <label className="lostitemlabel3">{item.contactNumber}</label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">
-                    {item.userDetails?.email}
-                  </label>
+                  <label className="lostitemlabel3">{item.email}</label>
                 </div>
                 <div className="lostitempanel2">
-                  <label className="lostitemlabel2">Date Found</label>
+                  <label className="lostitemlabel2">Date Lost</label>
                   <label className="lostitemlabel3">
-                    {item.dateFound} at {item.timeFound}
+                    {item.dateLost} at {item.timeLost}
                   </label>
-                  <label className="lostitemlabel2">Location Found</label>
-                  <label className="lostitemlabel3">{item.locationFound}</label>
+                  <label className="lostitemlabel2">Location Lost</label>
+                  <label className="lostitemlabel3">{item.locationLost}</label>
                 </div>
               </div>
             </div>

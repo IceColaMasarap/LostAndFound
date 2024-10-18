@@ -30,12 +30,12 @@ function MainPage() {
           </li>
           <li>
             <Link to="/adminpage/lostitems">
-              <FontAwesomeIcon icon={faFileExcel} /> Lost Items
+              <FontAwesomeIcon icon={faFileExcel} /> Found Items
             </Link>
           </li>
           <li>
             <Link to="/adminpage/pending">
-              <FontAwesomeIcon icon={faClock} /> Pending Claims
+              <FontAwesomeIcon icon={faClock} /> Lost Items
             </Link>
           </li>
           <li>

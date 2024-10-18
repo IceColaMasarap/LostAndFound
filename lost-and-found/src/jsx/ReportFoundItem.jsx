@@ -27,6 +27,8 @@ function ReportFoundItem() {
   const [brand, setBrand] = useState("");
   const [objectName, setObjectName] = useState("");
   const [color, setColor] = useState("");
+  const [otherColor, setOtherColor] = React.useState("");
+
   const [dateFound, setDateFound] = useState("");
   const [locationFound, setLocationFound] = useState("");
   const [image, setImage] = useState(null); // Store image locally
@@ -197,8 +199,8 @@ function ReportFoundItem() {
     const formData = {
       category: category === "Other" ? otherCategory : category,
       contactNumber: user?.contact,
-      Name: user?.name,
-      Email: user?.email,
+      name: user?.name,
+      email: user?.email,
       objectName,
       brand,
       color,
@@ -208,6 +210,7 @@ function ReportFoundItem() {
       imageUrl, // Store the download URL of the image
       confirmed: true,
       status: "lost",
+      type: "lost",
     };
 
     try {
@@ -386,13 +389,34 @@ function ReportFoundItem() {
             required
           />
           <label htmlFor="ColorInp">Color:</label>
-          <input
-            type="text"
+          <select
             id="ColorInp"
             value={color}
             onChange={(e) => setColor(e.target.value)}
             required
-          />
+          >
+            <option value="">Select a color</option>
+            <option value="Red">Red</option>
+            <option value="Blue">Blue</option>
+            <option value="Green">Green</option>
+            <option value="Yellow">Yellow</option>
+            <option value="Orange">Orange</option>
+            <option value="Purple">Purple</option>
+            <option value="Pink">Pink</option>
+            <option value="Black">Black</option>
+            <option value="White">White</option>
+            <option value="Gray">Gray</option>
+            <option value="Others">Other</option>
+          </select>
+          {color === "Others" && (
+            <input
+              type="text"
+              placeholder="Specify color"
+              value={otherColor}
+              onChange={(e) => setColor(e.target.value)}
+              required
+            />
+          )}
           <label htmlFor="DateFoundInp">Date Found:</label>
           <input
             type="date"

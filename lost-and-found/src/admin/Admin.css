@@ -149,6 +149,13 @@ ul {
   border: 2px solid #35408f; /* Outer border color */
   overflow: hidden; /* To ensure rounded corners are visible */
 }
+.table-containerAll {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  border: 2px solid #35408f; /* Outer border color */
+  overflow: hidden; /* To ensure rounded corners are visible */
+  overflow-x: auto; /* Hide horizontal scrolling */
+}
 
 .report-table {
   width: 100%;
@@ -190,8 +197,14 @@ ul {
 }
 
 .categoryx button {
-  background-color: #e8e8e8;
-  color: rgb(49, 49, 49);
+  height: 30px;
+  font-family: "Poppins";
+  border-radius: 25px;
+  background-color: #35408f;
+  margin-right: 10px;
+  padding: 0;
+  padding-left: 15px;
+  padding-right: 15px;
   font-size: small;
 }
 .categorybutton {
@@ -330,10 +343,10 @@ input[type="date"] {
   letter-spacing: normal; /* Reset letter spacing */
   font-family: "Poppins"; /* Use the same font as the parent element */
   font-weight: 500;
-  margin-right: 10px;
   font-size: 12px;
-  border: 3px solid #35408f;
+  border: none;
   border-radius: 25px;
+
   /* Remove default date arrow in WebKit browsers */
   -webkit-appearance: none;
   -moz-appearance: textfield;
@@ -344,11 +357,104 @@ input[type="date"] {
   background-color: white; /* Input background color */
   background-size: 24px;
 }
-
+.dateDiv {
+  border: 3px solid #35408f;
+  border-radius: 25px;
+}
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0; /* Hide the default calendar icon */
 }
 
 .lostitemimg2 {
+  margin-left: 10px;
+}
+
+.tolabel {
+  color: #35408f;
+  margin-left: 0;
+  font-weight: 600;
+  margin-right: 5px;
+  margin-left: 5px;
+}
+
+/* Admin.css */
+
+.checkbox-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* Four columns */
+  gap: 20px; /* Space between checkboxes */
+  padding: 10px;
+  background-color: #f9f9f9;
+  padding-left: 20px;
+}
+.showCheckbox {
+  display: flex;
+  align-items: center;
+}
+.showCheckbox p {
+  grid-column: span 4;
+  font-size: 1em;
+  margin: 0;
+  font-family: "Poppins";
+  color: #222222;
+  text-shadow: none;
+  margin-left: 20px;
+}
+
+.checkbox-container div {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-container input[type="checkbox"] {
+  appearance: none; /* Remove default styling */
+  width: 20px;
+  height: 20px;
+  border: 2px solid #0056b3; /* Border color */
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+}
+
+.checkbox-container input[type="checkbox"]:checked {
+  background-color: #0056b3; /* Background color when checked */
+}
+
+.checkbox-container label {
+  margin-left: 10px; /* Space between checkbox and label */
+  font-size: 1em;
+  color: #2f2f2f;
+  cursor: pointer;
+}
+
+/* Optional: Hover effect */
+.checkbox-container input[type="checkbox"]:hover {
+  border-color: #0056b3; /* Darker border on hover */
+}
+
+.checkbox-buttons button {
+  background-color: #0056b3;
+  border-radius: 25px;
+  height: 30px;
+  font-size: medium;
+  padding: 0;
+  padding-left: 15px;
+  padding-right: 15px;
+  width: auto;
+  margin: 10px;
+}
+.togglev {
+  background-color: #0056b3;
+  border-radius: 25px;
+  height: 30px;
+  font-size: medium;
+  padding: 0;
+  padding-left: 15px;
+  padding-right: 15px;
+  width: auto;
+  margin: 10px;
+}
+.checkbox-buttons {
   margin-left: 10px;
 }
