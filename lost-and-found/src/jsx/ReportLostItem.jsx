@@ -159,7 +159,7 @@ function ReportLostItem() {
           </div>
 
           <div className="ReportLostContainer">
-            <h3>TERMS AND CONDITION</h3>
+            <h3>TERMS AND CONDITIONS</h3>
             <p>
               We appreciate your desire to retrieve the item you lost. <br />
               By providing your information, you agree to these terms.
@@ -308,8 +308,7 @@ function ReportLostItem() {
           </div>
 
           <div className="ReportLostContainer">
-            <h3>Response Form</h3>
-            <div className="form-container">
+            <h3>RESPONSE FORM</h3>
               {/* Prefilled Name (Non-Editable) */}
 
               <div className='FormRow'>
@@ -443,7 +442,6 @@ function ReportLostItem() {
                 <label>Upload Image:</label>
                 <input className='FInput' type="file" accept="image/*" onChange={handleImageChange} />
               </div>
-            </div>
           </div>
 
           <div className="ButtonContainer">

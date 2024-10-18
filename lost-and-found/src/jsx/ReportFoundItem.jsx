@@ -253,7 +253,35 @@ function ReportFoundItem() {
       {step === 1 && (
         <div className="step1">
           <h2>REPORT A FOUND ITEM</h2>
-          <p> Terms and Conditions</p>
+          <div className="ProgressIndi">
+            <div className="step active">1</div>
+            <div className="step">2</div>
+            <div className="step">3</div>
+            <div className="step">4</div>
+            <div className="step">5</div>
+          </div>
+
+          <div className="ReportFoundContainer">
+          <h3>TERMS AND CONDITIONS</h3>
+          <p>
+            We appreciate your willingness to turn in the items <br /> you've found. By
+            providing your information, you agree <br /> to these terms.
+          </p>
+          <p>
+            Your personal information will be kept confidential. It <br /> will only be
+            used to help identify the item and will not <br /> be shared with anyone else
+            without your permission.
+          </p>
+          <p>
+            Please note that NU Lost and Found Dasmariñas is not <br /> responsible for
+            any damage to items you surrender. We <br /> sincerely appreciate your
+            honesty in returning found <br /> items.
+          </p>
+          <p>
+            By surrendering a found item, you confirm that you have <br /> read and
+            understood these terms.
+          </p>
+          <div className="CheckboxContainer">
           <label>
             <input
               type="checkbox"
@@ -262,7 +290,10 @@ function ReportFoundItem() {
             />
             I understand and agree.
           </label>
-          <button
+          </div>
+          </div>
+          <div className="ButtonContainer">
+          <button className="PrevBtn"
             onClick={() => {
               navigate("/homepage"); // Navigates to the specified route
               setTimeout(() => {
@@ -272,18 +303,29 @@ function ReportFoundItem() {
               }, 100); // Delay in milliseconds before the scroll action is executed
             }}
           >
-            Return to homepage
+            Home
           </button>
-          <button disabled={!termsAccepted} onClick={nextStep}>
+          <button className="NextBtn" disabled={!termsAccepted} onClick={nextStep}>
             Next
           </button>
+        </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="step2">
           <h2>REPORT A FOUND ITEM</h2>
-          <h3>Step 2: Choose Category</h3>
+
+          <div className="ProgressIndi">
+            <div className="step active">1</div>
+            <div className="step active">2</div>
+            <div className="step">3</div>
+            <div className="step">4</div>
+            <div className="step">5</div>
+          </div>
+
+          <div className="ReportLostContainer">
+          <h3>CHOOSE CATEGORY</h3>
           <form>
             <label>
               <input
@@ -293,7 +335,13 @@ function ReportFoundItem() {
                 checked={category === "Personal Belonging"}
                 onChange={(e) => setCategory(e.target.value)}
               />
-              Personal Belonging (Wallet, Bag, etc.)
+              Personal Belonging
+              <ul>
+                  <li>• Wallet</li>
+                  <li>• Bag</li>
+                  <li>• Clothing</li>
+                  <li>• Jewelry, etc...</li>
+                </ul>
             </label>
             <label>
               <input
@@ -303,7 +351,13 @@ function ReportFoundItem() {
                 checked={category === "Electronics"}
                 onChange={(e) => setCategory(e.target.value)}
               />
-              Electronics (Phones, Laptop, etc.)
+              Electronics
+              <ul>
+                  <li>• Phones</li>
+                  <li>• Laptop</li>
+                  <li>• Charger</li>
+                  <li>• Camera, etc...</li>
+                </ul>
             </label>
             <label>
               <input
@@ -313,7 +367,13 @@ function ReportFoundItem() {
                 checked={category === "Documents"}
                 onChange={(e) => setCategory(e.target.value)}
               />
-              Documents (ID, Cards, etc.)
+              Documents
+              <ul>
+                  <li>• ID</li>
+                  <li>• Cards</li>
+                  <li>• Printed Materials</li>
+                  <li>• School works, etc...</li>
+                </ul>
             </label>
             <label>
               <input
@@ -335,60 +395,89 @@ function ReportFoundItem() {
               )}
             </label>
           </form>
-          <button onClick={prevStep}>Previous</button>
-          <button
+          </div>
+          <div className="ButtonContainer">
+          <button className="PrevBtn" onClick={prevStep}>Previous</button>
+          <button className="NextBtn"
             onClick={nextStep}
             disabled={!category || (category === "Other" && !otherCategory)} // Disable button if "Other" is selected and no input is provided
           >
             Next{" "}
           </button>
         </div>
+        </div>
       )}
 
       {step === 3 && (
         <div className="step3">
           <h2>REPORT A FOUND ITEM</h2>
-          <h3>Response Form</h3>
+
+          <div className="ProgressIndi">
+            <div className="step active">1</div>
+            <div className="step active">2</div>
+            <div className="step active">3</div>
+            <div className="step">4</div>
+            <div className="step">5</div>
+          </div>
+
+          <div className="ReportFoundContainer">
+          <h3>RESPONSE FORM</h3>
+          <div className='FormRow'>
           <label htmlFor="NameInp">Name:</label>
-          <input
+          <input className='FInput'
             type="text"
             id="NameInp"
             value={user?.name}
             readOnly
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="EmailInp">Email:</label>
-          <input
+          <input className='FInput'
             type="text"
             id="EmailInp"
             value={user?.email}
             readOnly
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="ContactNumInp">Contact Number:</label>
-          <input
+          <input className='FInput'
             type="text"
             id="ContactNumInp"
             value={user?.contact}
             readOnly
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="ObjectNameInp">Object name:</label>
-          <input
+          <input className='FInput'
             type="text"
             id="ObjectNameInp"
             value={objectName}
             onChange={(e) => setObjectName(e.target.value)}
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="BrandInp">Brand:</label>
-          <input
+          <input className='FInput'
             type="text"
             id="BrandInp"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="ColorInp">Color:</label>
           <select
             id="ColorInp"
@@ -410,7 +499,7 @@ function ReportFoundItem() {
             <option value="Others">Other</option>
           </select>
           {color === "Others" && (
-            <input
+            <input className='FInput'
               type="text"
               placeholder="Specify color"
               value={otherColor}
@@ -418,42 +507,59 @@ function ReportFoundItem() {
               required
             />
           )}
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="DateFoundInp">Date Found:</label>
-          <input
+          <input className='FInput'
             type="date"
             id="DateFoundInp"
             value={dateFound}
             onChange={(e) => setDateFound(e.target.value)}
             required
           />
-          <label>Time Found:</label>
+          </div>
+
+<div className='FormRow'>
+          
           <label htmlFor="TimeFoundInp">Time Found:</label>{" "}
           {/* Added Time Found */}
-          <input
+          <input className='FInput'
             type="time"
             id="TimeFoundInp"
             value={timeFound}
             onChange={(e) => setTimeFound(e.target.value)} // Update timeFound value
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="LocationFoundInp">Location Found:</label>
-          <input
+          <input className='FInput'
             type="text"
             id="LocationFoundInp"
             value={locationFound}
             onChange={(e) => setLocationFound(e.target.value)}
             required
           />
+          </div>
+
+<div className='FormRow'>
           <label htmlFor="ImageInp">Upload Image (optional):</label>
-          <input
+          <input className='FInput'
             type="file"
             id="ImageInp"
             onChange={handleImageChange}
             accept="image/*"
           />
+          </div>
+          <div className='FormRow'></div>
           {uploading && <p>Uploading image...</p>}
-          <button onClick={prevStep}>Previous</button>
-          <button
+          </div>
+
+          <div className="ButtonContainer">
+          <button className="PrevBtn" onClick={prevStep}>Previous</button>
+          <button className="NextBtn"
             onClick={nextStep}
             disabled={
               !objectName ||
@@ -466,11 +572,24 @@ function ReportFoundItem() {
             Next
           </button>
         </div>
+        </div>
+      
+       
       )}
 
       {step === 4 && (
         <div className="step4">
           <h2>REPORT A FOUND ITEM</h2>
+
+          <div className="ProgressIndi">
+  <div className="step active">1</div>
+  <div className="step active">2</div>
+  <div className="step active">3</div>
+  <div className="step active">4</div>
+  <div className="step">5</div>
+</div>
+
+<div className="FReportFoundContainer">
           <p>
             PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO SURRENDER FOUND ITEMS.
           </p>
@@ -492,23 +611,37 @@ function ReportFoundItem() {
                 <p>Admin needs to confirm this code.</p>
               </div>
             )}
+            </div>
           </div>
-          <button onClick={prevStep} disabled={confirmed}>
+          <div className="ButtonContainer">
+          <button className="PrevBtn" onClick={prevStep} disabled={confirmed}>
             Previous
           </button>
-          <button onClick={nextStep} disabled={!confirmed}>
+          <button className="Nextbtn" onClick={nextStep} disabled={!confirmed}>
             Next
           </button>
+          </div>
         </div>
       )}
 
       {step === 5 && (
         <div className="step5">
           <h2>REPORT A FOUND ITEM</h2>
+
+          <div className="ProgressIndi">
+  <div className="step active">1</div>
+  <div className="step active">2</div>
+  <div className="step active">3</div>
+  <div className="step active">4</div>
+  <div className="step active">5</div>
+</div>
+
+<div className="FReportFoundContainer">
           <h3>Thank You!</h3>
-          <p>Your honesty and effort will greatly assist the owner...</p>
-          <button onClick={() => navigate("/homepage#body1")}>
-            Return to homepage
+          <p>Your honesty and effort will greatly assist the owner in retrieving their belongings.</p>
+          </div>
+          <button className="FinishBtn" onClick={() => navigate("/homepage#body1")}>
+            Finish
           </button>
         </div>
       )}
