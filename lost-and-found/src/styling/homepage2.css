@@ -6,20 +6,9 @@
 
 html,
 body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-}
-
-/* Apply white background to the main container */
-body {
-  background-image: url("../assets/background3.png");
-  background-size: cover;
-  /* Ensures the image covers the entire div */
-  background-position: center;
-  background-repeat: no-repeat;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
-  /* Disable horizontal scroll */
 }
 
 html {
@@ -28,7 +17,7 @@ html {
 }
 
 .logo {
-  width: 50px;
+  width: 2.5rem;
   /* Adjust size as needed */
   height: auto;
   /* Keep aspect ratio */
@@ -106,8 +95,13 @@ html {
 }
 
 .nav a:hover {
-  color: #6ce5e8;
+  color: #ffd41f;
   /* Change text color on hover */
+}
+
+.nav a:active {
+  color: #FFD41F;
+    text-decoration: underline;
 }
 
 .nav a::after {
@@ -123,7 +117,7 @@ html {
   height: 2px;
   /* Height of the underline */
   border-radius: 5px;
-  background: #6ce5e8;
+  background: #ffd41f;
   /* Color of the underline */
   transform: scaleX(0);
   /* Start with no width */
@@ -147,14 +141,6 @@ html {
   width: 30vw;
 }
 
-.end {
-  display: flex;
-  align-items: center;
-  /* Center items vertically */
-  margin-left: auto;
-  /* Push to the end */
-}
-
 .sections {
   height: 100vh;
   width: 100vw;
@@ -163,14 +149,14 @@ html {
 .HomePage {
   background-image: url('./../assets/HomePage_BG.png');
   background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 100vh;
-    display: grid;
-    align-items: center;
-    justify-items: start;
-    padding: 0 5rem;
-    font-family: 'Poppins';
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100vh;
+  display: grid;
+  align-items: center;
+  justify-items: start;
+  padding: 0 5rem;
+  font-family: 'Poppins';
 }
 
 .HomePageContent {
@@ -183,17 +169,17 @@ html {
 
 .HomePageContent h1 {
   font-size: 2.4rem;
-    font-weight: bold;
-    margin-right: 50rem;
-    font-family: 'Poppins';
+  font-weight: bold;
+  margin-right: 45rem;
+  font-family: 'Poppins';
 }
 
 .HomePageContent p {
   font-size: 1.2rem;
-    margin: 1rem 50rem 0 0;
-    line-height: 1.3;
-    font-family: 'Poppins';
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  margin: 1rem 45rem 0 0;
+  line-height: 1.3;
+  font-family: 'Poppins';
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .ItemStatus {
@@ -332,7 +318,7 @@ html {
   flex: 1;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
   color: black;
-  padding-left:12rem;
+  padding-left: 12rem;
 }
 
 .Report1TextContainer h1 {
@@ -349,7 +335,7 @@ html {
 
 .ReportFoundbtn {
   padding: 10px 30px;
-  width:260px;
+  width: 260px;
   font-size: 16px;
   color: aliceblue;
   background-color: #36408E;
@@ -415,7 +401,7 @@ html {
 
 .ReportLostbtn {
   padding: 10px 30px;
-  width:260px;
+  width: 260px;
   font-size: 16px;
   color: aliceblue;
   background-color: #36408E;

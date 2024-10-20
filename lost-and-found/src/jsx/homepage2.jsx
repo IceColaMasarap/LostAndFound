@@ -1,5 +1,5 @@
 import "../styling/homepage2.css";
-import logo from "../assets/nulogo.svg";
+import logo from "../assets/NULAFD_LOGO.svg";
 import notif from "../assets/notif.svg";
 import img1 from "../assets/info-1-1.png";
 import img2 from "../assets/info-2-2.png";
@@ -57,24 +57,24 @@ function Homepage2() {
 
   return (
     <div className="homepage-main">
-      <div className="navbar">
-        <div className="start">
-          <img src={logo} alt="NU Logo" className="logo" />
-          <label>NU LOST AND FOUND DASMARIÑAS</label>
-        </div>
-        <div className="navs">
-          <nav className="nav">
-            <a href="#body1">Home</a>
-            <a href="#body2">Memorandum</a>
-            <a href="#body3">Report</a>
-          </nav>
-        </div>
-
-        <img src={notif} alt="NU Logo" className="notif" />
+    <div className="navbar">
+      <div className="start">
+        <img src={logo} alt="NU Logo" className="logo" />
+        <label>NU LOST AND FOUND DASMARIÑAS</label>
       </div>
+      <div className="navs">
+        <nav className="nav">
+          <a href="#HomePage">Home</a>
+          <a href="#Memo1">Memorandum</a>
+          <a href="#Report1">Report</a>
+        </nav>
+      </div>
+      <img src={notif} alt="Notifications" className="notif" />
+    </div>
+  
 
       <div className="sections">
-        <div className="HomePage">
+        <div className="HomePage" id="HomePage">
 
           <div className="HomePageContent">
             <h1>The lost items are in DO’s hands.</h1>
@@ -91,12 +91,12 @@ function Homepage2() {
             </div>
             <div className="FoundStatus">
               <h2>98</h2>
-              <p>Found Items</p>
+              <span>Found Items</span>
             </div>
           </div>
         </div>
 
-        <div className="Memo1">
+        <div className="Memo1" id="Memo1">
           <img src={Memo1Img} className="Memo1Img" />
           <div className="Memo1TextContainer">
             <h1>Memorandum for the Disposal of Found Items.</h1>
@@ -130,7 +130,7 @@ function Homepage2() {
         </div>
 
 
-        <div className="Report1">
+        <div className="Report1" id="Report1">
           <img src={Report1Img} className="Report1Img" />
           <div className="Report1TextContainer">
             <h1>Report a Found Item.</h1>
