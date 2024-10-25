@@ -4,7 +4,7 @@ import { auth } from "../config/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect } from "react";
-import { db } from './firebase';  // Import Firestore instance from firebase.js
+import { db } from "./firebase"; // Import Firestore instance from firebase.js
 
 import "../styling/login.css";
 
@@ -60,10 +60,7 @@ const Login = () => {
       await signInWithEmailAndPassword(auth, email, password);
       console.log("Login Successfully");
 
-      
-
-
-      navigate("/homepage"); 
+      navigate("/homepage");
 
       // Trigger redirection to /admin
     } catch (err) {
@@ -83,8 +80,10 @@ const Login = () => {
             backgroundColor: "white",
             color: "#36408e",
             border: "none",
+            opacity: 1, // Keep opacity consistent
+            cursor: "not-allowed", // Change cursor to indicate disabled state
+            pointerEvents: "none", // Disable interaction
           }}
-          disabled={true}
         >
           Login
         </button>
