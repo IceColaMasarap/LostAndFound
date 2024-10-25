@@ -155,7 +155,6 @@ function ReportLostItem() {
             <div className="step">2</div>
             <div className="step">3</div>
             <div className="step">4</div>
-            
           </div>
 
           <div className="ReportLostContainer">
@@ -165,16 +164,18 @@ function ReportLostItem() {
               By providing your information, you agree to these terms.
             </p>
             <p>
-              Your personal information will be kept confidential.
-              It will be used solely to verify your ownership of the item <br />
+              Your personal information will be kept confidential. It will be
+              used solely to verify your ownership of the item <br />
               and will not be shared with anyone else without your permission.
             </p>
             <p>
-              Please note that NU Lost and Found Dasmariñas cannot <br /> be held responsible
-              for any damage to items you claim. We sincerely appreciate your understanding regarding this matter.
+              Please note that NU Lost and Found Dasmariñas cannot <br /> be
+              held responsible for any damage to items you claim. We sincerely
+              appreciate your understanding regarding this matter.
             </p>
             <p>
-              By claiming a lost item, you confirm that you have read <br /> and understood these terms.
+              By claiming a lost item, you confirm that you have read <br /> and
+              understood these terms.
             </p>
             <div className="CheckboxContainer">
               <label>
@@ -188,7 +189,8 @@ function ReportLostItem() {
             </div>
           </div>
           <div className="ButtonContainer">
-            <button className="PrevBtn"
+            <button
+              className="PrevBtn"
               onClick={() => {
                 navigate("/homepage");
                 setTimeout(
@@ -199,7 +201,11 @@ function ReportLostItem() {
             >
               Home
             </button>
-            <button className="NextBtn" disabled={!termsAccepted} onClick={() => setStep(step + 1)}>
+            <button
+              className="NextBtn"
+              disabled={!termsAccepted}
+              onClick={() => setStep(step + 1)}
+            >
               Next
             </button>
           </div>
@@ -215,7 +221,6 @@ function ReportLostItem() {
             <div className="step active">2</div>
             <div className="step">3</div>
             <div className="step">4</div>
-           
           </div>
 
           <div className="ReportLostContainer">
@@ -277,7 +282,7 @@ function ReportLostItem() {
                 {category === "Other" && (
                   <input
                     type="text"
-                    className='OtherInput'
+                    className="OtherInput"
                     placeholder="Other category"
                     value={otherCategory}
                     onChange={(e) => setOtherCategory(e.target.value)}
@@ -287,8 +292,14 @@ function ReportLostItem() {
             </form>
           </div>
           <div className="ButtonContainer">
-            <button className="PrevBtn" onClick={() => setStep(step - 1)}>Previous</button>
-            <button className="NextBtn" onClick={() => setStep(step + 1)} disabled={isNextDisabled()}>
+            <button className="PrevBtn" onClick={() => setStep(step - 1)}>
+              Previous
+            </button>
+            <button
+              className="NextBtn"
+              onClick={() => setStep(step + 1)}
+              disabled={isNextDisabled()}
+            >
               Next
             </button>
           </div>
@@ -304,149 +315,162 @@ function ReportLostItem() {
             <div className="step active">2</div>
             <div className="step active">3</div>
             <div className="step">4</div>
-            
           </div>
 
           <div className="ReportLostContainer">
             <h3>RESPONSE FORM</h3>
-              {/* Prefilled Name (Non-Editable) */}
+            {/* Prefilled Name (Non-Editable) */}
 
-              <div className='FormRow'>
-                <label>
-                  Name: </label>
-                <input className='FInput'
-                  type="text"
-                  value={userData.name}
-                  onChange={(e) =>
-                    setUserData({ ...userData, name: e.target.value })
-                  }
-                  readOnly
-                />
+            <div className="FormRow">
+              <label>Name: </label>
+              <input
+                className="FInput"
+                type="text"
+                value={userData.name}
+                onChange={(e) =>
+                  setUserData({ ...userData, name: e.target.value })
+                }
+                readOnly
+              />
+            </div>
 
-              </div>
+            <div className="FormRow">
+              <label>Email: </label>
+              <input
+                className="FInput"
+                type="email"
+                value={userData.email}
+                onChange={(e) =>
+                  setUserData({ ...userData, email: e.target.value })
+                }
+                readOnly
+              />
+            </div>
 
-              <div className='FormRow'>
-                <label>
-                  Email: </label>
-                <input className='FInput'
-                  type="email"
-                  value={userData.email}
-                  onChange={(e) =>
-                    setUserData({ ...userData, email: e.target.value })
-                  }
-                  readOnly
-                />
+            <div className="FormRow">
+              <label>Contact Number: </label>
+              <input
+                className="FInput"
+                type="text"
+                value={userData.contactNumber}
+                onChange={(e) =>
+                  setUserData({ ...userData, contactNumber: e.target.value })
+                }
+                readOnly
+              />
+            </div>
 
-              </div>
+            <div className="FormRow">
+              <label>Item Name:</label>
+              <input
+                className="FInput"
+                type="text"
+                id="objectName"
+                value={itemDetails.objectName}
+                onChange={(e) =>
+                  setItemDetails({ ...itemDetails, objectName: e.target.value })
+                }
+                required
+                placeholder="Enter the name of the item"
+              />
+            </div>
 
-              <div className='FormRow'>
-                <label>
-                  Contact Number: </label>
-                <input className='FInput'
-                  type="text"
-                  value={userData.contactNumber}
-                  onChange={(e) =>
-                    setUserData({ ...userData, contactNumber: e.target.value })
-                  }
-                  readOnly
-                />
+            {/* Editable Fields */}
+            <div className="FormRow">
+              <label>Brand:</label>
+              <input
+                className="FInput"
+                type="text"
+                id="brand"
+                value={itemDetails.brand}
+                onChange={(e) =>
+                  setItemDetails({ ...itemDetails, brand: e.target.value })
+                }
+                placeholder="Enter the brand of the item"
+              />
+            </div>
 
-              </div>
+            <div className="FormRow">
+              <label>Color:</label>
+              <input
+                className="FInput"
+                type="text"
+                id="color"
+                value={itemDetails.color}
+                onChange={(e) =>
+                  setItemDetails({ ...itemDetails, color: e.target.value })
+                }
+                required
+                placeholder="Enter the color of the item"
+              />
+            </div>
 
-              <div className='FormRow'>
-                <label>Item Name:</label>
-                <input className='FInput'
-                  type="text"
-                  id="objectName"
-                  value={itemDetails.objectName}
-                  onChange={(e) =>
-                    setItemDetails({ ...itemDetails, objectName: e.target.value })
-                  }
-                  required
-                  placeholder="Enter the name of the item"
-                />
-              </div>
+            <div className="FormRow">
+              <label>Date Lost:</label>
+              <input
+                className="FInput"
+                type="date"
+                id="dateFound"
+                value={itemDetails.dateFound}
+                onChange={(e) =>
+                  setItemDetails({ ...itemDetails, dateFound: e.target.value })
+                }
+                required
+              />
+            </div>
 
-              {/* Editable Fields */}
-              <div className='FormRow'>
-                <label>Brand:</label>
-                <input className='FInput'
-                  type="text"
-                  id="brand"
-                  value={itemDetails.brand}
-                  onChange={(e) =>
-                    setItemDetails({ ...itemDetails, brand: e.target.value })
-                  }
-                  placeholder="Enter the brand of the item"
-                />
-              </div>
+            <div className="FormRow">
+              <label>Time Lost:</label>
+              <input
+                className="FInput"
+                type="time"
+                id="timeFound"
+                value={itemDetails.timeFound}
+                onChange={(e) =>
+                  setItemDetails({ ...itemDetails, timeFound: e.target.value })
+                }
+                required
+              />
+            </div>
 
-              <div className='FormRow'>
-                <label>Color:</label>
-                <input className='FInput'
-                  type="text"
-                  id="color"
-                  value={itemDetails.color}
-                  onChange={(e) =>
-                    setItemDetails({ ...itemDetails, color: e.target.value })
-                  }
-                  required
-                  placeholder="Enter the color of the item"
-                />
-              </div>
+            <div className="FormRow">
+              <label>Location Found:</label>
+              <input
+                className="FInput"
+                type="text"
+                id="locationFound"
+                value={itemDetails.locationFound}
+                onChange={(e) =>
+                  setItemDetails({
+                    ...itemDetails,
+                    locationFound: e.target.value,
+                  })
+                }
+                required
+                placeholder="Enter where the item was Lost"
+              />
+            </div>
 
-              <div className='FormRow'>
-                <label>Date Lost:</label>
-                <input className='FInput'
-                  type="date"
-                  id="dateFound"
-                  value={itemDetails.dateFound}
-                  onChange={(e) =>
-                    setItemDetails({ ...itemDetails, dateFound: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className='FormRow'>
-                <label>Time Lost:</label>
-                <input className='FInput'
-                  type="time"
-                  id="timeFound"
-                  value={itemDetails.timeFound}
-                  onChange={(e) =>
-                    setItemDetails({ ...itemDetails, timeFound: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className='FormRow'>
-                <label>Location Found:</label>
-                <input className='FInput'
-                  type="text"
-                  id="locationFound"
-                  value={itemDetails.locationFound}
-                  onChange={(e) =>
-                    setItemDetails({
-                      ...itemDetails,
-                      locationFound: e.target.value,
-                    })
-                  }
-                  required
-                  placeholder="Enter where the item was Lost"
-                />
-              </div>
-
-              <div className='FormRow'>
-                <label>Upload Image:</label>
-                <input className='FInput' type="file" accept="image/*" onChange={handleImageChange} />
-              </div>
+            <div className="FormRow">
+              <label>Upload Image:</label>
+              <input
+                className="FInput"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </div>
           </div>
 
           <div className="ButtonContainer">
-            <button className="PrevBtn" onClick={() => setStep(step - 1)}>Previous</button>
-            <button className="NextBtn" onClick={() => saveLostItem()} disabled={!isFormComplete}>
+            <button className="PrevBtn" onClick={() => setStep(step - 1)}>
+              Previous
+            </button>
+            <button
+              className="NextBtn"
+              onClick={() => saveLostItem()}
+              disabled={!isFormComplete}
+            >
               Submit
             </button>
           </div>
@@ -457,22 +481,25 @@ function ReportLostItem() {
         <div className="step4">
           <h2>REPORT A MISSING ITEM</h2>
 
-<div className="ProgressIndi">
-  <div className="step active">1</div>
-  <div className="step active">2</div>
-  <div className="step active">3</div>
-  <div className="step active">4</div>
-</div>
-
-<div className="LReportLostContainer">
-          <h3>Item Reported!</h3>
-          <p>
-            Your report has been submitted. We'll notify you if there's a match!
-          </p>
+          <div className="ProgressIndi">
+            <div className="step active">1</div>
+            <div className="step active">2</div>
+            <div className="step active">3</div>
+            <div className="step active">4</div>
           </div>
 
-          
-          <button className="FinishBtn" onClick={() => navigate("/homepage#body1")}>
+          <div className="LReportLostContainer">
+            <h3>Item Reported!</h3>
+            <p>
+              Your report has been submitted. We'll notify you if there's a
+              match!
+            </p>
+          </div>
+
+          <button
+            className="FinishBtn"
+            onClick={() => navigate("/homepage#body1")}
+          >
             Finish
           </button>
         </div>

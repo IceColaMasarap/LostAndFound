@@ -11,7 +11,13 @@ import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collectionGroup,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "./firebase"; // Import Firestore instance
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
@@ -23,20 +29,19 @@ function Homepage2() {
   };
 
   const GoToReportFoundItem = () => {
-    navigate("/report-found-item"); // Navigate to /report-lost-item
+    navigate("/report-found-item"); // Navigate to /report-found-item
   };
 
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
+  const [foundItems, setFoundItems] = useState([]);
 
   useEffect(() => {
-    // Fetch the current logged-in user using Firebase Auth
     const fetchAuthenticatedUserUid = async () => {
       const auth = getAuth();
       const user = auth.currentUser; // Get the current authenticated user
 
       if (user) {
-        // Set the logged-in user's UID
         setUid(user.uid);
       } else {
         console.log("No user is logged in");
@@ -50,32 +55,58 @@ function Homepage2() {
 
   useEffect(() => {
     if (!loading && uid === "4skSWo0Ld2YnIZG1hGRaNQd3Kg72") {
-      // If the user's uid matches the admin uid, navigate to the admin page
       navigate("/adminpage");
     }
   }, [loading, uid, navigate]);
 
+  useEffect(() => {
+    const foundItemsQuery = collectionGroup(db, "itemReports");
+
+    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
+      const items = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
+
+        return {
+          id: doc.id,
+          ...data,
+          userName,
+        };
+      });
+
+      setFoundItems(items);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Count the items based on their status
+  const lostItemsCount = foundItems.filter(
+    (item) => item.status === "lost"
+  ).length;
+  const pendingClaimsCount = foundItems.filter(
+    (item) => item.status === "pending"
+  ).length;
+
   return (
     <div className="homepage-main">
-    <div className="navbar">
-      <div className="start">
-        <img src={logo} alt="NU Logo" className="logo" />
-        <label>NU LOST AND FOUND DASMARIÑAS</label>
+      <div className="navbar">
+        <div className="start">
+          <img src={logo} alt="NU Logo" className="logo" />
+          <label>NU LOST AND FOUND DASMARIÑAS</label>
+        </div>
+        <div className="navs">
+          <nav className="nav">
+            <a href="#HomePage">Home</a>
+            <a href="#Memo1">Memorandum</a>
+            <a href="#Report1">Report</a>
+          </nav>
+        </div>
+        <img src={notif} alt="Notifications" className="notif" />
       </div>
-      <div className="navs">
-        <nav className="nav">
-          <a href="#HomePage">Home</a>
-          <a href="#Memo1">Memorandum</a>
-          <a href="#Report1">Report</a>
-        </nav>
-      </div>
-      <img src={notif} alt="Notifications" className="notif" />
-    </div>
-  
 
       <div className="sections">
         <div className="HomePage" id="HomePage">
-
           <div className="HomePageContent">
             <h1>The lost items are in DO’s hands.</h1>
             <p>
@@ -86,12 +117,12 @@ function Homepage2() {
           </div>
           <div className="ItemStatus">
             <div className="LostStatus">
-              <h2>99+</h2>
-              <span>Lost Items</span>
+              <h2 id="lostitems">{lostItemsCount}</h2>
+              <span>Found Items</span>
             </div>
             <div className="FoundStatus">
-              <h2>98</h2>
-              <span>Found Items</span>
+              <h2 id="founditems">{pendingClaimsCount}</h2>
+              <span>Missing Items</span>
             </div>
           </div>
         </div>
@@ -101,10 +132,14 @@ function Homepage2() {
           <div className="Memo1TextContainer">
             <h1>Memorandum for the Disposal of Found Items.</h1>
             <p>
-              • Unclaimed property that easily decays, releases odor, or is perishable will be disposed of within 48 hours.
-              Proper documentation, such as a picture, will be provided.<br />
-              • Unclaimed non-perishable property will be disposed of after the end of the academic year.<br />
-              • All items shredded or disposed of must be recorded in the Lost and Found Property Logbook.
+              • Unclaimed property that easily decays, releases odor, or is
+              perishable will be disposed of within 48 hours. Proper
+              documentation, such as a picture, will be provided.
+              <br />
+              • Unclaimed non-perishable property will be disposed of after the
+              end of the academic year.
+              <br />• All items shredded or disposed of must be recorded in the
+              Lost and Found Property Logbook.
             </p>
           </div>
         </div>
@@ -113,35 +148,49 @@ function Homepage2() {
           <div className="Memo2TextContainer">
             <h1>Memorandum for the Claiming of Found Items.</h1>
             <p>
-              • Perishable and personal items that can emit foul odor must be claimed within 48 hours to prevent pest infestation.<br />
-              • Non-perishable items can be claimed at the end of the term.<br />
+              • Perishable and personal items that can emit foul odor must be
+              claimed within 48 hours to prevent pest infestation.
               <br />
-              Items that are perishable and other personal items that can emit foul odor are as follows.<br />
-              • Food and Beverages (Lunch Box, Tumbler, etc.)<br />
-              • Personal Care Items (Toiletries, etc.)<br />
-              • Fabric (Clothes, Lab Gown, Towel, Jacket Socks, etc.)<br />
+              • Non-perishable items can be claimed at the end of the term.
               <br />
-              Items that are non-perishable are as follows.<br />
-              • Accessories<br />
-              • Electronics
+              <br />
+              Items that are perishable and other personal items that can emit
+              foul odor are as follows.
+              <br />
+              • Food and Beverages (Lunch Box, Tumbler, etc.)
+              <br />
+              • Personal Care Items (Toiletries, etc.)
+              <br />
+              • Fabric (Clothes, Lab Gown, Towel, Jacket Socks, etc.)
+              <br />
+              <br />
+              Items that are non-perishable are as follows.
+              <br />
+              • Accessories
+              <br />• Electronics
             </p>
           </div>
           <img src={Memo2Img} className="Memo2Img" />
         </div>
-
 
         <div className="Report1" id="Report1">
           <img src={Report1Img} className="Report1Img" />
           <div className="Report1TextContainer">
             <h1>Report a Found Item.</h1>
             <p>
-              When reporting a found item, please follow the necessary steps below to help us identify the item and the person who surrendered it.<br />
+              When reporting a found item, please follow the necessary steps
+              below to help us identify the item and the person who surrendered
+              it.
               <br />
-              • Please read the Terms and Conditions.<br />
-              • Describe the item you found.<br />
-              • Fill out the Response Form.
+              <br />
+              • Please read the Terms and Conditions.
+              <br />
+              • Describe the item you found.
+              <br />• Fill out the Response Form.
             </p>
-            <button className="ReportFoundbtn" onClick={GoToReportFoundItem} >Report a Found Item</button>
+            <button className="ReportFoundbtn" onClick={GoToReportFoundItem}>
+              Report a Found Item
+            </button>
           </div>
         </div>
 
@@ -149,17 +198,34 @@ function Homepage2() {
           <div className="Report2TextContainer">
             <h1>Report a Missing Item.</h1>
             <p>
-              When reporting a missing item, please follow the necessary steps below to help us identify you and check for matching items based on your description.<br />
+              When reporting a missing item, please follow the necessary steps
+              below to help us identify you and check for matching items based
+              on your description.
               <br />
-              • Please read the Terms and Conditions.<br />
-              • Describe the item you lost.<br />
-              • Fill out the Response Form.
+              <br />
+              • Please read the Terms and Conditions.
+              <br />
+              • Describe the item you lost.
+              <br />• Fill out the Response Form.
             </p>
             <button className="ReportLostbtn" onClick={GoToReportLostItem}>
               Report a Missing Item
             </button>
           </div>
           <img src={Report2Img} className="Report2Img" />
+        </div>
+
+        <div className="dark-blue-footer">
+          <div className="footer-content">
+            <h2>Need Help?</h2>
+            <p>
+              Contact us at{" "}
+              <a href="mailto:support@nulf.dasma.edu">
+                support@nulf.dasma.edu{" "}
+              </a>
+              for any concerns or assistance with lost and found items.
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -100,8 +100,8 @@ html {
 }
 
 .nav a:active {
-  color: #FFD41F;
-    text-decoration: underline;
+  color: #ffd41f;
+  text-decoration: underline;
 }
 
 .nav a::after {
@@ -147,7 +147,7 @@ html {
 }
 
 .HomePage {
-  background-image: url('./../assets/HomePage_BG.png');
+  background-image: url("./../assets/HomePage_BG.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -156,7 +156,7 @@ html {
   align-items: center;
   justify-items: start;
   padding: 0 5rem;
-  font-family: 'Poppins';
+  font-family: "Poppins";
 }
 
 .HomePageContent {
@@ -164,21 +164,21 @@ html {
   color: aliceblue;
   text-align: left;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-  font-family: 'Poppins';
+  font-family: "Poppins";
 }
 
 .HomePageContent h1 {
   font-size: 2.4rem;
   font-weight: bold;
   margin-right: 45rem;
-  font-family: 'Poppins';
+  font-family: "Poppins";
 }
 
 .HomePageContent p {
   font-size: 1.2rem;
   margin: 1rem 45rem 0 0;
   line-height: 1.3;
-  font-family: 'Poppins';
+  font-family: "Poppins";
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -233,7 +233,6 @@ html {
   max-width: 40rem;
   padding-left: 10rem;
 }
-
 
 .Memo1TextContainer {
   flex: 1;
@@ -338,7 +337,7 @@ html {
   width: 260px;
   font-size: 16px;
   color: aliceblue;
-  background-color: #36408E;
+  background-color: #36408e;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -404,7 +403,7 @@ html {
   width: 260px;
   font-size: 16px;
   color: aliceblue;
-  background-color: #36408E;
+  background-color: #36408e;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -424,4 +423,24 @@ html {
   content: "→";
   font-size: 18px;
   transition: margin-left 0.3s ease;
+}
+
+.dark-blue-footer {
+  background-color: #002855; /* Dark blue color */
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.footer-content h2 {
+  margin: 0 0 10px 0;
+}
+
+.footer-content a {
+  color: #86c5ff; /* Light blue for links */
+  text-decoration: none;
+}
+
+.footer-content a:hover {
+  text-decoration: underline;
 }
