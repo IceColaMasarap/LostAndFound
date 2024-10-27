@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAuth } from "firebase/auth"; // Ensure you import getAuth
+
 import { auth, db, storage } from "./firebase";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import these for image upload
@@ -16,6 +18,8 @@ function ReportLostItem() {
   });
 
   // Group related fields into a single state object
+  const [otherColor, setOtherColor] = useState(null); // State to store the uploaded image
+
   const [category, setCategory] = useState("");
   const [otherCategory, setOtherCategory] = useState("");
   const [itemDetails, setItemDetails] = useState({
@@ -87,6 +91,14 @@ function ReportLostItem() {
   // Save the lost item details to Firestore
   const saveLostItem = async () => {
     try {
+      const auth = getAuth();
+      const uid = auth.currentUser ? auth.currentUser.uid : null; // Get current user's UID
+
+      if (!uid) {
+        console.error("User is not authenticated");
+        return; // Exit if not authenticated
+      }
+
       const uploadedImageUrl = await uploadImage(); // First, upload the image
       const newItemData = {
         category: category === "Other" ? otherCategory : category,
@@ -96,18 +108,18 @@ function ReportLostItem() {
         timeFound: itemDetails.timeFound,
         locationFound: itemDetails.locationFound,
         objectName: itemDetails.objectName,
-        imageUrl: uploadedImageUrl, // Store the image URL
-        userDetails: {
-          // Save user details (name, email, contact number)
-          name: userData.name,
-          email: userData.email,
-          contactNumber: userData.contactNumber,
-        },
+        imageUrl: uploadedImageUrl,
+        name: userData.name,
+        email: userData.email,
+        contactNumber: userData.contactNumber,
+        holderId: uid, // Use the user's UID here
+        type: "Lost", // Add type as "Lost"
+        status: "Lost", // Add status as "Lost"
       };
-      await addDoc(collection(userDocRef, "lostItems"), newItemData); // Save data in Firestore
+      await addDoc(collection(db, "users", uid, "itemReports"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step
     } catch (error) {
-      console.error("Error adding document: ", error);
+      console.error("Error adding document: ", error); // Check for errors
     }
   };
 
@@ -392,17 +404,38 @@ function ReportLostItem() {
 
             <div className="FormRow">
               <label>Color:</label>
-              <input
-                className="FInput"
-                type="text"
-                id="color"
+              <select
+                id="ColorInp"
                 value={itemDetails.color}
-                onChange={(e) =>
-                  setItemDetails({ ...itemDetails, color: e.target.value })
-                }
+                onChange={(e) => {
+                  const selectedColor = e.target.value;
+                  setItemDetails({ ...itemDetails, color: selectedColor });
+                }}
                 required
-                placeholder="Enter the color of the item"
-              />
+              >
+                <option value="">Select a color</option>
+                <option value="Red">Red</option>
+                <option value="Blue">Blue</option>
+                <option value="Green">Green</option>
+                <option value="Yellow">Yellow</option>
+                <option value="Orange">Orange</option>
+                <option value="Purple">Purple</option>
+                <option value="Pink">Pink</option>
+                <option value="Black">Black</option>
+                <option value="White">White</option>
+                <option value="Gray">Gray</option>
+                <option value="Others">Other</option>
+              </select>
+
+              {itemDetails.color === "Others" && (
+                <input
+                  type="text"
+                  placeholder="Specify color"
+                  value={otherColor}
+                  onChange={(e) => setOtherColor(e.target.value)}
+                  required
+                />
+              )}
             </div>
 
             <div className="FormRow">

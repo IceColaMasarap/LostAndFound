@@ -192,7 +192,8 @@ body {
   margin-bottom: 1px;
 }
 
-.FInput {
+.FInput,
+#ColorInp {
   margin-top: 5px;
   width: 70%;
   padding: 7px;

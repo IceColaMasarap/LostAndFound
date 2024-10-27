@@ -13,7 +13,7 @@ function Archive() {
 
   // Columns state to manage visibility
   const [visibleColumns, setVisibleColumns] = useState({
-    reportType: true,
+    type: true,
     category: true,
     brand: true,
     color: true,
@@ -33,7 +33,7 @@ function Archive() {
   };
   // Mapping for column display names
   const columnLabels = {
-    reportType: "Report Type",
+    type: "Report Type",
     category: "Category",
     brand: "Brand",
     color: "Color",
@@ -59,7 +59,7 @@ function Archive() {
   };
   const columnVisibilitySettings = {
     lost: {
-      reportType: true,
+      type: true,
       category: true,
       brand: true,
       color: true,
@@ -75,7 +75,7 @@ function Archive() {
       remark: true,
     },
     pending: {
-      reportType: true,
+      type: true,
       category: true,
       brand: true,
       color: true,
@@ -91,7 +91,7 @@ function Archive() {
       remark: true,
     },
     claimed: {
-      reportType: true,
+      type: true,
       category: true,
       brand: true,
       color: true,
@@ -107,7 +107,7 @@ function Archive() {
       remark: true,
     },
     all: {
-      reportType: true,
+      type: true,
       category: true,
       brand: true,
       color: true,

@@ -8,7 +8,15 @@ import {
   faBell,
 } from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase";
-import { collectionGroup, onSnapshot } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  addDoc,
+  collectionGroup,
+  onSnapshot,
+} from "firebase/firestore";
 
 function Pending() {
   const [foundItems, setFoundItems] = useState([]);
@@ -18,6 +26,9 @@ function Pending() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
+  const [notificationText, setNotificationText] = useState(
+    "Your lost item might have been matched."
+  );
   const [showNotifModal, setShowNotifModal] = useState(false); // Separate state for the notification modal
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
@@ -53,11 +64,46 @@ function Pending() {
     setCurrentItemId(itemId);
     setShowNotifModal(true); // Open notification modal
   };
-  const handleSendNotification = () => {
-    console.log(`Notification sent for item ${currentItemId}`);
-    // Code to send notification (e.g., via email API)
-    setShowNotifModal(false); // Close the modal after sending
+
+  const handleSendNotification = async () => {
+    try {
+      // Get the item report document to find the holder's ID
+      const itemRef = doc(db, "itemReports", currentItemId);
+      const itemSnap = await getDoc(itemRef);
+
+      if (itemSnap.exists()) {
+        const itemData = itemSnap.data();
+        const holderId = itemData.holderId; // Assuming 'holderId' holds the item holder's ID
+
+        if (!holderId) {
+          console.error("No holder ID found for this item:", currentItemId);
+          return; // Stop if no holder ID is available
+        }
+
+        // Update the item report to mark the user as notified
+        await updateDoc(itemRef, { notified: true });
+        console.log(
+          `Notification sent for item ${currentItemId} to holder ${holderId}`
+        );
+
+        // Create a new notification document targeting the item holder
+        await addDoc(collection(db, "notifications"), {
+          userId: holderId, // Notification directed to item holder
+          itemId: currentItemId,
+          objectName: itemData.objectName || "Unknown Item",
+          message: notificationText,
+          timestamp: new Date(),
+        });
+
+        setShowNotifModal(false);
+      } else {
+        console.error("No document found with this ID:", currentItemId);
+      }
+    } catch (error) {
+      console.error("Error sending notification: ", error);
+    }
   };
+
   const openClaimModal = (itemId) => {
     setCurrentItemId(itemId);
     setShowClaimModal(true);
@@ -330,11 +376,12 @@ function Pending() {
         <div className="modal">
           <div className="modal-content">
             <h2>Send Notification</h2>
-            <p>
-              Do you want to notify the user to claim the lost item in the
-              office?
-            </p>
-
+            <p>Customize the notification message:</p>
+            <input
+              type="text"
+              value={notificationText}
+              onChange={(e) => setNotificationText(e.target.value)}
+            />
             <div className="modal-buttons">
               <button onClick={() => setShowNotifModal(false)}>Cancel</button>
               <button onClick={handleSendNotification}>
