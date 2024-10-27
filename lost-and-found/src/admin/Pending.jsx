@@ -26,6 +26,8 @@ function Pending() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
+
   const [currentHolderId, setCurrentHolderId] = useState(null);
   const [notificationText, setNotificationText] = useState(
     "Your lost item might have been matched."
@@ -57,8 +59,9 @@ function Pending() {
 
     return () => unsubscribe();
   }, []);
-  const openRemoveModal = (itemId) => {
+  const openRemoveModal = (itemId, userId) => {
     setCurrentItemId(itemId);
+    setCurrentHolderId(userId); // This should be set here
     setShowRemoveModal(true);
   };
   const openNotifModal = (itemId, holderId) => {
@@ -82,6 +85,7 @@ function Pending() {
       if (itemSnap.exists()) {
         const itemData = itemSnap.data();
         const holderId = itemData.holderId; // Assuming 'holderId' holds the item holder's ID
+        const imageUrl = itemData.imageUrl; // Assuming 'holderId' holds the item holder's ID
 
         if (!holderId) {
           console.error("No holder ID found for this item:", currentItemId);
@@ -108,6 +112,7 @@ function Pending() {
             itemId: currentItemId,
             objectName: itemData.objectName || "Unknown Item",
             message: notificationText,
+            imageUrl: imageUrl,
             timestamp: new Date(),
           }
         );
@@ -119,6 +124,48 @@ function Pending() {
       }
     } catch (error) {
       console.error("Error sending notification: ", error);
+    }
+  };
+  const handleClaimItem = async () => {
+    if (!currentItemId || !claimerDetails.claimedBy.trim()) return;
+
+    const itemRef = doc(
+      db,
+      "users",
+      currentUserId,
+      "itemReports",
+      currentItemId
+    ); // Use the currentUserId here
+
+    try {
+      // Check if the document exists
+      const docSnap = await getDoc(itemRef);
+      if (!docSnap.exists()) {
+        console.error("No such document!");
+        return; // or set some error state to display to the user
+      }
+
+      // Update the document
+      await updateDoc(itemRef, {
+        claimedBy: claimerDetails.claimedBy,
+        claimContactNumber: claimerDetails.claimContactNumber,
+        claimEmail: claimerDetails.claimEmail,
+        dateClaimed: new Date().toISOString(),
+        confirmed: true,
+        status: "claimed",
+      });
+
+      // Reset state
+      setShowClaimModal(false);
+      setCurrentItemId(null);
+      setCurrentUserId(null); // Reset after claim
+      setClaimerDetails({
+        claimedBy: "",
+        claimContactNumber: "",
+        claimEmail: "",
+      });
+    } catch (error) {
+      console.error("Error claiming item:", error);
     }
   };
 
@@ -148,17 +195,19 @@ function Pending() {
     // Ensure only pending items are included
     return isPending && matchesCategory && matchesColor && matchesDateRange;
   });
-  const handleArchiveItem = async (itemId) => {
-    if (!itemId || !remark.trim()) return;
+  const handleArchiveItem = async (itemId, userId) => {
+    if (!itemId || !userId || !remark.trim()) return; // Check if userId is also valid
 
-    const itemRef = db.collection("itemReports").doc(itemId);
+    // Update the path to point to the correct Firestore document
+    const itemRef = doc(db, "users", userId, "itemReports", itemId);
 
     try {
-      await itemRef.update({
+      await updateDoc(itemRef, {
         status: "archived",
         archiveRemark: remark, // Save the remark here
       });
-      setRemark(""); // Clear the remark input after archiving
+      setArchiveRemark(""); // Clear the remark input after archiving
+      console.log(`Item ${itemId} archived for user ${userId}.`); // Optional: Log successful archiving
     } catch (error) {
       console.error("Error archiving item: ", error);
     }
@@ -262,14 +311,18 @@ function Pending() {
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
-                    onClick={() => openRemoveModal(item.id)} // Open the remove modal with the item ID
+                    onClick={() => openRemoveModal(item.id, item.holderId)}
                   >
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
+
                   <button
                     className="lostitemimg2"
                     id="checklostitem"
-                    onClick={() => openClaimModal(item.id)} // Open the claim modal with the item ID
+                    onClick={() => {
+                      openClaimModal(item.id); // Open the claim modal with the item ID
+                      setCurrentUserId(item.holderId); // Set current user ID for claiming
+                    }}
                   >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
@@ -315,16 +368,16 @@ function Pending() {
               onChange={(e) => setArchiveRemark(e.target.value)} // Update state on change
             />
             <div className="modalBtnDiv">
+              <button onClick={() => setShowRemoveModal(false)}>No</button>
               <button
                 onClick={() => {
-                  handleArchiveItem(currentItemId);
+                  handleArchiveItem(currentItemId, currentHolderId);
                   setShowRemoveModal(false); // Close modal after archiving
                 }}
                 disabled={!remark.trim()} // Disable if remark is empty
               >
                 Yes
               </button>
-              <button onClick={() => setShowRemoveModal(false)}>No</button>
             </div>
           </div>
         </div>
@@ -377,6 +430,7 @@ function Pending() {
             <div className="modal-buttons">
               <button onClick={() => setShowClaimModal(false)}>Cancel</button>
               <button
+                onClick={handleClaimItem} // Call the function to handle claiming the item
                 disabled={
                   !claimerDetails.claimedBy.trim() ||
                   !claimerDetails.claimContactNumber.trim() ||

@@ -98,23 +98,27 @@ function ReportLostItem() {
         console.error("User is not authenticated");
         return; // Exit if not authenticated
       }
+      const now = new Date();
+
+      const fullDateTime = now.toLocaleString(); // e.g., "10/17/2024, 10:51 PM"
 
       const uploadedImageUrl = await uploadImage(); // First, upload the image
       const newItemData = {
         category: category === "Other" ? otherCategory : category,
         brand: itemDetails.brand,
         color: itemDetails.color,
-        dateFound: itemDetails.dateFound,
-        timeFound: itemDetails.timeFound,
-        locationFound: itemDetails.locationFound,
+        dateLost: itemDetails.dateFound,
+        timeLost: itemDetails.timeFound,
+        locationLost: itemDetails.locationFound,
         objectName: itemDetails.objectName,
         imageUrl: uploadedImageUrl,
         name: userData.name,
         email: userData.email,
         contactNumber: userData.contactNumber,
         holderId: uid, // Use the user's UID here
+        createdAt: fullDateTime, // Current date and time in ISO format
         type: "Lost", // Add type as "Lost"
-        status: "Lost", // Add status as "Lost"
+        status: "pending", // Add status as "Lost"
       };
       await addDoc(collection(db, "users", uid, "itemReports"), newItemData); // Save data in Firestore
       setStep(step + 1); // Move to next step

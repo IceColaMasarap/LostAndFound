@@ -11,30 +11,19 @@ import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import {
-  collectionGroup,
-  getDocs,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
+import { collectionGroup, onSnapshot, collection } from "firebase/firestore";
 import { db } from "./firebase"; // Import Firestore instance
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
+import Notification from "./notification"; // Import your notification component
 
 function Homepage2() {
   const navigate = useNavigate();
 
-  const GoToReportLostItem = () => {
-    navigate("/report-lost-item"); // Navigate to /report-lost-item
-  };
-
-  const GoToReportFoundItem = () => {
-    navigate("/report-found-item"); // Navigate to /report-found-item
-  };
-
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
   const [foundItems, setFoundItems] = useState([]);
+  const [notifications, setNotifications] = useState([]); // State to hold notifications
+  const [showNotifications, setShowNotifications] = useState(false); // State to toggle notifications
 
   useEffect(() => {
     const fetchAuthenticatedUserUid = async () => {
@@ -58,6 +47,22 @@ function Homepage2() {
       navigate("/adminpage");
     }
   }, [loading, uid, navigate]);
+
+  // Fetch notifications when user ID is available
+  useEffect(() => {
+    if (uid) {
+      const notificationsRef = collection(db, "users", uid, "notifications");
+      const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
+        const notificationsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setNotifications(notificationsData);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [uid]);
 
   useEffect(() => {
     const foundItemsQuery = collectionGroup(db, "itemReports");
@@ -88,6 +93,18 @@ function Homepage2() {
     (item) => item.status === "pending"
   ).length;
 
+  const handleShowNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  const GoToReportLostItem = () => {
+    navigate("/report-lost-item"); // Navigate to /report-lost-item
+  };
+
+  const GoToReportFoundItem = () => {
+    navigate("/report-found-item"); // Navigate to /report-found-item
+  };
+
   return (
     <div className="homepage-main">
       <div className="navbar">
@@ -102,8 +119,33 @@ function Homepage2() {
             <a href="#Report1">Report</a>
           </nav>
         </div>
-        <img src={notif} alt="Notifications" className="notif" />
+        <img
+          src={notif}
+          alt="Notifications"
+          className="notif"
+          onClick={handleShowNotifications}
+        />
       </div>
+
+      {showNotifications && (
+        <div className="notifbody">
+          <h2>Notifications:</h2>
+          <div className="notifScroll">
+            {notifications.length === 0 ? (
+              <p>No notifications available.</p>
+            ) : (
+              notifications.map((notification) => (
+                <Notification key={notification.id} data={notification} /> // Use the Notification component
+              ))
+            )}
+          </div>
+          <div className="logoutDiv">
+            <button className="logoutBtnxd" id="logoutBtn">
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="sections">
         <div className="HomePage" id="HomePage">
@@ -216,15 +258,17 @@ function Homepage2() {
         </div>
 
         <div className="dark-blue-footer">
-          <div className="footer-content">
-            <h2>Need Help?</h2>
-            <p>
-              Contact us at{" "}
-              <a href="mailto:support@nulf.dasma.edu">
-                support@nulf.dasma.edu{" "}
-              </a>
-              for any concerns or assistance with lost and found items.
-            </p>
+          <div className="footerContent">
+            <h3>Contact Us:</h3>
+            <ul>
+              <li>
+                Email:{" "}
+                <a href="mailto:nu.lostandfound.dasmarinas@gmail.com">
+                  nu.lostandfound.dasmarinas@gmail.com
+                </a>
+              </li>
+              <li>Contact No.: 0999-999-9999</li>
+            </ul>
           </div>
         </div>
       </div>
