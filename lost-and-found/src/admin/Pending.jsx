@@ -26,6 +26,7 @@ function Pending() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
+  const [currentHolderId, setCurrentHolderId] = useState(null);
   const [notificationText, setNotificationText] = useState(
     "Your lost item might have been matched."
   );
@@ -60,15 +61,22 @@ function Pending() {
     setCurrentItemId(itemId);
     setShowRemoveModal(true);
   };
-  const openNotifModal = (itemId) => {
+  const openNotifModal = (itemId, holderId) => {
     setCurrentItemId(itemId);
+    setCurrentHolderId(holderId);
     setShowNotifModal(true); // Open notification modal
   };
 
   const handleSendNotification = async () => {
     try {
-      // Get the item report document to find the holder's ID
-      const itemRef = doc(db, "itemReports", currentItemId);
+      // Corrected path: Removed the extra comma in the path
+      const itemRef = doc(
+        db,
+        "users",
+        currentHolderId,
+        "itemReports",
+        currentItemId
+      );
       const itemSnap = await getDoc(itemRef);
 
       if (itemSnap.exists()) {
@@ -86,15 +94,25 @@ function Pending() {
           `Notification sent for item ${currentItemId} to holder ${holderId}`
         );
 
-        // Create a new notification document targeting the item holder
-        await addDoc(collection(db, "notifications"), {
-          userId: holderId, // Notification directed to item holder
-          itemId: currentItemId,
-          objectName: itemData.objectName || "Unknown Item",
-          message: notificationText,
-          timestamp: new Date(),
-        });
+        // Check if notificationText is defined
+        if (!notificationText) {
+          console.error("Notification text is not defined.");
+          return; // Stop if no notification text is available
+        }
 
+        // Create a new notification document targeting the item holder
+        const notificationRef = await addDoc(
+          collection(db, "users", holderId, "notifications"),
+          {
+            userId: holderId, // Notification directed to item holder
+            itemId: currentItemId,
+            objectName: itemData.objectName || "Unknown Item",
+            message: notificationText,
+            timestamp: new Date(),
+          }
+        );
+
+        console.log(`Notification added with ID: ${notificationRef.id}`); // Log the ID of the new notification
         setShowNotifModal(false);
       } else {
         console.error("No document found with this ID:", currentItemId);
@@ -237,7 +255,7 @@ function Pending() {
                   <button
                     className="lostitemimg2"
                     id="notifyuser"
-                    onClick={() => openNotifModal(item.id)}
+                    onClick={() => openNotifModal(item.id, item.holderId)}
                   >
                     <FontAwesomeIcon icon={faBell} />
                   </button>
