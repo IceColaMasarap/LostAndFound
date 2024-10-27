@@ -53,21 +53,24 @@ const Login = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate(); // Use navigate hook for redirection
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
       console.log("Login Successfully");
 
-      navigate("/homepage");
-
-      // Trigger redirection to /admin
+      // Check if the email and password match the admin credentials
+      if (email === "admin@gmail.com" && password === "admin123") {
+        navigate("/adminpage"); // Redirect to admin page
+      } else {
+        navigate("/homepage"); // Redirect to usual page
+      }
     } catch (err) {
       setError(err.message); // Handle error
       console.log(err);
     }
   };
+
   const goToRegister = () => {
     navigate("/"); // Navigate to ./register route
   };

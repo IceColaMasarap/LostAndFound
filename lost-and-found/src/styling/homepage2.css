@@ -99,11 +99,6 @@ html {
   /* Change text color on hover */
 }
 
-.nav a:active {
-  color: #ffd41f;
-  text-decoration: underline;
-}
-
 .nav a::after {
   content: "";
   /* Required for pseudo-element */
@@ -443,4 +438,11 @@ html {
 
 .footer-content a:hover {
   text-decoration: underline;
+}
+
+.LostStatus h2 {
+  color: white;
+}
+.FoundStatus h2 {
+  color: white;
 }

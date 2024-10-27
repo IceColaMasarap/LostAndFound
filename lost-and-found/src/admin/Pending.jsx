@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBoxArchive, faCheck } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBoxArchive,
+  faCheck,
+  faBell,
+} from "@fortawesome/free-solid-svg-icons";
 import { db } from "../config/firebase";
 import { collectionGroup, onSnapshot } from "firebase/firestore";
 
@@ -14,6 +18,7 @@ function Pending() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
+  const [showNotifModal, setShowNotifModal] = useState(false); // Separate state for the notification modal
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
     claimedBy: "",
@@ -44,7 +49,15 @@ function Pending() {
     setCurrentItemId(itemId);
     setShowRemoveModal(true);
   };
-
+  const openNotifModal = (itemId) => {
+    setCurrentItemId(itemId);
+    setShowNotifModal(true); // Open notification modal
+  };
+  const handleSendNotification = () => {
+    console.log(`Notification sent for item ${currentItemId}`);
+    // Code to send notification (e.g., via email API)
+    setShowNotifModal(false); // Close the modal after sending
+  };
   const openClaimModal = (itemId) => {
     setCurrentItemId(itemId);
     setShowClaimModal(true);
@@ -177,6 +190,13 @@ function Pending() {
                 <div className="buttonslost">
                   <button
                     className="lostitemimg2"
+                    id="notifyuser"
+                    onClick={() => openNotifModal(item.id)}
+                  >
+                    <FontAwesomeIcon icon={faBell} />
+                  </button>
+                  <button
+                    className="lostitemimg2"
                     id="removelostitem"
                     onClick={() => openRemoveModal(item.id)} // Open the remove modal with the item ID
                   >
@@ -300,6 +320,25 @@ function Pending() {
                 }
               >
                 Confirm Claim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNotifModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Send Notification</h2>
+            <p>
+              Do you want to notify the user to claim the lost item in the
+              office?
+            </p>
+
+            <div className="modal-buttons">
+              <button onClick={() => setShowNotifModal(false)}>Cancel</button>
+              <button onClick={handleSendNotification}>
+                Send Notification
               </button>
             </div>
           </div>

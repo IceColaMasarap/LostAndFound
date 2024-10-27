@@ -18,20 +18,26 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<SignUpForm />}></Route>
-            <Route path="/login" element={<Login />}></Route>
+            <Route path="/" element={<SignUpForm />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/report-lost-item/*" element={<ReportLostItem />} />
             <Route
               path="/report-found-item/*"
               element={
                 <PrivateRoute>
-                  <ReportFoundItem />{" "}
+                  <ReportFoundItem />
                 </PrivateRoute>
               }
             />
-
-            <Route path="/adminpage/*" element={<AdminPage />}></Route>
+            <Route
+              path="/adminpage/*"
+              element={
+                <PrivateRoute adminOnly={true}>
+                  <AdminPage />
+                </PrivateRoute>
+              }
+            />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
