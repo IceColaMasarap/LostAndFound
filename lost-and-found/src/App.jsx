@@ -33,9 +33,9 @@ function App() {
             <Route
               path="/adminpage/*"
               element={
-               
+                <PrivateRoute adminOnly={true}>
                   <AdminPage />
-              
+                </PrivateRoute>
               }
             />
           </Routes>

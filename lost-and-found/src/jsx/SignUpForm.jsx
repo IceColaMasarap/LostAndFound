@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, auth } from "../config/firebase"; // Firebase and Supabase imports
-import { sendEmailVerification, createUserWithEmailAndPassword } from "firebase/auth";
-import { v4 as uuidv4 } from "uuid"; // Import UUID generator
+import { auth, db, supabase } from "../config/firebase"; // Firebase imports
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { setDoc, doc } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid"; // Import the uuid generator
 import "../styling/login.css";
 
 const SignUpForm = () => {
@@ -33,33 +34,39 @@ const SignUpForm = () => {
     }
 
     try {
-      // Step 1: Register the user in Firebase Authentication
+      // Step 1: Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      const user = userCredential.user;
 
-      // Step 2: Send email verification using Firebase
-      await sendEmailVerification(firebaseUser);
+      // Step 2: Send email verification
+      await sendEmailVerification(user);
       setSuccessMessage("Verification email sent! Please verify your email to complete registration.");
 
-      // Step 3: Check periodically if the user has verified their email
+      // Step 3: Check email verification status in real-time
       const checkVerification = setInterval(async () => {
-        await firebaseUser.reload();
-        if (firebaseUser.emailVerified) {
-          clearInterval(checkVerification);
+        await user.reload(); // Refresh user’s data from Firebase
+        if (user.emailVerified) {
+          clearInterval(checkVerification); // Stop checking once verified
 
-          // Step 4: Generate a UUID for Supabase and insert user data
-          const supabaseUserId = uuidv4(); // Generate a UUID for Supabase
-          const { error: supabaseError } = await supabase
+          // Store user details in Firebase Firestore
+          await setDoc(doc(db, "users", user.uid), {
+            firstName,
+            lastName,
+            email,
+            contact,
+          });
+
+          // Generate a UUID for Supabase and insert user data
+          const uuid = uuidv4();
+          const { data, error: supabaseError } = await supabase
             .from("users")
             .insert([
               {
-                id: supabaseUserId, // Use generated UUID for Supabase
-               
+                firebase_uid: user.uid,
                 firstName: firstName,
                 lastName: lastName,
                 email: email,
                 contact: contact,
-                is_admin: false, // Default value for admin status
               },
             ]);
 
@@ -67,7 +74,8 @@ const SignUpForm = () => {
             throw new Error(supabaseError.message);
           }
 
-          setSuccessMessage("Account created successfully! You can now log in.");
+          console.log("Data stored in Supabase");
+          setSuccessMessage("Account created successfully!");
           setTimeout(() => navigate("/login"), 2000);
         }
       }, 2000); // Check every 2 seconds
@@ -76,7 +84,6 @@ const SignUpForm = () => {
       console.log(err);
     }
   };
-
   return (
     <div className="signup-container">
       <h1>LOST AND FOUND</h1>

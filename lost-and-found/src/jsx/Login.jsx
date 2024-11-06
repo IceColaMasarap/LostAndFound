@@ -1,53 +1,78 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase, auth } from "../config/firebase"; // Import Supabase and Firebase instances
-import { signInWithEmailAndPassword } from "firebase/auth"; // Import Firebase sign-in function
+import { Link, useNavigate } from "react-router-dom";
+import { auth } from "../config/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { useEffect } from "react";
+import { db } from "./firebase"; // Import Firestore instance from firebase.js
+
 import "../styling/login.css";
+
+const FetchUserRole = () => {
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        // Reference to the specific document in the 'users' collection
+        const docRef = doc(db, "users", "4skSWo0Ld2YnIZG1hGRaNQd3Kg72");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          // Accessing the 'Role' field from the document
+          const userData = docSnap.data();
+          setRole(userData.Role); // Set the role value in state
+        } else {
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div>
+      <h1>User Role: {role}</h1>
+    </div>
+  );
+};
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
+  const navigate = useNavigate(); // Use navigate hook for redirection
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
     try {
-      // Step 1: Sign in with Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log("Login Successfully");
 
-      // Step 2: Retrieve user data from Supabase using the email
-      const { data: userData, error: supabaseError } = await supabase
-        .from("users")
-        .select("is_admin")
-        .eq("email", firebaseUser.email) // Match based on email from Firebase
-        .single();
-
-      if (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        throw new Error("Error fetching user data from Supabase.");
-      }
-
-      // Log user data for debugging
-      console.log("User data from Supabase:", userData);
-
-      // Step 3: Check the "is_admin" field and navigate accordingly
-      if (userData && userData.is_admin) {
-        navigate("/adminpage");
+      // Check if the email and password match the admin credentials
+      if (email === "admin@gmail.com" && password === "admin123") {
+        navigate("/adminpage"); // Redirect to admin page
       } else {
-        navigate("/homepage");
+        navigate("/homepage"); // Redirect to usual page
       }
     } catch (err) {
-      setError(err.message);
-      console.log("Error logging in:", err);
+      setError(err.message); // Handle error
+      console.log(err);
     }
   };
 
   const goToRegister = () => {
-    navigate("/"); // Navigate to register page
+    navigate("/"); // Navigate to ./register route
   };
   return (
     <div className="signup-container">
