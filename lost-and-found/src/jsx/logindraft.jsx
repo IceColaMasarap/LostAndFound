@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, auth } from "../config/firebase"; // Import Supabase and Firebase instances
-import { signInWithEmailAndPassword } from "firebase/auth"; // Import Firebase sign-in function
+import { supabase } from "../config/firebase"; // Import Supabase instance
 import "../styling/login.css";
 
 const Login = () => {
@@ -15,27 +14,36 @@ const Login = () => {
     setError("");
 
     try {
-      // Step 1: Sign in with Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Authenticate the user with Supabase
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Step 2: Retrieve user data from Supabase using the email
+      if (signInError) {
+        throw new Error(signInError.message);
+      }
+
+      const user = signInData.user;
+
+      // Check if user exists
+      if (!user) {
+        throw new Error("Authentication failed. Please try again.");
+      }
+
+      // Retrieve user data from the "users" table using user.id
       const { data: userData, error: supabaseError } = await supabase
         .from("users")
         .select("is_admin")
-        .eq("email", firebaseUser.email) // Match based on email from Firebase
+        .eq("id", user.id) // Use user.id for accurate matching
         .single();
 
       if (supabaseError) {
-        console.error("Supabase error:", supabaseError);
         throw new Error("Error fetching user data from Supabase.");
       }
 
-      // Log user data for debugging
-      console.log("User data from Supabase:", userData);
-
-      // Step 3: Check the "is_admin" field and navigate accordingly
-      if (userData && userData.is_admin) {
+      // Check the "is_admin" field and navigate accordingly
+      if (userData.is_admin) {
         navigate("/adminpage");
       } else {
         navigate("/homepage");
