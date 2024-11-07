@@ -33,7 +33,7 @@ function All() {
     status: true,
   });
 
-  
+
 
   const showCustomCheckbox = () => {
     setShowCheckboxContainer((prev) => !prev);
@@ -129,7 +129,7 @@ function All() {
       dateclaimed: true,
       status: true,
     },
-    
+
     all: {
       type: true,
       category: true,
@@ -207,7 +207,7 @@ function All() {
       (filter === "pending" && item.type === "Found") ||
       (filter === "claimed" && item.status === "claimed") ||
       filter === "all";
-
+  
     const matchesCategory =
       categoryFilter === "Others"
         ? !["Personal Belonging", "Electronics", "Documents"].includes(
@@ -216,18 +216,18 @@ function All() {
         : categoryFilter
         ? item.category === categoryFilter
         : true;
-
+  
     const matchesColor = colorFilter ? item.color === colorFilter : true;
-
-    const itemDate = new Date(item.createdAt);
+  
+    const itemDate = new Date(item.dateclaimed); // Use dateclaimed for filtering
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
       (!dateRange.end || itemDate <= new Date(dateRange.end));
-
+  
     const matchesSearchTerm = item.objectname
       ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
       : false;
-
+  
     return (
       matchesType &&
       matchesCategory &&
@@ -237,7 +237,6 @@ function All() {
       item.confirmed !== false
     );
   });
-
   // Modify the rendering of the type column based on the filter
   const getTypeDisplay = (type) => {
     if (filter === "lost" && type === "Found") {
@@ -306,7 +305,6 @@ function All() {
                 }
               />
               <label className="tolabel">–</label>
-
               <input
                 type="date"
                 value={dateRange.end}
