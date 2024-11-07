@@ -84,7 +84,7 @@ function Claimed() {
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">Missing Item Reports</p>
+          <p className="header">Claimed Items</p>
           <div className="categoryx">
             <p>Filter</p>
             <select
