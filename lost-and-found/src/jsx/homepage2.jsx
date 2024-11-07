@@ -11,11 +11,9 @@ import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { collectionGroup, onSnapshot, collection } from "firebase/firestore";
-import { db } from "./firebase"; // Import Firestore instance
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import Notification from "./notification"; // Import your notification component
-import { supabase } from "../config/firebase"; // Adjust the path according to your project structure
+import { supabase } from "../config/supabase"; // Adjust the path according to your project structure
 
 function Homepage2() {
   const navigate = useNavigate();
@@ -234,27 +232,7 @@ function Homepage2() {
     return () => window.removeEventListener("wheel", handleWheelScroll);
   }, []);
 
-  useEffect(() => {
-    if (!loading && uid === "4skSWo0Ld2YnIZG1hGRaNQd3Kg72") {
-      navigate("/adminpage");
-    }
-  }, [loading, uid, navigate]);
 
-  // Fetch notifications when user ID is available
-  useEffect(() => {
-    if (uid) {
-      const notificationsRef = collection(db, "users", uid, "notifications");
-      const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
-        const notificationsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setNotifications(notificationsData);
-      });
-
-      return () => unsubscribe();
-    }
-  }, [uid]);
 
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
