@@ -1,54 +1,53 @@
 import React, { useState, useEffect } from "react";
 import "./Admin.css";
-import { collectionGroup, onSnapshot } from "firebase/firestore";
-import { db } from "../config/firebase"; // Firebase config
+import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
 function Archive() {
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState("all"); // Default filter state
+  const [filter, setFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [colorFilter, setColorFilter] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [showCheckboxContainer, setShowCheckboxContainer] = useState(true);
 
-  // Columns state to manage visibility
   const [visibleColumns, setVisibleColumns] = useState({
     type: true,
     category: true,
     brand: true,
     color: true,
-    objectName: true,
-    reportedByName: true,
-    reportedByContact: true,
-    reportedByEmail: true,
-    dateFound: true,
-    locationFound: true,
-    dateLost: true,
-    locationLost: true,
+    objectname: true,
+    reportedbyname: true,
+    reportedbycontact: true,
+    reportedbyemail: true,
+    datefound: true,
+    locationfound: true,
+    datelost: true,
+    locationlost: true,
     status: true,
-    remark: true,
+    archiveremark: true,
   });
+
   const showCustomCheckbox = () => {
     setShowCheckboxContainer((prev) => !prev);
   };
-  // Mapping for column display names
+
   const columnLabels = {
     type: "Report Type",
     category: "Category",
     brand: "Brand",
     color: "Color",
-    objectName: "Object Name",
-    reportedByName: "Reported By Name",
-    reportedByContact: "Reported By Contact",
-    reportedByEmail: "Reported By Email",
-    dateFound: "Date Found",
-    locationFound: "Location Found",
-    dateLost: "Date Lost",
-    locationLost: "Location Lost",
+    objectname: "Object Name",
+    reportedbyname: "Reported By Name",
+    reportedbycontact: "Reported By Contact",
+    reportedbyemail: "Reported By Email",
+    datefound: "Date Found",
+    locationfound: "Location Found",
+    datelost: "Date Lost",
+    locationlost: "Location Lost",
     status: "Status",
-    remark: "Archive Reason",
+    archiveremark: "Archive Reason",
   };
-  // Select all columns
+
   const selectAllColumns = () => {
     setVisibleColumns(
       Object.keys(visibleColumns).reduce((acc, column) => {
@@ -57,74 +56,74 @@ function Archive() {
       }, {})
     );
   };
+
   const columnVisibilitySettings = {
     lost: {
       type: true,
       category: true,
       brand: true,
       color: true,
-      objectName: true,
-      reportedByName: true,
-      reportedByContact: true,
-      reportedByEmail: true,
-      dateFound: true,
-      locationFound: true,
-      dateLost: false,
-      locationLost: false,
+      objectname: true,
+      reportedbyname: true,
+      reportedbycontact: true,
+      reportedbyemail: true,
+      datefound: true,
+      locationfound: true,
+      datelost: false,
+      locationlost: false,
       status: true,
-      remark: true,
+      archiveremark: true,
     },
     pending: {
       type: true,
       category: true,
       brand: true,
       color: true,
-      objectName: true,
-      reportedByName: true,
-      reportedByContact: true,
-      reportedByEmail: true,
-      dateFound: false,
-      locationFound: false,
-      dateLost: true,
-      locationLost: true,
+      objectname: true,
+      reportedbyname: true,
+      reportedbycontact: true,
+      reportedbyemail: true,
+      datefound: false,
+      locationfound: false,
+      datelost: true,
+      locationlost: true,
       status: true,
-      remark: true,
+      archiveremark: true,
     },
     claimed: {
       type: true,
       category: true,
       brand: true,
       color: true,
-      objectName: true,
-      reportedByName: true,
-      reportedByContact: true,
-      reportedByEmail: true,
-      dateFound: false,
-      locationFound: false,
-      dateLost: false,
-      locationLost: false,
+      objectname: true,
+      reportedbyname: true,
+      reportedbycontact: true,
+      reportedbyemail: true,
+      datefound: false,
+      locationfound: false,
+      datelost: false,
+      locationlost: false,
       status: true,
-      remark: true,
+      archiveremark: true,
     },
     all: {
       type: true,
       category: true,
       brand: true,
       color: true,
-      objectName: true,
-      reportedByName: true,
-      reportedByContact: true,
-      reportedByEmail: true,
-      dateFound: true,
-      locationFound: true,
-      dateLost: true,
-      locationLost: true,
+      objectname: true,
+      reportedbyname: true,
+      reportedbycontact: true,
+      reportedbyemail: true,
+      datefound: true,
+      locationfound: true,
+      datelost: true,
+      locationlost: true,
       status: true,
       remark: true,
     },
   };
 
-  // Deselect all columns
   const deselectAllColumns = () => {
     setVisibleColumns(
       Object.keys(visibleColumns).reduce((acc, column) => {
@@ -133,18 +132,55 @@ function Archive() {
       }, {})
     );
   };
+  const fetchUserInfo = async (userId) => {
+    const { data, error } = await supabase
+      .from("userinfo")
+      .select("firstname, lastname, contact, email")
+      .eq("id", userId)
+      .single(); // Ensure only one user info is fetched
+    if (error) {
+      console.error("Error fetching user data:", error);
+      return null;
+    }
+    return data;
+  };
+
   useEffect(() => {
-    const itemsQuery = collectionGroup(db, "itemReports");
+    const fetchData = async () => {
+      const result = await supabase.from("item_reports2").select("*");
+      const itemsWithUserInfo = await Promise.all(
+        result.data.map(async (item) => {
+          // Fetch user info based on the holderid
+          const userInfo = await fetchUserInfo(item.holderid);
+          return {
+            ...item,
+            reportedbyname: `${userInfo.firstname} ${userInfo.lastname}`,
+            reportedbycontact: userInfo.contact,
+            reportedbyemail: userInfo.email,
+          };
+        })
+      );
+      setItems(itemsWithUserInfo);
+    };
+    fetchData();
+  }, []);
 
-    const unsubscribe = onSnapshot(itemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setItems(items);
-    });
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("item_reports2")
+          .select("*");
 
-    return () => unsubscribe();
+        if (error) throw error;
+
+        setItems(data);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      }
+    };
+
+    fetchItems();
   }, []);
 
   const handleCheckboxChange = (column) => {
@@ -153,13 +189,23 @@ function Archive() {
       [column]: !prev[column],
     }));
   };
+
   const handleFilterChange = (selectedFilter) => {
     setFilter(selectedFilter);
     setVisibleColumns(columnVisibilitySettings[selectedFilter]);
   };
 
   const filteredItems = items.filter((item) => {
-    const matchesStatus = filter === "all" || item.status === filter;
+    // Use status for the "Claimed" filter
+
+    // Use type for the "Lost" and "Missing" filters
+    const matchesType =
+      (filter === "lost" && item.type === "Lost") ||
+      (filter === "pending" && item.type === "Found") ||
+      (filter === "claimed" && item.status === "claimed") ||
+      filter === "all" // All items are included when "all" is selected
+        ? true
+        : false;
 
     const matchesCategory =
       categoryFilter === "Others"
@@ -179,15 +225,15 @@ function Archive() {
 
     // Only include items where confirmed is not false
     const isConfirmed = item.confirmed !== false;
-    const archived = item.status === "archived";
+    const archive = item.status === "archived";
 
     return (
-      matchesStatus &&
+      matchesType &&
       matchesCategory &&
       matchesColor &&
       matchesDateRange &&
       isConfirmed &&
-      archived
+      archive
     );
   });
 
@@ -195,7 +241,7 @@ function Archive() {
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">All Items</p>
+          <p className="header">Archived Reports</p>
           <div className="categoryx">
             <p>Filter</p>
             <button onClick={() => handleFilterChange("all")}>All</button>
@@ -203,7 +249,10 @@ function Archive() {
             <button onClick={() => handleFilterChange("pending")}>
               Missing
             </button>
-            <button onClick={() => handleFilterChange("claimed")}>
+            <button
+              id="buttonclaimed"
+              onClick={() => handleFilterChange("claimed")}
+            >
               Claimed
             </button>
             <select
@@ -309,14 +358,16 @@ function Archive() {
                       {Object.keys(visibleColumns).map(
                         (column) =>
                           visibleColumns[column] && (
-                            <td key={column}>{item[column] || "N/A"}</td>
+                            <td key={column}>{item[column]}</td>
                           )
                       )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="18">No items found</td>
+                    <td colSpan={Object.keys(visibleColumns).length}>
+                      No items found.
+                    </td>
                   </tr>
                 )}
               </tbody>

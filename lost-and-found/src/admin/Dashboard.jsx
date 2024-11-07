@@ -41,7 +41,7 @@ function Dashboard() {
         .select("*")
         .eq("code", parseInt(inputCode, 10)) // Ensure code is compared as an integer
         .single(); // Fetch a single item
-  
+
       if (error) {
         setMessage("Error fetching item. Please try again.");
         console.error("Error fetching item:", error);
@@ -65,7 +65,7 @@ function Dashboard() {
       toast.error("Error fetching item. Please try again.");
     }
   };
-  
+
   // Function to confirm the item
   const confirmItem = async (itemId) => {
     try {
@@ -74,11 +74,11 @@ function Dashboard() {
         .from("item_reports2")
         .update({ confirmed: true })
         .eq("id", itemId);
-  
+
       if (error) {
         toast.error("Error confirming the item. Please try again.");
         console.error("Error updating confirmation status:", error);
-      } 
+      }
     } catch (error) {
       console.error("Error confirming item:", error);
       toast.error("Error confirming the item. Please try again.");
@@ -109,10 +109,10 @@ function Dashboard() {
 
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
-    (item) => item.status === "lost"
+    (item) => item.status === "pending" && item.type === "Found"
   ).length;
   const pendingClaimsCount = foundItems.filter(
-    (item) => item.status === "pending"
+    (item) => item.status === "pending" && item.type === "Lost"
   ).length;
   const claimedItemsCount = foundItems.filter(
     (item) => item.status === "claimed"

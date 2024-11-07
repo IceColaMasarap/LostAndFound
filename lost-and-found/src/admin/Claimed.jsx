@@ -84,7 +84,7 @@ function Claimed() {
     <>
       <div className="adminnavbar">
         <div>
-          <p className="header">Missing Item Reports</p>
+          <p className="header">Claimed Items</p>
           <div className="categoryx">
             <p>Filter</p>
             <select
@@ -154,7 +154,6 @@ function Claimed() {
               alt="Lost Item"
             />
 
-
             <div className="lostitembody">
               <div className="lostitemtop">
                 <label className="lostitemlabel">
@@ -172,9 +171,7 @@ function Claimed() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Claimed by:</label>
-                  <label className="lostitemlabel3">{item.claimedby}
-                
-                  </label>
+                  <label className="lostitemlabel3">{item.claimedby}</label>
                   <label className="lostitemlabel2">Contact Number</label>
                   <label className="lostitemlabel3">
                     {item.claimcontactnumber}
@@ -182,13 +179,12 @@ function Claimed() {
                   <label className="lostitemlabel2">Email</label>
                   <label className="lostitemlabel3">{item.claimemail}</label>
                   <label className="lostitemlabel2">Date Claimed</label>
-                 <label className="lostitemlabel3">
-  {formatDate(item.dateclaimed)}
-</label>
+                  <label className="lostitemlabel3">
+                    {formatDate(item.dateclaimed)}
+                  </label>
                 </div>
               </div>
             </div>
-
           </div>
         ))}
       </div>

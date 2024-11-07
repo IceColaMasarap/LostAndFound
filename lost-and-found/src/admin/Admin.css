@@ -529,3 +529,7 @@ h2 {
   margin-top: 10px;
   justify-content: center;
 }
+
+#buttonclaimed {
+  display: none;
+}

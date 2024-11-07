@@ -39,6 +39,7 @@ function Pending() {
       `
       )
       .eq("status", "pending")
+      .eq("type", "Lost")
       .order("createdat", { ascending: false }); // Order by createdAt in descending order
 
     if (categoryFilter) query = query.eq("category", categoryFilter);

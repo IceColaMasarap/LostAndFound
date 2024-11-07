@@ -180,14 +180,14 @@ function All() {
     setFilter(selectedFilter);
 
     // Adjust column visibility based on the selected filter
-    if (selectedFilter === "lost") {
+    if (selectedFilter === "lost" || selectedFilter === "pending") {
       setVisibleColumns({
         ...columnVisibilitySettings.all,
         type: true, // Ensure 'type' column is visible for all
       });
-    } else if (selectedFilter === "pending") {
+    } else if (selectedFilter === "claimed") {
       setVisibleColumns({
-        ...columnVisibilitySettings.pending,
+        ...columnVisibilitySettings.claimed,
         type: true, // Ensure 'type' column is visible for all
       });
     } else {
@@ -196,7 +196,16 @@ function All() {
   };
 
   const filteredItems = items.filter((item) => {
-    const matchesStatus = filter === "all" || item.status === filter;
+    // Use status for the "Claimed" filter
+
+    // Use type for the "Lost" and "Missing" filters
+    const matchesType =
+      (filter === "lost" && item.type === "Lost") ||
+      (filter === "pending" && item.type === "Found") ||
+      (filter === "claimed" && item.status === "claimed") ||
+      filter === "all" // All items are included when "all" is selected
+        ? true
+        : false;
 
     const matchesCategory =
       categoryFilter === "Others"
@@ -218,11 +227,11 @@ function All() {
     const isConfirmed = item.confirmed !== false;
 
     return (
-      matchesStatus &&
+      matchesType &&
       matchesCategory &&
       matchesColor &&
       matchesDateRange &&
-      isConfirmed // Ensure only confirmed items are included
+      isConfirmed
     );
   });
 
@@ -236,6 +245,7 @@ function All() {
     }
     return type; // Otherwise, show the original type
   };
+
   return (
     <>
       <div className="adminnavbar">
