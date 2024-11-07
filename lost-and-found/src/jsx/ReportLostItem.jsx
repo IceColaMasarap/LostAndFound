@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth"; // Ensure you import getAuth
 
-import { auth, db, storage } from "./firebase";
-import { doc, getDoc, addDoc, collection } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import these for image upload
 import "../styling/ReportLostItem.css";
+import { supabase } from "../supabaseClient"; // Ensure you have the Supabase client setup
+import { v4 as uuidv4 } from "uuid"; // Import UUID to generate unique file names
 
 function ReportLostItem() {
   const navigate = useNavigate();
@@ -17,9 +15,7 @@ function ReportLostItem() {
     contactNumber: "",
   });
 
-  // Group related fields into a single state object
   const [otherColor, setOtherColor] = useState(null); // State to store the uploaded image
-
   const [category, setCategory] = useState("");
   const [otherCategory, setOtherCategory] = useState("");
   const [itemDetails, setItemDetails] = useState({
@@ -33,41 +29,21 @@ function ReportLostItem() {
 
   const [image, setImage] = useState(null); // State to store the uploaded image
   const [imageUrl, setImageUrl] = useState(""); // State to store the image URL after upload
-  const user = auth.currentUser;
-  const uid = user.uid;
-  const userDocRef = doc(db, "users", uid);
-  //Gets user info and displays them in text field at step 3
+
+  // Retrieve user data from sessionStorage
   useEffect(() => {
-    const user = auth.currentUser;
+    const user = JSON.parse(sessionStorage.getItem("user"));
+
     if (user) {
-      const uid = user.uid; // Get current user's UID
-      const userDocRef = doc(db, "users", uid);
-
-      const fetchUserData = async () => {
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const firstName = docSnap.data().firstName; // Assuming Firestore has 'firstName'
-          const lastName = docSnap.data().lastName; // Assuming Firestore has 'lastName'
-
-          // Combine first name and last name into full display name
-          const fullName = `${firstName} ${lastName}`;
-
-          // Update state with combined name and other data
-          setUserData({
-            name: fullName,
-            email: docSnap.data().email,
-            contactNumber: docSnap.data().contact,
-          });
-        } else {
-          console.log("No such document!");
-        }
-      };
-
-      fetchUserData();
+      setUserData({
+        name: `${user.firstName} ${user.lastName}`, // Combine first and last name
+        email: user.email,
+        contactNumber: user.contact,
+      });
     } else {
-      console.log("No user is signed in.");
+      console.log("No user data found in sessionStorage.");
     }
-  }, []);
+  }, []); // This effect runs only once when the component mounts
 
   // Handle image file selection
   const handleImageChange = (e) => {
@@ -76,54 +52,102 @@ function ReportLostItem() {
     }
   };
 
-  // Upload image to Firebase Storage and get the URL
+  // Upload image to Supabase Storage and get the URL
   const uploadImage = async () => {
     if (image) {
-      const imageRef = ref(storage, `lost-items/${image.name}`);
-      await uploadBytes(imageRef, image);
-      const url = await getDownloadURL(imageRef);
-      setImageUrl(url); // Set image URL after upload
-      return url;
+      try {
+        const uniqueFileName = `${uuidv4()}-${image.name}`;
+
+        // Upload the image to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from("lost-items")
+          .upload(`lost-items/${uniqueFileName}`, image, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (error) {
+          console.error("Error uploading image:", error);
+          return null;
+        }
+
+        console.log("Uploaded image data:", data);
+
+        // Manually construct the image URL
+        const baseUrl =
+          "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
+        const imageUrl = `${baseUrl}${data.path}`; // Use the 'path' returned by Supabase
+
+        console.log("Manually constructed Image URL:", imageUrl); // Log the manually constructed URL
+
+        setImageUrl(imageUrl); // Set the constructed URL to state
+
+        return imageUrl; // Return the manually constructed URL
+      } catch (err) {
+        console.error("Unexpected error during image upload:", err.message);
+        return null;
+      }
     }
-    return null; // Return null if no image is uploaded
+
+    return null;
   };
 
-  // Save the lost item details to Firestore
+  // Save the lost item details to Supabase
   const saveLostItem = async () => {
     try {
-      const auth = getAuth();
-      const uid = auth.currentUser ? auth.currentUser.uid : null; // Get current user's UID
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      const uid = user?.id;
 
       if (!uid) {
         console.error("User is not authenticated");
-        return; // Exit if not authenticated
+        return;
       }
+
       const now = new Date();
+      const fullDateTime = now.toLocaleString();
 
-      const fullDateTime = now.toLocaleString(); // e.g., "10/17/2024, 10:51 PM"
+      const uploadedImageUrl = await uploadImage();
+      if (!uploadedImageUrl) {
+        console.error("Image upload failed. Item not saved.");
+        return;
+      }
 
-      const uploadedImageUrl = await uploadImage(); // First, upload the image
-      const newItemData = {
-        category: category === "Other" ? otherCategory : category,
-        brand: itemDetails.brand,
-        color: itemDetails.color,
-        dateLost: itemDetails.dateFound,
-        timeLost: itemDetails.timeFound,
-        locationLost: itemDetails.locationFound,
-        objectName: itemDetails.objectName,
-        imageUrl: uploadedImageUrl,
-        name: userData.name,
-        email: userData.email,
-        contactNumber: userData.contactNumber,
-        holderId: uid, // Use the user's UID here
-        createdAt: fullDateTime, // Current date and time in ISO format
-        type: "Lost", // Add type as "Lost"
-        status: "pending", // Add status as "Lost"
-      };
-      await addDoc(collection(db, "users", uid, "itemReports"), newItemData); // Save data in Firestore
-      setStep(step + 1); // Move to next step
+      console.log("Image URL in saveLostItem:", uploadedImageUrl);
+
+      // SQL query to insert the data
+      const sql = `
+        INSERT INTO item_reports2 (
+          category, brand, color, datelost, timelost, locationlost, objectname, 
+          imageurl, holderid, createdat, type, status
+        )
+        VALUES (
+          '${category === "Other" ? otherCategory : category}', 
+          '${itemDetails.brand}', 
+          '${itemDetails.color}', 
+          '${itemDetails.dateFound}', 
+          '${itemDetails.timeFound}', 
+          '${itemDetails.locationFound}', 
+          '${itemDetails.objectName}', 
+          '${uploadedImageUrl}', 
+          '${uid}', 
+          '${fullDateTime}', 
+          'Lost', 
+          'pending'
+        );
+      `;
+
+      // Execute the SQL query via RPC
+      const { error: insertError } = await supabase.rpc("execute_sql", { sql });
+
+      if (insertError) {
+        console.error("Error executing RPC with raw SQL:", insertError.message);
+        return;
+      }
+
+      console.log("Item data saved successfully via raw SQL!");
+      setStep(step + 1);
     } catch (error) {
-      console.error("Error adding document: ", error); // Check for errors
+      console.error("Error saving item via raw SQL:", error);
     }
   };
 

@@ -226,3 +226,15 @@ body {
   font-size: 14px;
   color: #555;
 }
+
+.image-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.uploaded-image {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ccc;
+  margin-top: 10px;
+}

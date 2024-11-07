@@ -43,7 +43,16 @@ const Login = () => {
       // Log user data for debugging
       console.log("User data from Supabase:", data);
 
-      // Step 3: Check the "is_admin" field and navigate accordingly
+      // Step 3: Save the user data to sessionStorage
+      sessionStorage.setItem("user", JSON.stringify(data)); // Save to sessionStorage
+      const user = JSON.parse(sessionStorage.getItem("user"));
+
+      if (user) {
+        console.log("Logged-in user data:", user);
+      } else {
+        console.log("No user logged in");
+      }
+      // Step 4: Check the "is_admin" field and navigate accordingly
       if (data.is_admin) {
         navigate("/adminpage"); // Redirect to admin page if user is an admin
       } else {

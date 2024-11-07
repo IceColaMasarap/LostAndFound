@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { db, storage } from "../config/firebase"; // Import Firebase instance
-import {
-  doc,
-  setDoc,
-  onSnapshot,
-  collection,
-  addDoc,
-  getDoc,
-  deleteDoc,
-  Timestamp,
-} from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Firebase storage methods
-import { useAuth } from "../hooks/useAuth"; // Import useAuth hook to access authenticated user
+
 import { useNavigate } from "react-router-dom";
 import "../styling/ReportFoundItem.css";
+import { supabase } from "../supabaseClient"; // Adjust the path to your Supabase client setup
+import { v4 as uuidv4 } from "uuid";
 
 function ReportFoundItem() {
   const navigate = useNavigate();
@@ -23,86 +13,82 @@ function ReportFoundItem() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [code, setCode] = useState("");
   const [otherCategory, setOtherCategory] = useState("");
-
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
+    contactNumber: "",
+  });
   const [timeFound, setTimeFound] = useState("");
   const [brand, setBrand] = useState("");
   const [objectName, setObjectName] = useState("");
   const [color, setColor] = useState("");
-  const [otherColor, setOtherColor] = React.useState("");
+  const [otherColor, setOtherColor] = useState("");
 
   const [dateFound, setDateFound] = useState("");
   const [locationFound, setLocationFound] = useState("");
-  const [image, setImage] = useState(null); // Store image locally
-  const [imageUrl, setImageUrl] = useState(""); // To store the download URL
-  const [uploading, setUploading] = useState(false); // To track upload status
-  const [confirmed, setConfirmed] = useState(false); // To track code confirmation status
+  const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [docId, setDocId] = useState("");
-  const [generatedCode, setGeneratedCode] = useState(""); // Store the generated code for display
-  const { user, isLoading } = useAuth(); // Get the authenticated user's data and loading state
+  const [generatedCode, setGeneratedCode] = useState("");
   const [codeExpired, setCodeExpired] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
-
-  /**useEffect(() => {
-        if (user) {
-            //console.log('Authenticated user:', user);
-        }
-    }, [user]); **/
-
-  // Check for loading or unauthenticated user
-  if (isLoading) {
-    return <div>Loading...</div>; // Add a loading state to ensure you're not trying to access the user too early
-  }
-
-  if (!user) {
-    return <div>User not authenticated. Please log in.</div>;
-  }
-
   // Function to generate a code and handle auto-deletion after 30 seconds
+  const user = JSON.parse(sessionStorage.getItem("user"));
+
   const generateCode = async () => {
     const generatedCode = Math.floor(
       100000 + Math.random() * 900000
     ).toString();
     setGeneratedCode(generatedCode);
-    setCodeExpired(false); // Reset expired status on new generation
-    setTimeLeft(30); // Reset countdown
-    setConfirmed(false); // Reset confirmation status
+    setCodeExpired(false);
+    setTimeLeft(30);
+    setConfirmed(false);
     const now = new Date();
-    const fullDateTime = now.toLocaleString(); // e.g., "10/17/2024, 10:51 PM"
+    const fullDateTime = now.toLocaleString();
 
     const initialData = {
       code: generatedCode,
       confirmed: false,
-      createdAt: fullDateTime, // Current date and time in ISO format
+      createdat: fullDateTime,
+      id: user.id, // Replace with session or user context if needed
     };
 
     try {
-      const docRef = await addDoc(
-        collection(db, "users", user.id, "itemReports"),
-        initialData
-      );
-      setDocId(docRef.id);
+      const { data, error } = await supabase
+        .from("item-reports2")
+        .insert([initialData])
+        .select();
+
+      if (error) throw error;
+
+      const docId = data[0].id;
+      setDocId(docId);
 
       // Start countdown and check confirmation every second
       const interval = setInterval(async () => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
-            clearInterval(interval); // Stop interval once timer hits 0
-            // If the code is not confirmed when the timer hits 0, expire it
-            expireCode(docRef.id);
+            clearInterval(interval);
+            expireCode(docId);
           }
           return prevTime - 1;
         });
 
-        // Continuously check if the code is confirmed
-        const snapshot = await getDoc(
-          doc(db, "users", user.id, "itemReports", docRef.id)
-        );
-        if (snapshot.exists() && snapshot.data().confirmed) {
-          clearInterval(interval); // Stop countdown if code is confirmed
-          setConfirmed(true); // Code confirmed
-          setCodeExpired(false); // Code should not expire
+        const { data: itemData, error: getError } = await supabase
+          .from("item-reports2")
+          .select("confirmed")
+          .eq("id", docId);
+
+        if (getError) throw getError;
+
+        if (itemData[0]?.confirmed) {
+          clearInterval(interval);
+          setConfirmed(true);
+          setCodeExpired(false);
         }
-      }, 1000); // Check every second
+      }, 1000);
     } catch (error) {
       console.error("Error generating or deleting code:", error);
     }
@@ -111,129 +97,93 @@ function ReportFoundItem() {
   // Function to expire the code
   const expireCode = async (docId) => {
     try {
-      const snapshot = await getDoc(
-        doc(db, "users", user.id, "itemReports", docId)
-      );
-      if (snapshot.exists() && !snapshot.data().confirmed) {
-        await deleteDoc(doc(db, "users", user.id, "itemReports", docId));
-        setCodeExpired(true); // Mark code as expired
+      const { data, error } = await supabase
+        .from("item-reports2")
+        .select("confirmed")
+        .eq("id", docId);
+
+      if (error) throw error;
+
+      if (!data[0]?.confirmed) {
+        const { error: deleteError } = await supabase
+          .from("item-reports2")
+          .delete()
+          .eq("id", docId);
+
+        if (deleteError) throw deleteError;
+        setCodeExpired(true);
       }
     } catch (error) {
       console.error("Error expiring code:", error);
     }
   };
 
-  // Generate code once the user reaches step 3
   useEffect(() => {
     if (step === 4 && !code) {
       generateCode();
     }
   }, [step, code]);
 
-  // Real-time confirmation status listener
-  useEffect(() => {
-    if (step === 4 && docId) {
-      console.log(
-        "Listening to Firestore path:",
-        `users/${user.id}/itemReports/${docId}`
-      );
-
-      // Listen for real-time updates on the 'FoundItems' document with the Firestore-generated document ID
-      const docRef = doc(db, "users", user.id, "itemReports", docId); // Use the Firestore-generated document ID
-      const unsubscribe = onSnapshot(docRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          console.log("Received data:", data);
-          if (data && data.confirmed && !confirmed) {
-            setConfirmed(true);
-            submitFullForm(); // Automatically submit form when confirmed
-            console.log(
-              "Form data automatically sent after admin confirmation"
-            );
-          }
-        } else {
-          console.log("Document does not exist.");
-        }
-      });
-
-      return () => unsubscribe(); // Cleanup listener
-    }
-  }, [step, docId, confirmed]);
-
-  // Handle image upload
   const handleImageUpload = async (file) => {
     if (!file) return;
     setUploading(true);
-    const storageRef = ref(storage, `itemReports/${code}/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const { data, error } = await supabase.storage
+      .from("item-reports")
+      .upload(`found-items/${file.name}`, file);
 
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log(`Upload is ${progress}% done`);
-      },
-      (error) => {
-        console.error("Error uploading image:", error);
-        setUploading(false);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          setImageUrl(downloadURL);
-          setUploading(false);
-          console.log("Image available at:", downloadURL);
-        });
-      }
-    );
+    if (error) {
+      console.error("Error uploading image:", error);
+      setUploading(false);
+      return;
+    }
+
+    const imageUrl = `${supabase.storageURL}/item-reports/found-items/${data.path}`;
+    setImageUrl(imageUrl);
+    setUploading(false);
+    console.log("Image available at:", imageUrl);
   };
 
-  // Handle image change
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     setImage(file);
     handleImageUpload(file);
   };
 
-  // Submit the full form to Firestore after confirmation
   const submitFullForm = async () => {
     const formData = {
       category: category === "Other" ? otherCategory : category,
-      contactNumber: user?.contact,
-      name: user?.name,
-      email: user?.email,
       objectName,
       brand,
       color,
       dateFound,
       timeFound,
       locationFound,
-      imageUrl, // Store the download URL of the image
+      imageUrl,
       confirmed: true,
-      status: "lost",
+      status: "found",
       type: "Found",
     };
 
     try {
-      // Use the Firestore-generated document ID (docId) instead of code
-      const docRef = doc(db, "users", user.id, "itemReports", docId); // Correct path with Firestore document ID (docId)
-      console.log("Submitting form for document ID:", docId);
-      await setDoc(docRef, formData, { merge: true }); // Update the document with the full form data
-      console.log(
-        "Full form data submitted to Firestore under the user's itemReports subcollection."
-      );
+      const { error } = await supabase
+        .from("item-reports2")
+        .update(formData)
+        .eq("id", docId);
+
+      if (error) throw error;
+
+      console.log("Full form data submitted to Supabase.");
     } catch (error) {
       console.error("Error submitting form data:", error);
     }
   };
 
-  // Move to the next step
   const nextStep = async () => {
     if (step === 3) {
       setStep(4);
     } else if (step === 4) {
       if (confirmed) {
-        setStep(5); // Proceed to step 5 only if the code is confirmed
+        setStep(5);
       } else {
         alert(
           "Your code is not yet confirmed by the admin. Please wait for confirmation."
@@ -443,7 +393,7 @@ function ReportFoundItem() {
                   className="FInput"
                   type="text"
                   id="NameInp"
-                  value={user?.name}
+                  value={userData?.firstname}
                   readOnly
                   required
                 />
@@ -455,7 +405,7 @@ function ReportFoundItem() {
                   className="FInput"
                   type="text"
                   id="EmailInp"
-                  value={user?.email}
+                  value={userData?.email}
                   readOnly
                   required
                 />
@@ -467,7 +417,7 @@ function ReportFoundItem() {
                   className="FInput"
                   type="text"
                   id="ContactNumInp"
-                  value={user?.contact}
+                  value={userData?.contact}
                   readOnly
                   required
                 />
