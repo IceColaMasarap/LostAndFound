@@ -28,7 +28,7 @@ function ReportLostItem() {
 
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
-
+  const today = new Date().toLocaleDateString('en-CA');  // Using Canadian format 'YYYY-MM-DD' for local time
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
 
@@ -485,6 +485,7 @@ function ReportLostItem() {
                   setItemDetails({ ...itemDetails, dateFound: e.target.value })
                 }
                 required
+                max={today} // Set the max attribute to today's date
               />
             </div>
 
