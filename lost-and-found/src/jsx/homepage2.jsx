@@ -34,23 +34,23 @@ function Homepage2() {
     }
   };
 
-
-   // Fetch notifications from Supabase for the logged-in user
-   const fetchNotifications = async () => {
-    if (user && !isLoading) {
+  const fetchNotifications = async () => {
+    try {
       const { data, error } = await supabase
-        .from('item_reports2')
-        .select('notified, message')
-        .eq('holderid', user.id); // Adjust the column name based on your table
-      
+        .from("item_reports2")
+        .select("id, message")
+        .eq("notified", true);
+
       if (error) {
-        console.error('Error fetching notifications:', error);
+        console.error("Error fetching notifications:", error);
       } else {
         setNotifications(data);
       }
+    } catch (error) {
+      console.error("Unexpected error fetching notifications:", error);
     }
   };
-  
+
   const fetchCounts = async () => {
     try {
       // Fetch count of 'found' items with 'pending' status
@@ -78,17 +78,18 @@ function Homepage2() {
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchCounts();
+    fetchNotifications(); // Initial notification fetch
 
-    // Set up polling to fetch data every 5 seconds (5000 ms)
-    const intervalId = setInterval(fetchCounts, 5000);
+    // Polling setup
+    const intervalId = setInterval(() => {
+      fetchCounts();
+      fetchNotifications(); // Fetch notifications periodically
+    }, 5000);
 
-    // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, []);
 
-  
   useEffect(() => {
     const targetSection = localStorage.getItem("scrollToSection");
 
@@ -149,8 +150,6 @@ function Homepage2() {
 
     return () => observer.disconnect();
   }, []);
-
-
 
   // Scroll effect for fade-in
   useEffect(() => {
@@ -231,8 +230,6 @@ function Homepage2() {
     return () => window.removeEventListener("wheel", handleWheelScroll);
   }, []);
 
-
-
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
     (item) => item.status === "lost"
@@ -302,30 +299,40 @@ function Homepage2() {
       {showNotifications && (
         <div className="notifbody">
           <h2>Notifications:</h2>
+
           <div className="notifScroll">
             {notifications.length === 0 ? (
               <p className="noNotificationsMessage">
                 No notifications available.
               </p>
             ) : (
-              notifications.map((notification) => (
-                <div key={notification.id} className="notificationItem">
-            <h3>Notification ID: {notification.id}</h3> {/* Optional, if you want to show the ID */}
-            <p>{notification.message}</p> {/* Display the message */}
+              <>
+                <p>Total Notifications: {notifications.length}</p>{" "}
+                {/* Display number of notifications */}
+                {notifications.map((notification) => (
+                  <div key={notification.id} className="notificationItem">
+                    {/* Optional, if you want to show the ID */}
+                    <p style={{ color: "black" }}>
+                      {notification.message}
+                    </p>{" "}
+                    {/* Display the message */}
+                  </div>
+                ))}
+              </>
+            )}
+            {console.log(notifications)} {/* Log the notifications array */}
           </div>
-        ))
-      )}
-    </div>
-    <div className="logoutDiv">
-      <button
-        className="logoutBtnxd"
-        id="logoutBtn"
-        onClick={handleLogout}
-      >
-        Logout
-      </button>
-    </div>
-  </div>
+
+          <div className="logoutDiv">
+            <button
+              className="logoutBtnxd"
+              id="logoutBtn"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="sections">
@@ -348,12 +355,12 @@ function Homepage2() {
             ref={itemStatusRef} // Assigning ref for ItemStatus
           >
             <div className="LostStatus">
-        <h2 id="lostitems">{lostItemsPending}</h2>
-        <span>Lost Items</span>
-      </div>
-      <div className="FoundStatus">
-        <h2 id="founditems">{foundItemsPending}</h2>
-        <span>Found Items</span>
+              <h2 id="lostitems">{lostItemsPending}</h2>
+              <span>Lost Items</span>
+            </div>
+            <div className="FoundStatus">
+              <h2 id="founditems">{foundItemsPending}</h2>
+              <span>Found Items</span>
             </div>
           </div>
         </div>
@@ -506,8 +513,6 @@ function Homepage2() {
             ref={(el) => (imgRefs.current[4] = el)}
           />
         </div>
-
-
       </div>
     </div>
   );
