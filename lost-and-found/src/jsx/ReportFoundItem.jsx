@@ -31,6 +31,18 @@ function ReportFoundItem() {
   const [generatedCode, setGeneratedCode] = useState("");
   const [codeExpired, setCodeExpired] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+
+  useEffect(() => {
+    const shouldScrollToReport1 = localStorage.getItem("scrollToReport1");
+    if (shouldScrollToReport1) {
+      const report1Section = document.getElementById("Report1");
+      if (report1Section) {
+        report1Section.scrollIntoView({ behavior: "smooth" });
+      }
+      localStorage.removeItem("scrollToReport1"); // Remove flag after scrolling
+    }
+  }, []);
+
   // Function to generate a code and handle auto-deletion after 30 seconds
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
@@ -261,15 +273,8 @@ function ReportFoundItem() {
               <button
                 className="PrevBtn"
                 onClick={() => {
-                  navigate("/homepage"); // Navigates to the specified route
-                  setTimeout(() => {
-                    // Scroll to slightly above the bottom of the page
-                    const scrollOffset = 1800; // Adjust this value to change the scroll distance
-                    window.scrollTo(
-                      0,
-                      document.body.scrollHeight - scrollOffset
-                    );
-                  }, 100); // Delay in milliseconds before the scroll action is executed
+                  localStorage.setItem("scrollToSection", "Report1"); // Set target section
+                  navigate("/homepage"); // Only navigate to /homepage
                 }}
               >
                 Home

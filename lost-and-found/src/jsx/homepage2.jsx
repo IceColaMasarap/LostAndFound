@@ -10,31 +10,90 @@ import Memo2Img from "../assets/Memo2Img.png";
 import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import {
-  collectionGroup,
-  getDocs,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
+import { useEffect, useState, useRef } from "react";
+import { collectionGroup, onSnapshot, collection } from "firebase/firestore";
 import { db } from "./firebase"; // Import Firestore instance
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
+import Notification from "./notification"; // Import your notification component
+import { supabase } from "../config/firebase"; // Adjust the path according to your project structure
 
 function Homepage2() {
   const navigate = useNavigate();
-
-  const GoToReportLostItem = () => {
-    navigate("/report-lost-item"); // Navigate to /report-lost-item
-  };
-
-  const GoToReportFoundItem = () => {
-    navigate("/report-found-item"); // Navigate to /report-found-item
-  };
-
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
   const [foundItems, setFoundItems] = useState([]);
+  const [notifications, setNotifications] = useState([]); // State to hold notifications
+  const [showNotifications, setShowNotifications] = useState(false); // State to toggle notifications
+
+  const lastScrollTimeRef = useRef(0); // Ref to track last scroll time
+  const textRefs = useRef([]); // For text containers
+  const imgRefs = useRef([]); // For image containers
+  const homepageRef = useRef(null); // For HomePageContent
+  const itemStatusRef = useRef(null); // For ItemStatus
+  const [activeLink, setActiveLink] = useState("Home"); // Track the active section
+  const sectionRefs = useRef([]); // Ref for the sections
+
+  useEffect(() => {
+    const targetSection = localStorage.getItem("scrollToSection");
+  
+    if (targetSection) {
+      const scrollToSection = () => {
+        const section = document.getElementById(targetSection);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth" });
+        }
+        localStorage.removeItem("scrollToSection"); // Clear the flag
+      };
+  
+      // Delay scrolling to ensure the page is fully loaded
+      const scrollTimeout = setTimeout(scrollToSection, 100);
+  
+      // Clear timeout on cleanup
+      return () => clearTimeout(scrollTimeout);
+    }
+  }, []);
+
+  
+  const handleLogout = async () => {
+    try {
+      // Use Supabase's signOut method to log the user out
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Error logging out:", error.message);
+      } else {
+        console.log("User logged out successfully");
+        // Redirect user to a specific page or refresh the page
+        navigate("/login"); // For example, navigate to the login page
+      }
+    } catch (error) {
+      console.error("Unexpected error during logout:", error.message);
+    }
+  };
+
+    // Function to handle section highlighting on scroll
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const sectionId = entry.target.id;
+  
+            if (entry.isIntersecting) {
+              // Set active link to the section currently in view
+              setActiveLink(sectionId);
+            }
+          });
+        },
+        { threshold: 0.5 } // Trigger when 50% of the section is in view
+      );
+  
+      // Observe all sections
+      sectionRefs.current.forEach((section) => {
+        if (section) observer.observe(section);
+      });
+  
+      return () => observer.disconnect();
+    }, []);
 
   useEffect(() => {
     const fetchAuthenticatedUserUid = async () => {
@@ -44,7 +103,6 @@ function Homepage2() {
       if (user) {
         setUid(user.uid);
       } else {
-        console.log("No user is logged in");
       }
 
       setLoading(false);
@@ -53,32 +111,106 @@ function Homepage2() {
     fetchAuthenticatedUserUid();
   }, []);
 
+  // Scroll effect for fade-in
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          } else {
+            entry.target.classList.remove("visible");
+          }
+        });
+      },
+      { threshold: 0.3 } // Trigger when 30% of the section is visible
+    );
+
+    // Observe text and image containers
+    textRefs.current.forEach((textRef) => {
+      if (textRef) observer.observe(textRef);
+    });
+
+    imgRefs.current.forEach((imgRef) => {
+      if (imgRef) observer.observe(imgRef);
+    });
+
+    // Observe the HomePageContent for the unique effect
+    if (homepageRef.current) observer.observe(homepageRef.current);
+    // Observe the ItemStatus for the fade effect
+    if (itemStatusRef.current) observer.observe(itemStatusRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const handleScroll = (event) => {
+    event.preventDefault(); // Prevent default scroll behavior
+
+    const currentTime = new Date().getTime();
+    const timeDifference = currentTime - lastScrollTimeRef.current;
+
+    if (timeDifference < 600) return; // Throttle scroll to 600ms
+
+    lastScrollTimeRef.current = currentTime; // Update last scroll time
+
+    // Get all section elements
+    const sections = document.querySelectorAll(".sections > div");
+    const viewportHeight = window.innerHeight;
+
+    // Find the section currently at the top
+    const currentSectionIndex = Array.from(sections).findIndex((section) => {
+      const rect = section.getBoundingClientRect();
+      return rect.top >= 0 && rect.top < viewportHeight;
+    });
+
+    let nextSectionIndex;
+
+    if (event.deltaY > 0) {
+      // Scroll down
+      nextSectionIndex =
+        currentSectionIndex + 1 < sections.length
+          ? currentSectionIndex + 1
+          : currentSectionIndex;
+    } else {
+      // Scroll up
+      nextSectionIndex =
+        currentSectionIndex - 1 >= 0
+          ? currentSectionIndex - 1
+          : currentSectionIndex;
+    }
+
+    sections[nextSectionIndex].scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Set up scroll event listener
+  useEffect(() => {
+    const handleWheelScroll = (e) => handleScroll(e);
+
+    window.addEventListener("wheel", handleWheelScroll, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheelScroll);
+  }, []);
+
   useEffect(() => {
     if (!loading && uid === "4skSWo0Ld2YnIZG1hGRaNQd3Kg72") {
       navigate("/adminpage");
     }
   }, [loading, uid, navigate]);
 
+  // Fetch notifications when user ID is available
   useEffect(() => {
-    const foundItemsQuery = collectionGroup(db, "itemReports");
-
-    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
-
-        return {
+    if (uid) {
+      const notificationsRef = collection(db, "users", uid, "notifications");
+      const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
+        const notificationsData = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...data,
-          userName,
-        };
+          ...doc.data(),
+        }));
+        setNotifications(notificationsData);
       });
 
-      setFoundItems(items);
-    });
-
-    return () => unsubscribe();
-  }, []);
+      return () => unsubscribe();
+    }
+  }, [uid]);
 
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
@@ -87,6 +219,18 @@ function Homepage2() {
   const pendingClaimsCount = foundItems.filter(
     (item) => item.status === "pending"
   ).length;
+
+  const handleShowNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  const GoToReportLostItem = () => {
+    navigate("/report-lost-item"); // Navigate to /report-lost-item
+  };
+
+  const GoToReportFoundItem = () => {
+    navigate("/report-found-item"); // Navigate to /report-found-item
+  };
 
   return (
     <div className="homepage-main">
@@ -97,17 +241,63 @@ function Homepage2() {
         </div>
         <div className="navs">
           <nav className="nav">
-            <a href="#HomePage">Home</a>
-            <a href="#Memo1">Memorandum</a>
-            <a href="#Report1">Report</a>
+            <a
+              href="#HomePage"
+              className={activeLink === "HomePage" ? "active" : ""}
+            >
+              Home
+            </a>
+            <a
+              href="#Memo1"
+              className={activeLink === "Memo1" || activeLink === "Memo2" ? "active" : ""}
+            >
+              Memorandum
+            </a>
+            <a
+              href="#Report1"
+              className={activeLink === "Report1" ? "active" : ""}
+            >
+              Report
+            </a>
           </nav>
         </div>
-        <img src={notif} alt="Notifications" className="notif" />
+        <img
+          src={notif}
+          alt="Notifications"
+          className="notif"
+          onClick={handleShowNotifications}
+        />
       </div>
 
-      <div className="sections">
-        <div className="HomePage" id="HomePage">
-          <div className="HomePageContent">
+      {showNotifications && (
+        <div className="notifbody">
+          <h2>Notifications:</h2>
+          <div className="notifScroll">
+            {notifications.length === 0 ? (
+              <p className="noNotificationsMessage">
+                No notifications available.
+              </p>
+            ) : (
+              notifications.map((notification) => (
+                <Notification key={notification.id} data={notification} /> // Use the Notification component
+              ))
+            )}
+          </div>
+          <div className="logoutDiv">
+            <button
+              className="logoutBtnxd"
+              id="logoutBtn"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
+<div className="sections">
+        <div className="HomePage" id="HomePage" ref={(el) => (sectionRefs.current[0] = el)}>
+          <div className="homepage-fade HomePageContent" ref={homepageRef}>
             <h1>The lost items are in DO’s hands.</h1>
             <p>
               Welcome to our page, the easy way to manage lost and found items
@@ -115,7 +305,14 @@ function Homepage2() {
               students reconnect with their items.
             </p>
           </div>
-          <div className="ItemStatus">
+
+
+
+
+          <div
+            className="homepage-fade ItemStatus" // Applying the same effect here
+            ref={itemStatusRef} // Assigning ref for ItemStatus
+          >
             <div className="LostStatus">
               <h2 id="lostitems">{lostItemsCount}</h2>
               <span>Found Items</span>
@@ -127,9 +324,16 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Memo1" id="Memo1">
-          <img src={Memo1Img} className="Memo1Img" />
-          <div className="Memo1TextContainer">
+        <div className="Memo1" id="Memo1" ref={(el) => (sectionRefs.current[1] = el)}> 
+          <img
+            src={Memo1Img}
+            className="Memo1Img fade-content1"
+            ref={(el) => (imgRefs.current[0] = el)}
+          />
+          <div
+            className="Memo1TextContainer fade-content1"
+            ref={(el) => (textRefs.current[0] = el)}
+          >
             <h1>Memorandum for the Disposal of Found Items.</h1>
             <p>
               • Unclaimed property that easily decays, releases odor, or is
@@ -144,8 +348,11 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Memo2">
-          <div className="Memo2TextContainer">
+        <div className="Memo2" >
+          <div
+            className="Memo2TextContainer fade-content2"
+            ref={(el) => (textRefs.current[1] = el)}
+          >
             <h1>Memorandum for the Claiming of Found Items.</h1>
             <p>
               • Perishable and personal items that can emit foul odor must be
@@ -170,12 +377,23 @@ function Homepage2() {
               <br />• Electronics
             </p>
           </div>
-          <img src={Memo2Img} className="Memo2Img" />
+          <img
+            src={Memo2Img}
+            className="Memo2Img fade-content2"
+            ref={(el) => (imgRefs.current[1] = el)}
+          />
         </div>
 
-        <div className="Report1" id="Report1">
-          <img src={Report1Img} className="Report1Img" />
-          <div className="Report1TextContainer">
+        <div className="Report1" id="Report1" ref={(el) => (sectionRefs.current[3] = el)}> 
+          <img
+            src={Report1Img}
+            className="Report1Img fade-content1"
+            ref={(el) => (imgRefs.current[2] = el)}
+          />
+          <div
+            className="Report1TextContainer fade-content1"
+            ref={(el) => (textRefs.current[2] = el)}
+          >
             <h1>Report a Found Item.</h1>
             <p>
               When reporting a found item, please follow the necessary steps
@@ -194,8 +412,11 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Report2">
-          <div className="Report2TextContainer">
+        <div className="Report2" >
+          <div
+            className="Report2TextContainer fade-content2"
+            ref={(el) => (textRefs.current[3] = el)}
+          >
             <h1>Report a Missing Item.</h1>
             <p>
               When reporting a missing item, please follow the necessary steps
@@ -212,19 +433,25 @@ function Homepage2() {
               Report a Missing Item
             </button>
           </div>
-          <img src={Report2Img} className="Report2Img" />
+          <img
+            src={Report2Img}
+            className="Report2Img fade-content2"
+            ref={(el) => (imgRefs.current[4] = el)}
+          />
         </div>
 
         <div className="dark-blue-footer">
-          <div className="footer-content">
-            <h2>Need Help?</h2>
-            <p>
-              Contact us at{" "}
-              <a href="mailto:support@nulf.dasma.edu">
-                support@nulf.dasma.edu{" "}
-              </a>
-              for any concerns or assistance with lost and found items.
-            </p>
+          <div className="footerContent">
+            <h3>Contact Us:</h3>
+            <ul>
+              <li>
+                Email:{" "}
+                <a href="mailto:nu.lostandfound.dasmarinas@gmail.com">
+                  nu.lostandfound.dasmarinas@gmail.com
+                </a>
+              </li>
+              <li>Contact No.: 0999-999-9999</li>
+            </ul>
           </div>
         </div>
       </div>
