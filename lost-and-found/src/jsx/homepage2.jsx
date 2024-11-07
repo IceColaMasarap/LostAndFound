@@ -1,17 +1,12 @@
 import "../styling/homepage2.css";
 import logo from "../assets/NULAFD_LOGO.svg";
 import notif from "../assets/notif.svg";
-import img1 from "../assets/info-1-1.png";
-import img2 from "../assets/info-2-2.png";
-import Report1_Img from "../assets/Report1_Img.png";
-import Report2_Img from "../assets/Report2_Img.png";
 import Memo1Img from "../assets/Memo1Img.png";
 import Memo2Img from "../assets/Memo2Img.png";
 import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import Notification from "./notification"; // Import your notification component
 import { supabase } from "../config/supabase"; // Adjust the path according to your project structure
 
@@ -40,6 +35,22 @@ function Homepage2() {
   };
 
 
+   // Fetch notifications from Supabase for the logged-in user
+   const fetchNotifications = async () => {
+    if (user && !isLoading) {
+      const { data, error } = await supabase
+        .from('item_reports2')
+        .select('notified, message')
+        .eq('holderid', user.id); // Adjust the column name based on your table
+      
+      if (error) {
+        console.error('Error fetching notifications:', error);
+      } else {
+        setNotifications(data);
+      }
+    }
+  };
+  
   const fetchCounts = async () => {
     try {
       // Fetch count of 'found' items with 'pending' status
@@ -139,21 +150,7 @@ function Homepage2() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const fetchAuthenticatedUserUid = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser; // Get the current authenticated user
 
-      if (user) {
-        setUid(user.uid);
-      } else {
-      }
-
-      setLoading(false);
-    };
-
-    fetchAuthenticatedUserUid();
-  }, []);
 
   // Scroll effect for fade-in
   useEffect(() => {
@@ -312,20 +309,23 @@ function Homepage2() {
               </p>
             ) : (
               notifications.map((notification) => (
-                <Notification key={notification.id} data={notification} /> // Use the Notification component
-              ))
-            )}
+                <div key={notification.id} className="notificationItem">
+            <h3>Notification ID: {notification.id}</h3> {/* Optional, if you want to show the ID */}
+            <p>{notification.message}</p> {/* Display the message */}
           </div>
-          <div className="logoutDiv">
-            <button
-              className="logoutBtnxd"
-              id="logoutBtn"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
+        ))
+      )}
+    </div>
+    <div className="logoutDiv">
+      <button
+        className="logoutBtnxd"
+        id="logoutBtn"
+        onClick={handleLogout}
+      >
+        Logout
+      </button>
+    </div>
+  </div>
       )}
 
       <div className="sections">
@@ -507,20 +507,7 @@ function Homepage2() {
           />
         </div>
 
-        <div className="dark-blue-footer">
-          <div className="footerContent">
-            <h3>Contact Us:</h3>
-            <ul>
-              <li>
-                Email:{" "}
-                <a href="mailto:nu.lostandfound.dasmarinas@gmail.com">
-                  nu.lostandfound.dasmarinas@gmail.com
-                </a>
-              </li>
-              <li>Contact No.: 0999-999-9999</li>
-            </ul>
-          </div>
-        </div>
+
       </div>
     </div>
   );

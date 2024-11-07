@@ -329,7 +329,7 @@ function ReportLostItem() {
                 {category === "Other" && (
                   <input
                     type="text"
-                    className="OtherInput"
+                    className="FInput"
                     placeholder="Other category"
                     value={otherCategory}
                     onChange={(e) => setOtherCategory(e.target.value)}
