@@ -33,6 +33,14 @@ function Homepage2() {
   const [activeLink, setActiveLink] = useState("Home"); // Track the active section
   const sectionRefs = useRef([]); // Ref for the sections
 
+  const handleNavClick = (e, targetId) => {
+    e.preventDefault(); // Prevent default anchor behavior
+    const targetSection = document.getElementById(targetId); // Get the target section element
+    if (targetSection) {
+      targetSection.scrollIntoView({ behavior: "smooth" }); // Scroll smoothly to the target section
+    }
+  };
+
   useEffect(() => {
     const targetSection = localStorage.getItem("scrollToSection");
 
@@ -235,7 +243,6 @@ function Homepage2() {
     navigate("/edit-reported-item"); // Navigate to /edit-reported-item
   };
 
-  
   return (
     <div className="homepage-main">
       <div className="navbar">
@@ -248,6 +255,7 @@ function Homepage2() {
             <a
               href="#HomePage"
               className={activeLink === "HomePage" ? "active" : ""}
+              onClick={(e) => handleNavClick(e, "HomePage")}
             >
               Home
             </a>
@@ -256,12 +264,14 @@ function Homepage2() {
               className={
                 activeLink === "Memo1" || activeLink === "Memo2" ? "active" : ""
               }
+              onClick={(e) => handleNavClick(e, "Memo1")}
             >
               Memorandum
             </a>
             <a
               href="#Report1"
               className={activeLink === "Report1" ? "active" : ""}
+              onClick={(e) => handleNavClick(e, "Report1")}
             >
               Report
             </a>
@@ -462,14 +472,12 @@ function Homepage2() {
           >
             <h1>Edit your reports</h1>
             <p>
-              You can update the details of your lost or found
-              item report at any time. Whether it's to provide a more accurate
-              description, update the item’s condition, or change your contact
-              information, simply select the report you wish to edit and make
-              the necessary adjustments. This helps us ensure the most
-              up-to-date information is available for matching lost and found
-              items.
-  
+              You can update the details of your lost or found item report at
+              any time. Whether it's to provide a more accurate description,
+              update the item’s condition, or change your contact information,
+              simply select the report you wish to edit and make the necessary
+              adjustments. This helps us ensure the most up-to-date information
+              is available for matching lost and found items.
             </p>
             <button className="ReportLostbtn" onClick={GoToEditReportedItem}>
               Edit or delete reports

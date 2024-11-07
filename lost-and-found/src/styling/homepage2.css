@@ -453,7 +453,7 @@ html {
 
 /* Style for active navbar link */
 .nav a.active {
-  font-weight: bold;
+
   color: #ffd41f; /* Blue or your preferred color for the active link */
   text-decoration: underline;
 }
@@ -468,4 +468,5 @@ html {
 
 .nav a:hover {
   color: #ffd41f; /* Hover color */
+  
 }
