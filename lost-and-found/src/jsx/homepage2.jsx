@@ -24,7 +24,8 @@ function Homepage2() {
   const [foundItems, setFoundItems] = useState([]);
   const [notifications, setNotifications] = useState([]); // State to hold notifications
   const [showNotifications, setShowNotifications] = useState(false); // State to toggle notifications
-
+  const [foundItemsPending, setFoundItemsPending] = useState(0);
+  const [lostItemsPending, setLostItemsPending] = useState(0);
   const lastScrollTimeRef = useRef(0); // Ref to track last scroll time
   const textRefs = useRef([]); // For text containers
   const imgRefs = useRef([]); // For image containers
@@ -32,7 +33,53 @@ function Homepage2() {
   const itemStatusRef = useRef(null); // For ItemStatus
   const [activeLink, setActiveLink] = useState("Home"); // Track the active section
   const sectionRefs = useRef([]); // Ref for the sections
+  const handleNavClick = (e, targetId) => {
+    e.preventDefault(); // Prevent default anchor behavior
+    const targetSection = document.getElementById(targetId); // Get the target section element
+    if (targetSection) {
+      targetSection.scrollIntoView({ behavior: "smooth" }); // Scroll smoothly to the target section
+    }
+  };
 
+
+  const fetchCounts = async () => {
+    try {
+      // Fetch count of 'found' items with 'pending' status
+      const { count: foundCount, error: foundError } = await supabase
+        .from("item_reports2")
+        .select("*", { count: "exact" })
+        .eq("type", "Found")
+        .eq("status", "pending");
+
+      if (foundError) throw foundError;
+      setFoundItemsPending(foundCount);
+
+      // Fetch count of 'lost' items with 'pending' status
+      const { count: lostCount, error: lostError } = await supabase
+        .from("item_reports2")
+        .select("*", { count: "exact" })
+        .eq("type", "Lost")
+        .eq("status", "pending");
+
+      if (lostError) throw lostError;
+      setLostItemsPending(lostCount);
+    } catch (error) {
+      console.error("Error fetching counts:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Initial fetch
+    fetchCounts();
+
+    // Set up polling to fetch data every 5 seconds (5000 ms)
+    const intervalId = setInterval(fetchCounts, 5000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  
   useEffect(() => {
     const targetSection = localStorage.getItem("scrollToSection");
 
@@ -235,7 +282,6 @@ function Homepage2() {
     navigate("/edit-reported-item"); // Navigate to /edit-reported-item
   };
 
-  
   return (
     <div className="homepage-main">
       <div className="navbar">
@@ -248,6 +294,7 @@ function Homepage2() {
             <a
               href="#HomePage"
               className={activeLink === "HomePage" ? "active" : ""}
+              onClick={(e) => handleNavClick(e, "HomePage")}
             >
               Home
             </a>
@@ -256,12 +303,14 @@ function Homepage2() {
               className={
                 activeLink === "Memo1" || activeLink === "Memo2" ? "active" : ""
               }
+              onClick={(e) => handleNavClick(e, "Memo1")}
             >
               Memorandum
             </a>
             <a
               href="#Report1"
               className={activeLink === "Report1" ? "active" : ""}
+              onClick={(e) => handleNavClick(e, "Report1")}
             >
               Report
             </a>
@@ -321,12 +370,12 @@ function Homepage2() {
             ref={itemStatusRef} // Assigning ref for ItemStatus
           >
             <div className="LostStatus">
-              <h2 id="lostitems">{lostItemsCount}</h2>
-              <span>Found Items</span>
-            </div>
-            <div className="FoundStatus">
-              <h2 id="founditems">{pendingClaimsCount}</h2>
-              <span>Missing Items</span>
+        <h2 id="lostitems">{lostItemsPending}</h2>
+        <span>Lost Items</span>
+      </div>
+      <div className="FoundStatus">
+        <h2 id="founditems">{foundItemsPending}</h2>
+        <span>Found Items</span>
             </div>
           </div>
         </div>
@@ -462,14 +511,12 @@ function Homepage2() {
           >
             <h1>Edit your reports</h1>
             <p>
-              You can update the details of your lost or found
-              item report at any time. Whether it's to provide a more accurate
-              description, update the item’s condition, or change your contact
-              information, simply select the report you wish to edit and make
-              the necessary adjustments. This helps us ensure the most
-              up-to-date information is available for matching lost and found
-              items.
-  
+              You can update the details of your lost or found item report at
+              any time. Whether it's to provide a more accurate description,
+              update the item’s condition, or change your contact information,
+              simply select the report you wish to edit and make the necessary
+              adjustments. This helps us ensure the most up-to-date information
+              is available for matching lost and found items.
             </p>
             <button className="ReportLostbtn" onClick={GoToEditReportedItem}>
               Edit or delete reports
