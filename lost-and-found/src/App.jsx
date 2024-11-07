@@ -11,7 +11,7 @@ import PrivateRoute from "./config/PrivateRoute.jsx";
 import PublicRoute from "./config/PublicRoute.jsx";
 import AdminPage from "./admin/mainpage.jsx";
 import ReportLostItem from "./jsx/ReportLostItem.jsx";
-
+import Editreports from "./jsx/editreports.jsx";
 function App() {
   return (
     <>
@@ -23,6 +23,7 @@ function App() {
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/report-lost-item/*" element={<ReportLostItem />} />
             <Route path="/report-found-item/*" element={<ReportFoundItem />} />
+            <Route path="/edit-reported-item/*" element={<Editreports />} />
             <Route path="/adminpage/*" element={<AdminPage />} />
           </Routes>
         </BrowserRouter>

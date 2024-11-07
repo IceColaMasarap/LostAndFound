@@ -35,7 +35,7 @@ function Homepage2() {
 
   useEffect(() => {
     const targetSection = localStorage.getItem("scrollToSection");
-  
+
     if (targetSection) {
       const scrollToSection = () => {
         const section = document.getElementById(targetSection);
@@ -44,16 +44,15 @@ function Homepage2() {
         }
         localStorage.removeItem("scrollToSection"); // Clear the flag
       };
-  
+
       // Delay scrolling to ensure the page is fully loaded
       const scrollTimeout = setTimeout(scrollToSection, 100);
-  
+
       // Clear timeout on cleanup
       return () => clearTimeout(scrollTimeout);
     }
   }, []);
 
-  
   const handleLogout = async () => {
     try {
       // Use Supabase's signOut method to log the user out
@@ -71,29 +70,29 @@ function Homepage2() {
     }
   };
 
-    // Function to handle section highlighting on scroll
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            const sectionId = entry.target.id;
-  
-            if (entry.isIntersecting) {
-              // Set active link to the section currently in view
-              setActiveLink(sectionId);
-            }
-          });
-        },
-        { threshold: 0.5 } // Trigger when 50% of the section is in view
-      );
-  
-      // Observe all sections
-      sectionRefs.current.forEach((section) => {
-        if (section) observer.observe(section);
-      });
-  
-      return () => observer.disconnect();
-    }, []);
+  // Function to handle section highlighting on scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const sectionId = entry.target.id;
+
+          if (entry.isIntersecting) {
+            // Set active link to the section currently in view
+            setActiveLink(sectionId);
+          }
+        });
+      },
+      { threshold: 0.5 } // Trigger when 50% of the section is in view
+    );
+
+    // Observe all sections
+    sectionRefs.current.forEach((section) => {
+      if (section) observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const fetchAuthenticatedUserUid = async () => {
@@ -232,6 +231,11 @@ function Homepage2() {
     navigate("/report-found-item"); // Navigate to /report-found-item
   };
 
+  const GoToEditReportedItem = () => {
+    navigate("/edit-reported-item"); // Navigate to /edit-reported-item
+  };
+
+  
   return (
     <div className="homepage-main">
       <div className="navbar">
@@ -249,7 +253,9 @@ function Homepage2() {
             </a>
             <a
               href="#Memo1"
-              className={activeLink === "Memo1" || activeLink === "Memo2" ? "active" : ""}
+              className={
+                activeLink === "Memo1" || activeLink === "Memo2" ? "active" : ""
+              }
             >
               Memorandum
             </a>
@@ -295,8 +301,12 @@ function Homepage2() {
         </div>
       )}
 
-<div className="sections">
-        <div className="HomePage" id="HomePage" ref={(el) => (sectionRefs.current[0] = el)}>
+      <div className="sections">
+        <div
+          className="HomePage"
+          id="HomePage"
+          ref={(el) => (sectionRefs.current[0] = el)}
+        >
           <div className="homepage-fade HomePageContent" ref={homepageRef}>
             <h1>The lost items are in DO’s hands.</h1>
             <p>
@@ -305,9 +315,6 @@ function Homepage2() {
               students reconnect with their items.
             </p>
           </div>
-
-
-
 
           <div
             className="homepage-fade ItemStatus" // Applying the same effect here
@@ -324,7 +331,11 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Memo1" id="Memo1" ref={(el) => (sectionRefs.current[1] = el)}> 
+        <div
+          className="Memo1"
+          id="Memo1"
+          ref={(el) => (sectionRefs.current[1] = el)}
+        >
           <img
             src={Memo1Img}
             className="Memo1Img fade-content1"
@@ -348,7 +359,7 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Memo2" >
+        <div className="Memo2">
           <div
             className="Memo2TextContainer fade-content2"
             ref={(el) => (textRefs.current[1] = el)}
@@ -384,7 +395,11 @@ function Homepage2() {
           />
         </div>
 
-        <div className="Report1" id="Report1" ref={(el) => (sectionRefs.current[3] = el)}> 
+        <div
+          className="Report1"
+          id="Report1"
+          ref={(el) => (sectionRefs.current[3] = el)}
+        >
           <img
             src={Report1Img}
             className="Report1Img fade-content1"
@@ -412,7 +427,7 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Report2" >
+        <div className="Report2" id="Report2">
           <div
             className="Report2TextContainer fade-content2"
             ref={(el) => (textRefs.current[3] = el)}
@@ -431,6 +446,33 @@ function Homepage2() {
             </p>
             <button className="ReportLostbtn" onClick={GoToReportLostItem}>
               Report a Missing Item
+            </button>
+          </div>
+          <img
+            src={Report2Img}
+            className="Report2Img fade-content2"
+            ref={(el) => (imgRefs.current[4] = el)}
+          />
+        </div>
+
+        <div className="Report2" id="Report3">
+          <div
+            className="Report2TextContainer fade-content2"
+            ref={(el) => (textRefs.current[3] = el)}
+          >
+            <h1>Edit your reports</h1>
+            <p>
+              You can update the details of your lost or found
+              item report at any time. Whether it's to provide a more accurate
+              description, update the item’s condition, or change your contact
+              information, simply select the report you wish to edit and make
+              the necessary adjustments. This helps us ensure the most
+              up-to-date information is available for matching lost and found
+              items.
+  
+            </p>
+            <button className="ReportLostbtn" onClick={GoToEditReportedItem}>
+              Edit or delete reports
             </button>
           </div>
           <img
