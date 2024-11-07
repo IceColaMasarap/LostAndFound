@@ -15,6 +15,7 @@ import { collectionGroup, onSnapshot, collection } from "firebase/firestore";
 import { db } from "./firebase"; // Import Firestore instance
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import Notification from "./notification"; // Import your notification component
+import { supabase } from "../config/firebase"; // Adjust the path according to your project structure
 
 function Homepage2() {
   const navigate = useNavigate();
@@ -30,6 +31,23 @@ function Homepage2() {
   const homepageRef = useRef(null); // For HomePageContent
   const itemStatusRef = useRef(null); // For ItemStatus
 
+  const handleLogout = async () => {
+    try {
+      // Use Supabase's signOut method to log the user out
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Error logging out:", error.message);
+      } else {
+        console.log("User logged out successfully");
+        // Redirect user to a specific page or refresh the page
+        navigate("/login"); // For example, navigate to the login page
+      }
+    } catch (error) {
+      console.error("Unexpected error during logout:", error.message);
+    }
+  };
+
   useEffect(() => {
     const fetchAuthenticatedUserUid = async () => {
       const auth = getAuth();
@@ -38,7 +56,6 @@ function Homepage2() {
       if (user) {
         setUid(user.uid);
       } else {
-        
       }
 
       setLoading(false);
@@ -73,8 +90,8 @@ function Homepage2() {
 
     // Observe the HomePageContent for the unique effect
     if (homepageRef.current) observer.observe(homepageRef.current);
-// Observe the ItemStatus for the fade effect
-if (itemStatusRef.current) observer.observe(itemStatusRef.current);
+    // Observe the ItemStatus for the fade effect
+    if (itemStatusRef.current) observer.observe(itemStatusRef.current);
 
     return () => observer.disconnect();
   }, []);
@@ -104,11 +121,15 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
     if (event.deltaY > 0) {
       // Scroll down
       nextSectionIndex =
-        currentSectionIndex + 1 < sections.length ? currentSectionIndex + 1 : currentSectionIndex;
+        currentSectionIndex + 1 < sections.length
+          ? currentSectionIndex + 1
+          : currentSectionIndex;
     } else {
       // Scroll up
       nextSectionIndex =
-        currentSectionIndex - 1 >= 0 ? currentSectionIndex - 1 : currentSectionIndex;
+        currentSectionIndex - 1 >= 0
+          ? currentSectionIndex - 1
+          : currentSectionIndex;
     }
 
     sections[nextSectionIndex].scrollIntoView({ behavior: "smooth" });
@@ -121,7 +142,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
     window.addEventListener("wheel", handleWheelScroll, { passive: false });
     return () => window.removeEventListener("wheel", handleWheelScroll);
   }, []);
-  
+
   useEffect(() => {
     if (!loading && uid === "4skSWo0Ld2YnIZG1hGRaNQd3Kg72") {
       navigate("/adminpage");
@@ -143,8 +164,6 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
       return () => unsubscribe();
     }
   }, [uid]);
-
-
 
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
@@ -193,7 +212,9 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
           <h2>Notifications:</h2>
           <div className="notifScroll">
             {notifications.length === 0 ? (
-              <p className="noNotificationsMessage" >No notifications available.</p>
+              <p className="noNotificationsMessage">
+                No notifications available.
+              </p>
             ) : (
               notifications.map((notification) => (
                 <Notification key={notification.id} data={notification} /> // Use the Notification component
@@ -201,7 +222,11 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
             )}
           </div>
           <div className="logoutDiv">
-            <button className="logoutBtnxd" id="logoutBtn">
+            <button
+              className="logoutBtnxd"
+              id="logoutBtn"
+              onClick={handleLogout}
+            >
               Logout
             </button>
           </div>
@@ -210,8 +235,8 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
 
       <div className="sections">
         <div className="HomePage" id="HomePage">
-        <div 
-            className="homepage-fade HomePageContent" 
+          <div
+            className="homepage-fade HomePageContent"
             ref={homepageRef} // Assigning ref for HomePageContent
           >
             <h1>The lost items are in DO’s hands.</h1>
@@ -221,7 +246,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
               students reconnect with their items.
             </p>
           </div>
-          <div 
+          <div
             className="homepage-fade ItemStatus" // Applying the same effect here
             ref={itemStatusRef} // Assigning ref for ItemStatus
           >
@@ -242,7 +267,8 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
             className="Memo1Img fade-content1"
             ref={(el) => (imgRefs.current[0] = el)}
           />
-          <div className="Memo1TextContainer fade-content1"
+          <div
+            className="Memo1TextContainer fade-content1"
             ref={(el) => (textRefs.current[0] = el)}
           >
             <h1>Memorandum for the Disposal of Found Items.</h1>
@@ -260,7 +286,8 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
         </div>
 
         <div className="Memo2">
-          <div className="Memo2TextContainer fade-content2"
+          <div
+            className="Memo2TextContainer fade-content2"
             ref={(el) => (textRefs.current[1] = el)}
           >
             <h1>Memorandum for the Claiming of Found Items.</h1>
@@ -287,16 +314,21 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
               <br />• Electronics
             </p>
           </div>
-          <img src={Memo2Img} className="Memo2Img fade-content2"
+          <img
+            src={Memo2Img}
+            className="Memo2Img fade-content2"
             ref={(el) => (imgRefs.current[1] = el)}
           />
         </div>
 
         <div className="Report1" id="Report1">
-          <img src={Report1Img} className="Report1Img fade-content1"
+          <img
+            src={Report1Img}
+            className="Report1Img fade-content1"
             ref={(el) => (imgRefs.current[2] = el)}
           />
-          <div className="Report1TextContainer fade-content1"
+          <div
+            className="Report1TextContainer fade-content1"
             ref={(el) => (textRefs.current[2] = el)}
           >
             <h1>Report a Found Item.</h1>
@@ -318,7 +350,8 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
         </div>
 
         <div className="Report2">
-          <div className="Report2TextContainer fade-content2"
+          <div
+            className="Report2TextContainer fade-content2"
             ref={(el) => (textRefs.current[3] = el)}
           >
             <h1>Report a Missing Item.</h1>
@@ -337,7 +370,9 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
               Report a Missing Item
             </button>
           </div>
-          <img src={Report2Img} className="Report2Img fade-content2"
+          <img
+            src={Report2Img}
+            className="Report2Img fade-content2"
             ref={(el) => (imgRefs.current[4] = el)}
           />
         </div>
