@@ -134,11 +134,13 @@ function ReportFoundItem() {
   }, [step, code]);
 
   const handleImageUpload = async (file) => {
+    const uniqueFileName = `${uuidv4()}-${image.name}`;
+
     if (!file) return;
     setUploading(true);
     const { data, error } = await supabase.storage
       .from("lost-items")
-      .upload(`found-items/${file.name}`, file);
+      .upload(`lost-items/${uniqueFileName}`, file);
 
     if (error) {
       console.error("Error uploading image:", error);
