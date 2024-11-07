@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db, supabase } from "../config/firebase"; // Firebase imports
+import { auth, db } from "../config/firebase"; // Firebase imports
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid"; // Import the uuid generator
