@@ -1,135 +1,205 @@
 import React, { useState, useEffect } from "react";
-
 import { useNavigate } from "react-router-dom";
 import "../styling/ReportFoundItem.css";
-import { supabase } from "../supabaseClient"; // Adjust the path to your Supabase client setup
+import { supabase } from "../supabaseClient";
 import { v4 as uuidv4 } from "uuid";
 
 function ReportFoundItem() {
   const navigate = useNavigate();
-
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [code, setCode] = useState("");
   const [otherCategory, setOtherCategory] = useState("");
-  const [userData, setUserData] = useState("");
-
-  const [timeFound, setTimeFound] = useState("");
-  const [brand, setBrand] = useState("");
-  const [objectName, setObjectName] = useState("");
-  const [color, setColor] = useState("");
-  const [otherColor, setOtherColor] = useState("");
-
-  const [dateFound, setDateFound] = useState("");
-  const [locationFound, setLocationFound] = useState("");
-  const [image, setImage] = useState(null);
-  const [imageUrl, setImageUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-  const [docId, setDocId] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
+  const [userData, setUserData] = useState({});
+  const [docId, setDocId] = useState("");
   const [codeExpired, setCodeExpired] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [confirmed, setConfirmed] = useState(false);
+  const [objectName, setObjectName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [color, setColor] = useState("");
+  const [dateFound, setDateFound] = useState("");
+  const [timeFound, setTimeFound] = useState("");
+  const [locationFound, setLocationFound] = useState("");
+  const [image, setImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [codeGenerated, setCodeGenerated] = useState(false);
+  const [otherColor, setOtherColor] = useState(""); 
 
   useEffect(() => {
-    const shouldScrollToReport1 = localStorage.getItem("scrollToReport1");
-    if (shouldScrollToReport1) {
-      const report1Section = document.getElementById("Report1");
-      if (report1Section) {
-        report1Section.scrollIntoView({ behavior: "smooth" });
-      }
-      localStorage.removeItem("scrollToReport1"); // Remove flag after scrolling
+    const user = JSON.parse(sessionStorage.getItem("user"));
+    if (user) {
+      setUserData({
+        name: `${user.firstname} ${user.lastname}`,
+        email: user.email,
+        contactNumber: user.contact,
+        id: user.id,
+      });
+    } else {
+      console.error("No user data found in sessionStorage.");
     }
   }, []);
 
-  // Function to generate a code and handle auto-deletion after 30 seconds
-  useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
-
-    if (user) {
-      setUserData({
-        name: `${user.firstname} ${user.lastname}`, // Combine first and last name
-        email: user.email,
-        contactNumber: user.contact,
-      });
-    } else {
-      console.log("No user data found in sessionStorage.");
-    }
-  }, []); // This effect runs only once when the component mounts
-
-  const generateCode = async () => {
-    const generatedCode = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-    setGeneratedCode(generatedCode);
-    setCodeExpired(false);
-    setTimeLeft(30);
-    setConfirmed(false);
-    const now = new Date();
-    const fullDateTime = now.toLocaleString();
-
-    const initialData = {
-      code: generatedCode,
-      confirmed: false,
-      createdat: fullDateTime,
-      id: userData?.id, // Replace with session or user context if needed
-    };
-
-    try {
-      const { data, error } = await supabase
-        .from("item-reports2")
-        .insert([initialData])
-        .select();
-
-      if (error) throw error;
-
-      const docId = data[0].id;
-      setDocId(docId);
-
-      // Start countdown and check confirmation every second
-      const interval = setInterval(async () => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(interval);
-            expireCode(docId);
-          }
-          return prevTime - 1;
-        });
-
-        const { data: itemData, error: getError } = await supabase
-          .from("item-reports2")
-          .select("confirmed")
-          .eq("id", docId);
-
-        if (getError) throw getError;
-
-        if (itemData[0]?.confirmed) {
-          clearInterval(interval);
-          setConfirmed(true);
-          setCodeExpired(false);
-        }
-      }, 1000);
-    } catch (error) {
-      console.error("Error generating or deleting code:", error);
+  const handleImageChange = (e) => {
+    if (e.target.files[0]) {
+      setImage(e.target.files[0]);
     }
   };
 
-  // Function to expire the code
-  const expireCode = async (docId) => {
+  const uploadImage = async () => {
+    if (image) {
+      try {
+        const uniqueFileName = `${uuidv4()}-${image.name}`;
+
+        // Upload the image to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from("lost-items")
+          .upload(`lost-items/${uniqueFileName}`, image, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (error) {
+          console.error("Error uploading image:", error);
+          return null;
+        }
+
+        console.log("Uploaded image data:", data);
+
+        // Manually construct the image URL
+        const baseUrl =
+          "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
+        const imageUrl = `${baseUrl}${data.path}`; // Use the 'path' returned by Supabase
+
+        console.log("Manually constructed Image URL:", imageUrl); // Log the manually constructed URL
+
+        setImageUrl(imageUrl); // Set the constructed URL to state
+
+        return imageUrl; // Return the manually constructed URL
+      } catch (err) {
+        console.error("Unexpected error during image upload:", err.message);
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  const generateCode = async () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedCode(code);
+    setCodeExpired(false);
+    setTimeLeft(30);
+    setConfirmed(false);
+    setCodeGenerated(true);
+
     try {
+      const now = new Date().toISOString();
+      const validDateFound = dateFound || now.split("T")[0];
+      const validTimeFound = timeFound || "00:00:00";
+      const holderId = userData.id;
+
+      const uploadedImageUrl = await uploadImage();
+      if (!uploadedImageUrl) {
+        console.error("Image upload failed. Code generation aborted.");
+        return;
+      }
+
+      // Insert new data into the database
       const { data, error } = await supabase
-        .from("item-reports2")
+        .from("item_reports2")
+        .insert([
+          {
+            code: parseInt(code, 10),
+            confirmed: false,
+            createdat: now,
+            holderid: holderId,
+            category,
+            brand,
+            color,
+            datefound: validDateFound,
+            timefound: validTimeFound,
+            locationfound: locationFound,
+            objectname: objectName,
+            imageurl: uploadedImageUrl,
+            type: "Found",
+            status: "pending",
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Error inserting into database:", error.message);
+        return;
+      }
+
+      if (!data || !data.id) {
+        console.error("No valid data returned from the database.");
+        return;
+      }
+
+      // Save the document ID for later deletion
+      setDocId(data.id);
+
+      // Start countdown timer
+      let timer = 30;
+      const countdownInterval = setInterval(() => {
+        timer -= 1;
+        setTimeLeft(timer);
+        if (timer <= 0) {
+          clearInterval(countdownInterval);
+          expireCode(data.id);
+        }
+      }, 1000);
+
+      // Check if the code has been confirmed
+      const checkConfirmation = async () => {
+        try {
+          const { data: itemData, error: getError } = await supabase
+            .from("item_reports2")
+            .select("confirmed")
+            .eq("id", data.id)
+            .single();
+
+          if (getError) throw getError;
+
+          if (itemData && itemData.confirmed) {
+            clearInterval(countdownInterval);
+            setConfirmed(true);
+            setCodeExpired(false);
+          } else if (timer > 0) {
+            setTimeout(checkConfirmation, 1000);
+          }
+        } catch (err) {
+          console.error("Error checking confirmation:", err.message);
+        }
+      };
+
+      checkConfirmation();
+    } catch (err) {
+      console.error("Unexpected error:", err.message);
+    }
+  };
+
+  const expireCode = async (id) => {
+    try {
+      // Delete the entire row if the code has not been confirmed
+      const { data, error } = await supabase
+        .from("item_reports2")
         .select("confirmed")
-        .eq("id", docId);
+        .eq("id", id)
+        .single();
 
       if (error) throw error;
 
-      if (!data[0]?.confirmed) {
+      if (!data.confirmed) {
         const { error: deleteError } = await supabase
-          .from("item-reports2")
+          .from("item_reports2")
           .delete()
-          .eq("id", docId);
+          .eq("id", id);
 
         if (deleteError) throw deleteError;
         setCodeExpired(true);
@@ -140,79 +210,21 @@ function ReportFoundItem() {
   };
 
   useEffect(() => {
-    if (step === 4 && !code) {
+    if (step === 4 && !codeGenerated) {
       generateCode();
     }
-  }, [step, code]);
+  }, [step, codeGenerated]);
 
-  const handleImageUpload = async (file) => {
-    const uniqueFileName = `${uuidv4()}-${image.name}`;
-
-    if (!file) return;
-    setUploading(true);
-    const { data, error } = await supabase.storage
-      .from("lost-items")
-      .upload(`lost-items/${uniqueFileName}`, file);
-
-    if (error) {
-      console.error("Error uploading image:", error);
-      setUploading(false);
-      return;
-    }
-    const baseUrl =
-      "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
-    const imageUrl = `${baseUrl}${data.path}`;
-    setImageUrl(imageUrl);
-    setUploading(false);
-    console.log("Image available at:", imageUrl);
+  const handleGenerateNewCode = () => {
+    setCodeGenerated(false); // Allow generating a new code
+    generateCode();
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    handleImageUpload(file);
-  };
-
-  const submitFullForm = async () => {
-    const formData = {
-      category: category === "Other" ? otherCategory : category,
-      objectName,
-      brand,
-      color,
-      dateFound,
-      timeFound,
-      locationFound,
-      imageUrl,
-      confirmed: true,
-      status: "found",
-      type: "Found",
-    };
-
-    try {
-      const { error } = await supabase
-        .from("item-reports2")
-        .update(formData)
-        .eq("id", docId);
-
-      if (error) throw error;
-
-      console.log("Full form data submitted to Supabase.");
-    } catch (error) {
-      console.error("Error submitting form data:", error);
-    }
-  };
-
-  const nextStep = async () => {
-    if (step === 3) {
-      setStep(4);
-    } else if (step === 4) {
-      if (confirmed) {
-        setStep(5);
-      } else {
-        alert(
-          "Your code is not yet confirmed by the admin. Please wait for confirmation."
-        );
-      }
+  const nextStep = () => {
+    if (step === 4 && !confirmed) {
+      alert(
+        "Your code is not yet confirmed by the admin. Please wait for confirmation."
+      );
     } else {
       setStep(step + 1);
     }
@@ -273,8 +285,15 @@ function ReportFoundItem() {
               <button
                 className="PrevBtn"
                 onClick={() => {
-                  localStorage.setItem("scrollToSection", "Report1"); // Set target section
-                  navigate("/homepage"); // Only navigate to /homepage
+                  navigate("/homepage"); // Navigates to the specified route
+                  setTimeout(() => {
+                    // Scroll to slightly above the bottom of the page
+                    const scrollOffset = 1800; // Adjust this value to change the scroll distance
+                    window.scrollTo(
+                      0,
+                      document.body.scrollHeight - scrollOffset
+                    );
+                  }, 100); // Delay in milliseconds before the scroll action is executed
                 }}
               >
                 Home
@@ -486,13 +505,14 @@ function ReportFoundItem() {
                   <option value="Gray">Gray</option>
                   <option value="Others">Other</option>
                 </select>
+
                 {color === "Others" && (
                   <input
                     className="FInput"
                     type="text"
                     placeholder="Specify color"
                     value={otherColor}
-                    onChange={(e) => setColor(e.target.value)}
+                    onChange={(e) => setOtherColor(e.target.value)}
                     required
                   />
                 )}

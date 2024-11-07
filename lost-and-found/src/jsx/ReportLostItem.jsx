@@ -229,15 +229,18 @@ function ReportLostItem() {
             </div>
           </div>
           <div className="ButtonContainer">
-          <button
-                className="PrevBtn"
-                onClick={() => {
-                  localStorage.setItem("scrollToSection", "Report2"); // Set target section
-                  navigate("/homepage"); // Only navigate to /homepage
-                }}
-              >
-                Home
-              </button>
+            <button
+              className="PrevBtn"
+              onClick={() => {
+                navigate("/homepage");
+                setTimeout(
+                  () => window.scrollTo(0, document.body.scrollHeight),
+                  100
+                );
+              }}
+            >
+              Home
+            </button>
             <button
               className="NextBtn"
               disabled={!termsAccepted}
@@ -428,42 +431,41 @@ function ReportLostItem() {
             </div>
 
             <div className="FormRow">
-  <label>Color:</label>
-  <select
-    id="ColorInp"
-    value={itemDetails.color}
-    onChange={(e) => {
-      const selectedColor = e.target.value;
-      setItemDetails({ ...itemDetails, color: selectedColor });
-    }}
-    required
-  >
-    <option value="">Select a color</option>
-    <option value="Red">Red</option>
-    <option value="Blue">Blue</option>
-    <option value="Green">Green</option>
-    <option value="Yellow">Yellow</option>
-    <option value="Orange">Orange</option>
-    <option value="Purple">Purple</option>
-    <option value="Pink">Pink</option>
-    <option value="Black">Black</option>
-    <option value="White">White</option>
-    <option value="Gray">Gray</option>
-    <option value="Others">Other</option>
-  </select>
+              <label>Color:</label>
+              <select
+                id="ColorInp"
+                value={itemDetails.color}
+                onChange={(e) => {
+                  const selectedColor = e.target.value;
+                  setItemDetails({ ...itemDetails, color: selectedColor });
+                }}
+                required
+              >
+                <option value="">Select a color</option>
+                <option value="Red">Red</option>
+                <option value="Blue">Blue</option>
+                <option value="Green">Green</option>
+                <option value="Yellow">Yellow</option>
+                <option value="Orange">Orange</option>
+                <option value="Purple">Purple</option>
+                <option value="Pink">Pink</option>
+                <option value="Black">Black</option>
+                <option value="White">White</option>
+                <option value="Gray">Gray</option>
+                <option value="Others">Other</option>
+              </select>
 
-  {itemDetails.color === "Others" && (
-    <input
-      type="text"
-      className={itemDetails.color === "Others" ? "otherColorInput" : ""}
-      placeholder="Specify color"
-      value={otherColor}
-      onChange={(e) => setOtherColor(e.target.value)}
-      required
-    />
-  )}
-</div>
-
+              {itemDetails.color === "Others" && (
+                <input
+                className="FInput"
+                  type="text"
+                  placeholder="Specify color"
+                  value={otherColor}
+                  onChange={(e) => setOtherColor(e.target.value)}
+                  required
+                />
+              )}
+            </div>
 
             <div className="FormRow">
               <label>Date Lost:</label>
