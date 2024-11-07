@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
 import "../styling/ReportLostItem.css";
-import { supabase } from "../supabaseClient"; // Ensure you have the Supabase client setup
-import { v4 as uuidv4 } from "uuid"; // Import UUID to generate unique file names
+import { supabase } from "../supabaseClient";
+import { v4 as uuidv4 } from "uuid";
 
 function ReportLostItem() {
   const navigate = useNavigate();
@@ -15,7 +14,7 @@ function ReportLostItem() {
     contactNumber: "",
   });
 
-  const [otherColor, setOtherColor] = useState(null); // State to store the uploaded image
+  const [otherColor, setOtherColor] = useState(null);
   const [category, setCategory] = useState("");
   const [otherCategory, setOtherCategory] = useState("");
   const [itemDetails, setItemDetails] = useState({
@@ -27,38 +26,33 @@ function ReportLostItem() {
     objectName: "",
   });
 
-  const [image, setImage] = useState(null); // State to store the uploaded image
-  const [imageUrl, setImageUrl] = useState(""); // State to store the image URL after upload
+  const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
 
-  // Retrieve user data from sessionStorage
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
 
     if (user) {
       setUserData({
-        name: `${user.firstname} ${user.lastname}`, // Combine first and last name
+        name: `${user.firstname} ${user.lastname}`,
         email: user.email,
         contactNumber: user.contact,
       });
     } else {
       console.log("No user data found in sessionStorage.");
     }
-  }, []); // This effect runs only once when the component mounts
+  }, []);
 
-  // Handle image file selection
   const handleImageChange = (e) => {
     if (e.target.files[0]) {
       setImage(e.target.files[0]);
     }
   };
 
-  // Upload image to Supabase Storage and get the URL
   const uploadImage = async () => {
     if (image) {
       try {
         const uniqueFileName = `${uuidv4()}-${image.name}`;
-
-        // Upload the image to Supabase Storage
         const { data, error } = await supabase.storage
           .from("lost-items")
           .upload(`lost-items/${uniqueFileName}`, image, {
@@ -71,28 +65,20 @@ function ReportLostItem() {
           return null;
         }
 
-        console.log("Uploaded image data:", data);
-
-        // Manually construct the image URL
         const baseUrl =
           "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
-        const imageUrl = `${baseUrl}${data.path}`; // Use the 'path' returned by Supabase
+        const imageUrl = `${baseUrl}${data.path}`;
 
-        console.log("Manually constructed Image URL:", imageUrl); // Log the manually constructed URL
-
-        setImageUrl(imageUrl); // Set the constructed URL to state
-
-        return imageUrl; // Return the manually constructed URL
+        setImageUrl(imageUrl);
+        return imageUrl;
       } catch (err) {
         console.error("Unexpected error during image upload:", err.message);
         return null;
       }
     }
-
     return null;
   };
 
-  // Save the lost item details to Supabase
   const saveLostItem = async () => {
     try {
       const user = JSON.parse(sessionStorage.getItem("user"));
@@ -104,17 +90,43 @@ function ReportLostItem() {
       }
 
       const now = new Date();
-      const fullDateTime = now.toLocaleString();
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
 
-      const uploadedImageUrl = await uploadImage();
-      if (!uploadedImageUrl) {
-        console.error("Image upload failed. Item not saved.");
+      const { data: recentReports, error: countError } = await supabase
+        .from("item_reports2")
+        .select("createdat", { count: "exact" })
+        .eq("holderid", uid)
+        .gte("createdat", oneHourAgo.toISOString());
+
+      if (countError) {
+        console.error("Error fetching recent reports:", countError.message);
         return;
       }
 
-      console.log("Image URL in saveLostItem:", uploadedImageUrl);
+      console.log(`User has created ${recentReports.length} reports in the last hour.`);
 
-      // SQL query to insert the data
+      // Check if the user has reached the limit of 5 reports per hour
+      if (recentReports.length >= 5) {
+        alert("You have reached the limit of 5 reports per hour. Please wait before reporting again.");
+        console.log("User has reached the limit of 5 reports per hour.");
+        return;
+      }
+
+      // Check if the user has submitted a report within the last 3 minutes
+      if (recentReports.length > 0) {
+        const latestReportTime = new Date(recentReports[0].createdat);
+        if (latestReportTime >= threeMinutesAgo) {
+          alert("Please wait 3 minutes before submitting another report.");
+          console.log("User must wait 3 minutes before submitting another report.");
+          return;
+        }
+      }
+
+      const fullDateTime = now.toLocaleString();
+      const uploadedImageUrl = await uploadImage();
+      const finalImageUrl = uploadedImageUrl || null;
+
       const sql = `
         INSERT INTO item_reports2 (
           category, brand, color, datelost, timelost, locationlost, objectname, 
@@ -128,7 +140,7 @@ function ReportLostItem() {
           '${itemDetails.timeFound}', 
           '${itemDetails.locationFound}', 
           '${itemDetails.objectName}', 
-          '${uploadedImageUrl}', 
+          ${finalImageUrl ? `'${finalImageUrl}'` : "null"}, 
           '${uid}', 
           '${fullDateTime}', 
           'Lost', 
@@ -136,7 +148,6 @@ function ReportLostItem() {
         );
       `;
 
-      // Execute the SQL query via RPC
       const { error: insertError } = await supabase.rpc("execute_sql", { sql });
 
       if (insertError) {
@@ -151,7 +162,6 @@ function ReportLostItem() {
     }
   };
 
-  // Check if all required fields in the form are complete
   const isFormComplete =
     itemDetails.color &&
     itemDetails.dateFound &&
@@ -159,7 +169,6 @@ function ReportLostItem() {
     itemDetails.locationFound &&
     itemDetails.objectName;
 
-  // Handle changes for category input
   const handleCategoryChange = (e) => {
     setCategory(e.target.value);
     if (e.target.value !== "Other") {
@@ -167,7 +176,6 @@ function ReportLostItem() {
     }
   };
 
-  // Update form details based on input changes
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setItemDetails((prevDetails) => ({
@@ -176,7 +184,6 @@ function ReportLostItem() {
     }));
   };
 
-  // Determine whether to enable the "Next" button based on category selection
   const isNextDisabled = () => {
     if (category === "Other") {
       return otherCategory.trim() === "";
