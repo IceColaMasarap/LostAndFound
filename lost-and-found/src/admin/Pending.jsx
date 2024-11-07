@@ -7,16 +7,7 @@ import {
   faCheck,
   faBell,
 } from "@fortawesome/free-solid-svg-icons";
-import { db } from "../config/firebase";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  addDoc,
-  collectionGroup,
-  onSnapshot,
-} from "firebase/firestore";
+import { supabase } from "../supabaseClient"; // Import Supabase client
 
 function Pending() {
   const [foundItems, setFoundItems] = useState([]);
@@ -30,92 +21,132 @@ function Pending() {
   const [notificationText, setNotificationText] = useState(
     "Your lost item might have been matched."
   );
-  const [showNotifModal, setShowNotifModal] = useState(false); // Separate state for the notification modal
+  const [showNotifModal, setShowNotifModal] = useState(false);
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
     claimedBy: "",
     claimContactNumber: "",
     claimEmail: "",
   });
+
+  // Fetch data using Supabase
   useEffect(() => {
-    const foundItemsQuery = collectionGroup(db, "itemReports");
+    const fetchFoundItems = async () => {
+      let query = supabase
+        .from("item_reports2")
+        .select(
+          `
+          *,
+          userinfo:holderid (firstname, lastname, email, contact)
+        `
+        )
+        .eq("status", "pending")
+        .order("createdat", { ascending: false }); // Order by createdAt in descending order
 
-    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const userName = data.userDetails?.name || "N/A";
+      // Apply filters directly in Supabase query
+      if (categoryFilter) {
+        query = query.eq("category", categoryFilter);
+      }
 
-        return {
-          id: doc.id,
-          ...data,
-          userName,
-        };
-      });
+      if (colorFilter) {
+        query = query.eq("color", colorFilter);
+      }
 
-      setFoundItems(items);
-    });
+      if (dateRange.start) {
+        query = query.gte("datelost", dateRange.start); // Start date filter
+      }
 
-    return () => unsubscribe();
-  }, []);
+      if (dateRange.end) {
+        query = query.lte("datelost", dateRange.end); // End date filter
+      }
+
+      // Order items by dateLost and timeLost
+      const { data, error } = await query
+        .order("datelost", { ascending: false })
+        .order("timelost", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching found items:", error);
+      } else {
+        const items = data.map((item) => {
+          const userName = item.userDetails?.name || "N/A";
+          return {
+            ...item,
+            userName,
+          };
+        });
+        setFoundItems(items);
+      }
+    };
+
+    fetchFoundItems();
+  }, [categoryFilter, colorFilter, dateRange]); // Re-fetch when filters change
+
   const openRemoveModal = (itemId) => {
     setCurrentItemId(itemId);
     setShowRemoveModal(true);
   };
+
   const openNotifModal = (itemId, holderId) => {
     setCurrentItemId(itemId);
     setCurrentHolderId(holderId);
-    setShowNotifModal(true); // Open notification modal
+    setShowNotifModal(true);
   };
 
   const handleSendNotification = async () => {
     try {
-      // Corrected path: Removed the extra comma in the path
-      const itemRef = doc(
-        db,
-        "users",
-        currentHolderId,
-        "itemReports",
-        currentItemId
+      const { data: itemData, error: fetchError } = await supabase
+        .from("item_reports2")
+        .select("*")
+        .eq("id", currentItemId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching item data:", fetchError);
+        return;
+      }
+
+      const holderId = itemData.holderId;
+
+      if (!holderId) {
+        console.error("No holder ID found for this item:", currentItemId);
+        return; // Stop if no holder ID is available
+      }
+
+      // Update the item report to mark the user as notified
+      await supabase
+        .from("item_reports2")
+        .update({ notified: true })
+        .eq("id", currentItemId);
+
+      console.log(
+        `Notification sent for item ${currentItemId} to holder ${holderId}`
       );
-      const itemSnap = await getDoc(itemRef);
 
-      if (itemSnap.exists()) {
-        const itemData = itemSnap.data();
-        const holderId = itemData.holderId; // Assuming 'holderId' holds the item holder's ID
+      // Check if notificationText is defined
+      if (!notificationText) {
+        console.error("Notification text is not defined.");
+        return; // Stop if no notification text is available
+      }
 
-        if (!holderId) {
-          console.error("No holder ID found for this item:", currentItemId);
-          return; // Stop if no holder ID is available
-        }
-
-        // Update the item report to mark the user as notified
-        await updateDoc(itemRef, { notified: true });
-        console.log(
-          `Notification sent for item ${currentItemId} to holder ${holderId}`
-        );
-
-        // Check if notificationText is defined
-        if (!notificationText) {
-          console.error("Notification text is not defined.");
-          return; // Stop if no notification text is available
-        }
-
-        // Create a new notification document targeting the item holder
-        const notificationRef = await addDoc(
-          collection(db, "users", holderId, "notifications"),
+      // Create a new notification record
+      const { error: notifError } = await supabase
+        .from("notifications")
+        .insert([
           {
-            userId: holderId, // Notification directed to item holder
+            userId: holderId,
             itemId: currentItemId,
-            objectName: itemData.objectName || "Unknown Item",
+            objectName: itemData.objectname || "Unknown Item",
             message: notificationText,
             timestamp: new Date(),
-          }
-        );
+          },
+        ]);
 
-        console.log(`Notification added with ID: ${notificationRef.id}`); // Log the ID of the new notification
-        setShowNotifModal(false);
+      if (notifError) {
+        console.error("Error sending notification:", notifError);
       } else {
-        console.error("No document found with this ID:", currentItemId);
+        console.log("Notification added successfully");
+        setShowNotifModal(false);
       }
     } catch (error) {
       console.error("Error sending notification: ", error);
@@ -126,54 +157,28 @@ function Pending() {
     setCurrentItemId(itemId);
     setShowClaimModal(true);
   };
-  const filteredItems = foundItems.filter((item) => {
-    const isPending = item.status === "pending";
 
-    const matchesCategory =
-      categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(
-            item.category
-          )
-        : categoryFilter
-        ? item.category === categoryFilter
-        : true;
-
-    const matchesColor = colorFilter ? item.color === colorFilter : true;
-
-    const itemDate = new Date(item.dateLost);
-    const matchesDateRange =
-      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-      (!dateRange.end || itemDate <= new Date(dateRange.end));
-
-    // Ensure only pending items are included
-    return isPending && matchesCategory && matchesColor && matchesDateRange;
-  });
   const handleArchiveItem = async (itemId) => {
     if (!itemId || !remark.trim()) return;
 
-    const itemRef = db.collection("itemReports").doc(itemId);
-
     try {
-      await itemRef.update({
-        status: "archived",
-        archiveRemark: remark, // Save the remark here
-      });
-      setRemark(""); // Clear the remark input after archiving
+      const { error } = await supabase
+        .from("item_reports2")
+        .update({
+          status: "archived",
+          archiveRemark: remark, // Save the remark here
+        })
+        .eq("id", itemId);
+
+      if (error) {
+        console.error("Error archiving item:", error);
+      } else {
+        setRemark(""); // Clear the remark input after archiving
+      }
     } catch (error) {
       console.error("Error archiving item: ", error);
     }
   };
-
-  // Sort the filtered items by dateLost and then by timeLost in descending order
-  const sortedFilteredItems = filteredItems.sort((a, b) => {
-    const dateComparison = b.dateLost.localeCompare(a.dateLost);
-
-    if (dateComparison === 0) {
-      return b.timeLost.localeCompare(a.timeLost);
-    }
-
-    return dateComparison;
-  });
 
   return (
     <>
@@ -237,39 +242,39 @@ function Pending() {
             </div>
           </div>
         </div>
-        <label className="adminh2">{filteredItems.length} </label>
+        <label className="adminh2">{foundItems.length} </label>
       </div>
 
       <div className="containerlostdata">
-        {sortedFilteredItems.map((item) => (
+        {foundItems.map((item) => (
           <div key={item.id} className="lostitemcontainer">
             <img
               className="lostitemimg"
-              src={item.imageUrl || placeholder}
+              src={item.imageurl || placeholder}
               alt="Lost Item"
             />
             <div className="lostitembody">
               <div className="lostitemtop">
-                <label className="lostitemlabel">{item.objectName}</label>
+                <label className="lostitemlabel">{item.objectname}</label>
                 <div className="buttonslost">
                   <button
                     className="lostitemimg2"
                     id="notifyuser"
-                    onClick={() => openNotifModal(item.id, item.holderId)}
+                    onClick={() => openNotifModal(item.id, item.holderid)}
                   >
                     <FontAwesomeIcon icon={faBell} />
                   </button>
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
-                    onClick={() => openRemoveModal(item.id)} // Open the remove modal with the item ID
+                    onClick={() => openRemoveModal(item.id)}
                   >
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
                   <button
                     className="lostitemimg2"
                     id="checklostitem"
-                    onClick={() => openClaimModal(item.id)} // Open the claim modal with the item ID
+                    onClick={() => openClaimModal(item.id)}
                   >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
@@ -286,19 +291,27 @@ function Pending() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">{item.name}</label>
+                  <label className="lostitemlabel3">
+                    {item.userinfo?.firstname && item.userinfo?.lastname
+                      ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
+                      : "N/A"}
+                  </label>
                   <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">{item.contactNumber}</label>
+                  <label className="lostitemlabel3">
+                    {item.userinfo?.contact}
+                  </label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">{item.email}</label>
+                  <label className="lostitemlabel3">
+                    {item.userinfo?.email}
+                  </label>
                 </div>
                 <div className="lostitempanel2">
                   <label className="lostitemlabel2">Date Lost</label>
                   <label className="lostitemlabel3">
-                    {item.dateLost} at {item.timeLost}
+                    {item.datelost} at {item.timelost}
                   </label>
                   <label className="lostitemlabel2">Location Lost</label>
-                  <label className="lostitemlabel3">{item.locationLost}</label>
+                  <label className="lostitemlabel3">{item.locationlost}</label>
                 </div>
               </div>
             </div>
