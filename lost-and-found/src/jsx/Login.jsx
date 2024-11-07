@@ -52,6 +52,7 @@ const Login = () => {
       } else {
         console.log("No user logged in");
       }
+
       // Step 4: Check the "is_admin" field and navigate accordingly
       if (data.is_admin) {
         navigate("/adminpage"); // Redirect to admin page if user is an admin
