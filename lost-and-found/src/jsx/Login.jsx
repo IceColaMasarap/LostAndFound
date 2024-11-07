@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, auth } from "../config/firebase"; // Import Supabase and Firebase instances
-import { signInWithEmailAndPassword } from "firebase/auth"; // Import Firebase sign-in function
+import bcrypt from "bcryptjs"; // Import bcrypt
 import "../styling/login.css";
+import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,34 +14,43 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
+    if (!email || !password) {
+      setError("Please fill in both fields");
+      return;
+    }
+
     try {
-      // Step 1: Sign in with Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Step 1: Retrieve the user data from the database based on the email
+      const { data, error } = await supabase
+        .from("userinfo") // Make sure the table name matches
+        .select("*")
+        .eq("email", email)
+        .single(); // Retrieve the user matching the email
 
-      // Step 2: Retrieve user data from Supabase using the email
-      const { data: userData, error: supabaseError } = await supabase
-        .from("users")
-        .select("is_admin")
-        .eq("email", firebaseUser.email) // Match based on email from Firebase
-        .single();
+      if (error || !data) {
+        setError("User not found");
+        return;
+      }
 
-      if (supabaseError) {
-        console.error("Supabase error:", supabaseError);
-        throw new Error("Error fetching user data from Supabase.");
+      // Step 2: Compare the entered password with the hashed password stored in the database
+      const passwordMatch = await bcrypt.compare(password, data.password);
+
+      if (!passwordMatch) {
+        setError("Invalid password");
+        return;
       }
 
       // Log user data for debugging
-      console.log("User data from Supabase:", userData);
+      console.log("User data from Supabase:", data);
 
       // Step 3: Check the "is_admin" field and navigate accordingly
-      if (userData && userData.is_admin) {
-        navigate("/adminpage");
+      if (data.is_admin) {
+        navigate("/adminpage"); // Redirect to admin page if user is an admin
       } else {
-        navigate("/homepage");
+        navigate("/homepage"); // Redirect to homepage if user is not an admin
       }
     } catch (err) {
-      setError(err.message);
+      setError("An error occurred during login");
       console.log("Error logging in:", err);
     }
   };
@@ -49,6 +58,7 @@ const Login = () => {
   const goToRegister = () => {
     navigate("/"); // Navigate to register page
   };
+
   return (
     <div className="signup-container">
       <h1>LOST AND FOUND</h1>

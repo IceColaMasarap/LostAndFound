@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, auth } from "../config/firebase"; // Firebase and Supabase imports
-import { sendEmailVerification, createUserWithEmailAndPassword } from "firebase/auth";
-import { v4 as uuidv4 } from "uuid"; // Import UUID generator
+import { v4 as uuidv4 } from "uuid";
+import bcrypt from "bcryptjs"; // Import bcrypt
 import "../styling/login.css";
+import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
 const SignUpForm = () => {
   const [firstName, setFirstName] = useState("");
@@ -22,7 +22,14 @@ const SignUpForm = () => {
     setError("");
     setSuccessMessage("");
 
-    if (!firstName || !lastName || !email || !contact || !password || !confirmPassword) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !contact ||
+      !password ||
+      !confirmPassword
+    ) {
       setError("Please fill in all fields");
       return;
     }
@@ -33,44 +40,26 @@ const SignUpForm = () => {
     }
 
     try {
-      // Step 1: Register the user in Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Generate a UUID for the new user
+      const userId = uuidv4();
 
-      // Step 2: Send email verification using Firebase
-      await sendEmailVerification(firebaseUser);
-      setSuccessMessage("Verification email sent! Please verify your email to complete registration.");
+      // Hash the password before storing it
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Step 3: Check periodically if the user has verified their email
-      const checkVerification = setInterval(async () => {
-        await firebaseUser.reload();
-        if (firebaseUser.emailVerified) {
-          clearInterval(checkVerification);
+      // Raw SQL to insert the user data into the 'userinfo' table
+      const sql = `
+        INSERT INTO userinfo (id, firstName, lastName, email, contact, password, is_admin)
+        VALUES ('${userId}', '${firstName}', '${lastName}', '${email}', '${contact}', '${hashedPassword}', false);
+      `;
 
-          // Step 4: Generate a UUID for Supabase and insert user data
-          const supabaseUserId = uuidv4(); // Generate a UUID for Supabase
-          const { error: supabaseError } = await supabase
-            .from("users")
-            .insert([
-              {
-                id: supabaseUserId, // Use generated UUID for Supabase
-               
-                firstName: firstName,
-                lastName: lastName,
-                email: email,
-                contact: contact,
-                is_admin: false, // Default value for admin status
-              },
-            ]);
+      const { error: insertError } = await supabase.rpc("execute_sql", { sql });
 
-          if (supabaseError) {
-            throw new Error(supabaseError.message);
-          }
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
 
-          setSuccessMessage("Account created successfully! You can now log in.");
-          setTimeout(() => navigate("/login"), 2000);
-        }
-      }, 2000); // Check every 2 seconds
+      setSuccessMessage("Account created successfully! You can now log in.");
+      setTimeout(() => navigate("/login"), 2000); // Redirect to login after success
     } catch (err) {
       setError(err.message);
       console.log(err);
