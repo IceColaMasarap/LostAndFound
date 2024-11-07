@@ -8,8 +8,8 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
+  const navigate = useNavigate(); // Use navigate hook for redirection
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -56,7 +56,7 @@ const Login = () => {
   };
 
   const goToRegister = () => {
-    navigate("/"); // Navigate to register page
+    navigate("/"); // Navigate to ./register route
   };
 
   return (

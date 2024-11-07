@@ -1,12 +1,9 @@
 // Import the functions you need from the SDKs you need
-
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {getAuth} from 'firebase/auth';
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-// Import Supabase function
-import { createClient } from "@supabase/supabase-js";
-
+import { createClient } from '@supabase/supabase-js'
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -31,14 +28,4 @@ const db = getFirestore(app);
 const supabaseUrl = 'https://mxqzohhojkveomcyfxuv.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cXpvaGhvamt2ZW9tY3lmeHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkwMDM4MDMsImV4cCI6MjA0NDU3OTgwM30.hVZUxMf-LINa4lLEst63cHnW5yBBps78QAtI0kWm73k'
 const supabase = createClient(supabaseUrl, supabaseKey)
-
-// Test Supabase initialization (optional, for debugging)
-supabase.auth.getSession().then(({ data: { session }, error }) => {
-  if (error) {
-    console.error("Supabase session retrieval failed:", error);
-  } else {
-    console.log("Supabase session retrieved:", session);
-  }
-});
-
  export { auth, storage, db, supabase };

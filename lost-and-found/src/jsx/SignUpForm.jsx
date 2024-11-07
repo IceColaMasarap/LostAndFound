@@ -65,7 +65,6 @@ const SignUpForm = () => {
       console.log(err);
     }
   };
-
   return (
     <div className="signup-container">
       <h1>LOST AND FOUND</h1>
