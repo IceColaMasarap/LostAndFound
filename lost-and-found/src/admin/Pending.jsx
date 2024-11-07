@@ -165,6 +165,7 @@ function Pending() {
           claimedby: claimerDetails.claimedBy,
           claimcontactnumber: claimerDetails.claimContactNumber,
           claimemail: claimerDetails.claimEmail,
+          dateclaimed: new Date(),
         })
         .eq("id", currentItemId);
 
