@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./Admin.css";
-import { collectionGroup, onSnapshot } from "firebase/firestore";
-import { db } from "../config/firebase"; // Firebase config
+import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
 function All() {
   const [items, setItems] = useState([]);
@@ -17,43 +16,46 @@ function All() {
     category: true,
     brand: true,
     color: true,
-    objectName: true,
+    objectname: true,
     name: true,
-    contactNumber: true,
+    contactnumber: true,
     email: true,
-    dateFound: true,
-    locationFound: true,
-    dateLost: true,
-    locationLost: true,
-    claimedBy: true,
-    claimEmail: true,
-    claimContactNumber: true,
-    dateClaimed: true,
+    datefound: true,
+    locationfound: true,
+    datelost: true,
+    locationlost: true,
+    claimedby: true,
+    claimemail: true,
+    claimcontactnumber: true,
+    dateclaimed: true,
     status: true,
   });
+
   const showCustomCheckbox = () => {
     setShowCheckboxContainer((prev) => !prev);
   };
+
   // Mapping for column display names
   const columnLabels = {
     type: "Report Type",
     category: "Category",
     brand: "Brand",
     color: "Color",
-    objectName: "Object Name",
+    objectname: "Object Name",
     name: "Reported By Name",
-    contactNumber: "Reported By Contact",
+    contactnumber: "Reported By Contact",
     email: "Reported By Email",
-    dateFound: "Date Found",
-    locationFound: "Location Found",
-    dateLost: "Date Lost",
-    locationLost: "Location Lost",
-    claimedBy: "Claimer's Name",
-    claimEmail: "Claimer's Email",
-    claimContactNumber: "Claimer's Contact",
-    dateClaimed: "Date Claimed",
+    datefound: "Date Found",
+    locationfound: "Location Found",
+    datelost: "Date Lost",
+    locationlost: "Location Lost",
+    claimedby: "Claimer's Name",
+    claimemail: "Claimer's Email",
+    claimcontactnumber: "Claimer's Contact",
+    dateclaimed: "Date Claimed",
     status: "Status",
   };
+
   // Select all columns
   const selectAllColumns = () => {
     setVisibleColumns(
@@ -63,24 +65,25 @@ function All() {
       }, {})
     );
   };
+
   const columnVisibilitySettings = {
     lost: {
       type: true,
       category: true,
       brand: true,
       color: true,
-      objectName: true,
+      objectname: true,
       name: true,
-      contactNumber: true,
+      contactnumber: true,
       email: true,
-      dateFound: true,
-      locationFound: true,
-      dateLost: false,
-      locationLost: false,
-      claimedBy: false,
-      claimEmail: false,
-      claimContactNumber: false,
-      dateClaimed: false,
+      datefound: false,
+      locationfound: false,
+      datelost: false,
+      locationlost: false,
+      claimedby: false,
+      claimemail: false,
+      claimcontactnumber: false,
+      dateclaimed: false,
       status: true,
     },
     pending: {
@@ -88,18 +91,18 @@ function All() {
       category: true,
       brand: true,
       color: true,
-      objectName: true,
+      objectname: true,
       name: true,
-      contactNumber: true,
+      contactnumber: true,
       email: true,
-      dateFound: false,
-      locationFound: false,
-      dateLost: true,
-      locationLost: true,
-      claimedBy: false,
-      claimEmail: false,
-      claimContactNumber: false,
-      dateClaimed: false,
+      datefound: false,
+      locationfound: false,
+      datelost: true,
+      locationlost: true,
+      claimedby: false,
+      claimemail: false,
+      claimcontactnumber: false,
+      dateclaimed: false,
       status: true,
     },
     claimed: {
@@ -107,18 +110,18 @@ function All() {
       category: true,
       brand: true,
       color: true,
-      objectName: true,
+      objectname: true,
       name: true,
-      contactNumber: true,
+      contactnumber: true,
       email: true,
-      dateFound: false,
-      locationFound: false,
-      dateLost: false,
-      locationLost: false,
-      claimedBy: true,
-      claimEmail: true,
-      claimContactNumber: true,
-      dateClaimed: true,
+      datefound: false,
+      locationfound: false,
+      datelost: false,
+      locationlost: false,
+      claimedby: true,
+      claimemail: true,
+      claimcontactnumber: true,
+      dateclaimed: true,
       status: true,
     },
     all: {
@@ -126,18 +129,18 @@ function All() {
       category: true,
       brand: true,
       color: true,
-      objectName: true,
+      objectname: true,
       name: true,
-      contactNumber: true,
+      contactnumber: true,
       email: true,
-      dateFound: true,
-      locationFound: true,
-      dateLost: true,
-      locationLost: true,
-      claimedBy: true,
-      claimEmail: true,
-      claimContactNumber: true,
-      dateClaimed: true,
+      datefound: true,
+      locationfound: true,
+      datelost: true,
+      locationlost: true,
+      claimedby: true,
+      claimemail: true,
+      claimcontactnumber: true,
+      dateclaimed: true,
       status: true,
     },
   };
@@ -151,18 +154,19 @@ function All() {
       }, {})
     );
   };
+
   useEffect(() => {
-    const itemsQuery = collectionGroup(db, "itemReports");
+    const fetchItems = async () => {
+      const { data, error } = await supabase.from("item_reports2").select("*");
 
-    const unsubscribe = onSnapshot(itemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setItems(items);
-    });
+      if (error) {
+        console.error("Error fetching data: ", error);
+      } else {
+        setItems(data);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchItems();
   }, []);
 
   const handleCheckboxChange = (column) => {
@@ -171,9 +175,24 @@ function All() {
       [column]: !prev[column],
     }));
   };
+
   const handleFilterChange = (selectedFilter) => {
     setFilter(selectedFilter);
-    setVisibleColumns(columnVisibilitySettings[selectedFilter]);
+
+    // Adjust column visibility based on the selected filter
+    if (selectedFilter === "lost") {
+      setVisibleColumns({
+        ...columnVisibilitySettings.all,
+        type: true, // Ensure 'type' column is visible for all
+      });
+    } else if (selectedFilter === "pending") {
+      setVisibleColumns({
+        ...columnVisibilitySettings.pending,
+        type: true, // Ensure 'type' column is visible for all
+      });
+    } else {
+      setVisibleColumns(columnVisibilitySettings[selectedFilter]);
+    }
   };
 
   const filteredItems = items.filter((item) => {
@@ -207,6 +226,16 @@ function All() {
     );
   });
 
+  // Modify the rendering of the type column based on the filter
+  const getTypeDisplay = (type) => {
+    if (filter === "lost" && type === "Found") {
+      return "Lost"; // If filtered by "lost", show "Found" as "Lost"
+    }
+    if (filter === "pending" && type === "Lost") {
+      return "Missing"; // If filtered by "pending", show "Lost" as "Missing"
+    }
+    return type; // Otherwise, show the original type
+  };
   return (
     <>
       <div className="adminnavbar">
@@ -325,7 +354,11 @@ function All() {
                       {Object.keys(visibleColumns).map(
                         (column) =>
                           visibleColumns[column] && (
-                            <td key={column}>{item[column] || "N/A"}</td>
+                            <td key={column}>
+                              {column === "type"
+                                ? getTypeDisplay(item[column])
+                                : item[column] || "N/A"}
+                            </td>
                           )
                       )}
                     </tr>

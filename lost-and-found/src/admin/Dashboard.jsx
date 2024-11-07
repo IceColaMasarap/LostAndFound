@@ -35,41 +35,50 @@ function Dashboard() {
   // Fetch item based on code from Supabase
   const fetchItem = async () => {
     try {
+      // Use Supabase's query method to fetch the item based on the input code
       const { data, error } = await supabase
         .from("item_reports2")
         .select("*")
-        .eq("code", inputCode)
-        .single(); // Retrieve single item based on the code
-
+        .eq("code", parseInt(inputCode, 10)) // Ensure code is compared as an integer
+        .single(); // Fetch a single item
+  
       if (error) {
         setMessage("Error fetching item. Please try again.");
-        console.error(error);
+        console.error("Error fetching item:", error);
+        toast.error("Error fetching item. Please try again.");
       } else if (data) {
-        await confirmItem(data.id);
-        toast.success("Reported found item received successfully!");
+        // Check if the item is not already confirmed
+        if (!data.confirmed) {
+          await confirmItem(data.id);
+          toast.success("Reported found item confirmed successfully!");
+        } else {
+          toast.info("This item has already been confirmed.");
+        }
+        setInputCode(""); // Reset the input field
       } else {
         setMessage("No matching item found for the given code.");
+        toast.warning("No matching item found for the given code.");
       }
     } catch (error) {
-      console.error("Error fetching document: ", error);
+      console.error("Error fetching document:", error);
       setMessage("Error fetching item. Please try again.");
+      toast.error("Error fetching item. Please try again.");
     }
   };
-
-  // Confirm item by updating the status in Supabase
+  
+  // Function to confirm the item
   const confirmItem = async (itemId) => {
     try {
+      // Use Supabase's update method to set confirmed to true
       const { error } = await supabase
         .from("item_reports2")
         .update({ confirmed: true })
-        .eq("id", itemId); // Mark item as confirmed
-
+        .eq("id", itemId);
+  
       if (error) {
         toast.error("Error confirming the item. Please try again.");
         console.error("Error updating confirmation status:", error);
-      } else {
-        setInputCode(""); // Reset input field after confirmation
-      }
+      } 
     } catch (error) {
       console.error("Error confirming item:", error);
       toast.error("Error confirming the item. Please try again.");

@@ -22,65 +22,49 @@ function Pending() {
     "Your lost item might have been matched."
   );
   const [showNotifModal, setShowNotifModal] = useState(false);
+
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
     claimedBy: "",
     claimContactNumber: "",
     claimEmail: "",
   });
+  const fetchFoundItems = async () => {
+    let query = supabase
+      .from("item_reports2")
+      .select(
+        `
+        *,
+        userinfo:holderid (firstname, lastname, email, contact)
+      `
+      )
+      .eq("status", "pending")
+      .order("createdat", { ascending: false }); // Order by createdAt in descending order
+
+    if (categoryFilter) query = query.eq("category", categoryFilter);
+    if (colorFilter) query = query.eq("color", colorFilter);
+    if (dateRange.start) query = query.gte("datelost", dateRange.start);
+    if (dateRange.end) query = query.lte("datelost", dateRange.end);
+
+    const { data, error } = await query
+      .order("datelost", { ascending: false })
+      .order("timelost", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching found items:", error);
+    } else {
+      const items = data.map((item) => {
+        const userName = item.userDetails?.name || "N/A";
+        return { ...item, userName };
+      });
+      setFoundItems(items);
+    }
+  };
 
   // Fetch data using Supabase
   useEffect(() => {
-    const fetchFoundItems = async () => {
-      let query = supabase
-        .from("item_reports2")
-        .select(
-          `
-          *,
-          userinfo:holderid (firstname, lastname, email, contact)
-        `
-        )
-        .eq("status", "pending")
-        .order("createdat", { ascending: false }); // Order by createdAt in descending order
-
-      // Apply filters directly in Supabase query
-      if (categoryFilter) {
-        query = query.eq("category", categoryFilter);
-      }
-
-      if (colorFilter) {
-        query = query.eq("color", colorFilter);
-      }
-
-      if (dateRange.start) {
-        query = query.gte("datelost", dateRange.start); // Start date filter
-      }
-
-      if (dateRange.end) {
-        query = query.lte("datelost", dateRange.end); // End date filter
-      }
-
-      // Order items by dateLost and timeLost
-      const { data, error } = await query
-        .order("datelost", { ascending: false })
-        .order("timelost", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching found items:", error);
-      } else {
-        const items = data.map((item) => {
-          const userName = item.userDetails?.name || "N/A";
-          return {
-            ...item,
-            userName,
-          };
-        });
-        setFoundItems(items);
-      }
-    };
-
     fetchFoundItems();
-  }, [categoryFilter, colorFilter, dateRange]); // Re-fetch when filters change
+  }, [categoryFilter, colorFilter, dateRange]);
 
   const openRemoveModal = (itemId) => {
     setCurrentItemId(itemId);
@@ -106,7 +90,7 @@ function Pending() {
         return;
       }
 
-      const holderId = itemData.holderId;
+      const holderId = itemData.holderid;
 
       if (!holderId) {
         console.error("No holder ID found for this item:", currentItemId);
@@ -116,37 +100,22 @@ function Pending() {
       // Update the item report to mark the user as notified
       await supabase
         .from("item_reports2")
-        .update({ notified: true })
+        .update({
+          notified: true,
+          message: notificationText,
+          notifdate: new Date(),
+        })
         .eq("id", currentItemId);
 
       console.log(
         `Notification sent for item ${currentItemId} to holder ${holderId}`
       );
+      setShowNotifModal(false);
 
       // Check if notificationText is defined
       if (!notificationText) {
         console.error("Notification text is not defined.");
         return; // Stop if no notification text is available
-      }
-
-      // Create a new notification record
-      const { error: notifError } = await supabase
-        .from("notifications")
-        .insert([
-          {
-            userId: holderId,
-            itemId: currentItemId,
-            objectName: itemData.objectname || "Unknown Item",
-            message: notificationText,
-            timestamp: new Date(),
-          },
-        ]);
-
-      if (notifError) {
-        console.error("Error sending notification:", notifError);
-      } else {
-        console.log("Notification added successfully");
-        setShowNotifModal(false);
       }
     } catch (error) {
       console.error("Error sending notification: ", error);
@@ -157,7 +126,6 @@ function Pending() {
     setCurrentItemId(itemId);
     setShowClaimModal(true);
   };
-
   const handleArchiveItem = async (itemId) => {
     if (!itemId || !remark.trim()) return;
 
@@ -166,17 +134,55 @@ function Pending() {
         .from("item_reports2")
         .update({
           status: "archived",
-          archiveRemark: remark, // Save the remark here
+          archiveremark: remark,
         })
         .eq("id", itemId);
 
       if (error) {
         console.error("Error archiving item:", error);
       } else {
-        setRemark(""); // Clear the remark input after archiving
+        fetchFoundItems(); // Re-fetch items after archiving
+        console.log("Item archived and items refreshed.");
       }
     } catch (error) {
       console.error("Error archiving item: ", error);
+    }
+  };
+  const handleClaimItem = async () => {
+    if (
+      !claimerDetails.claimedBy.trim() ||
+      !claimerDetails.claimContactNumber.trim() ||
+      !claimerDetails.claimEmail.trim()
+    ) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("item_reports2")
+        .update({
+          status: "claimed",
+          claimedby: claimerDetails.claimedBy,
+          claimcontactnumber: claimerDetails.claimContactNumber,
+          claimemail: claimerDetails.claimEmail,
+          dateclaimed: new Date(),
+        })
+        .eq("id", currentItemId);
+
+      if (error) {
+        console.error("Error updating claim status:", error);
+      } else {
+        fetchFoundItems(); // Re-fetch items to reflect the updated status
+        setShowClaimModal(false); // Close the modal after updating
+        setClaimerDetails({
+          claimedBy: "",
+          claimContactNumber: "",
+          claimEmail: "",
+        }); // Reset the form
+        console.log("Item successfully marked as claimed.");
+      }
+    } catch (error) {
+      console.error("Error handling claim:", error);
     }
   };
 
@@ -390,6 +396,7 @@ function Pending() {
             <div className="modal-buttons">
               <button onClick={() => setShowClaimModal(false)}>Cancel</button>
               <button
+                onClick={handleClaimItem}
                 disabled={
                   !claimerDetails.claimedBy.trim() ||
                   !claimerDetails.claimContactNumber.trim() ||
@@ -415,7 +422,10 @@ function Pending() {
             />
             <div className="modal-buttons">
               <button onClick={() => setShowNotifModal(false)}>Cancel</button>
-              <button onClick={handleSendNotification}>
+              <button
+                onClick={handleSendNotification}
+                disabled={!notificationText.trim()} // Disable button if notificationText is empty
+              >
                 Send Notification
               </button>
             </div>
