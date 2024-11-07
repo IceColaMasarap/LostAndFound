@@ -451,3 +451,21 @@ html {
   color: black;
 }
 
+/* Style for active navbar link */
+.nav a.active {
+  font-weight: bold;
+  color: #ffd41f; /* Blue or your preferred color for the active link */
+  text-decoration: underline;
+}
+
+/* Optional: Styling for the navbar links */
+.nav a {
+  margin: 0 15px;
+  text-decoration: none;
+  color: #ffffff; /* Default color */
+  transition: all 0.3s;
+}
+
+.nav a:hover {
+  color: #ffd41f; /* Hover color */
+}

@@ -229,18 +229,15 @@ function ReportLostItem() {
             </div>
           </div>
           <div className="ButtonContainer">
-            <button
-              className="PrevBtn"
-              onClick={() => {
-                navigate("/homepage");
-                setTimeout(
-                  () => window.scrollTo(0, document.body.scrollHeight),
-                  100
-                );
-              }}
-            >
-              Home
-            </button>
+          <button
+                className="PrevBtn"
+                onClick={() => {
+                  localStorage.setItem("scrollToSection", "Report2"); // Set target section
+                  navigate("/homepage"); // Only navigate to /homepage
+                }}
+              >
+                Home
+              </button>
             <button
               className="NextBtn"
               disabled={!termsAccepted}

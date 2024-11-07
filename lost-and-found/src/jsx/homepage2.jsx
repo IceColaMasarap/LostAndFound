@@ -30,7 +30,30 @@ function Homepage2() {
   const imgRefs = useRef([]); // For image containers
   const homepageRef = useRef(null); // For HomePageContent
   const itemStatusRef = useRef(null); // For ItemStatus
+  const [activeLink, setActiveLink] = useState("Home"); // Track the active section
+  const sectionRefs = useRef([]); // Ref for the sections
 
+  useEffect(() => {
+    const targetSection = localStorage.getItem("scrollToSection");
+  
+    if (targetSection) {
+      const scrollToSection = () => {
+        const section = document.getElementById(targetSection);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth" });
+        }
+        localStorage.removeItem("scrollToSection"); // Clear the flag
+      };
+  
+      // Delay scrolling to ensure the page is fully loaded
+      const scrollTimeout = setTimeout(scrollToSection, 100);
+  
+      // Clear timeout on cleanup
+      return () => clearTimeout(scrollTimeout);
+    }
+  }, []);
+
+  
   const handleLogout = async () => {
     try {
       // Use Supabase's signOut method to log the user out
@@ -47,6 +70,30 @@ function Homepage2() {
       console.error("Unexpected error during logout:", error.message);
     }
   };
+
+    // Function to handle section highlighting on scroll
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const sectionId = entry.target.id;
+  
+            if (entry.isIntersecting) {
+              // Set active link to the section currently in view
+              setActiveLink(sectionId);
+            }
+          });
+        },
+        { threshold: 0.5 } // Trigger when 50% of the section is in view
+      );
+  
+      // Observe all sections
+      sectionRefs.current.forEach((section) => {
+        if (section) observer.observe(section);
+      });
+  
+      return () => observer.disconnect();
+    }, []);
 
   useEffect(() => {
     const fetchAuthenticatedUserUid = async () => {
@@ -194,9 +241,24 @@ function Homepage2() {
         </div>
         <div className="navs">
           <nav className="nav">
-            <a href="#HomePage">Home</a>
-            <a href="#Memo1">Memorandum</a>
-            <a href="#Report1">Report</a>
+            <a
+              href="#HomePage"
+              className={activeLink === "HomePage" ? "active" : ""}
+            >
+              Home
+            </a>
+            <a
+              href="#Memo1"
+              className={activeLink === "Memo1" || activeLink === "Memo2" ? "active" : ""}
+            >
+              Memorandum
+            </a>
+            <a
+              href="#Report1"
+              className={activeLink === "Report1" ? "active" : ""}
+            >
+              Report
+            </a>
           </nav>
         </div>
         <img
@@ -233,12 +295,9 @@ function Homepage2() {
         </div>
       )}
 
-      <div className="sections">
-        <div className="HomePage" id="HomePage">
-          <div
-            className="homepage-fade HomePageContent"
-            ref={homepageRef} // Assigning ref for HomePageContent
-          >
+<div className="sections">
+        <div className="HomePage" id="HomePage" ref={(el) => (sectionRefs.current[0] = el)}>
+          <div className="homepage-fade HomePageContent" ref={homepageRef}>
             <h1>The lost items are in DO’s hands.</h1>
             <p>
               Welcome to our page, the easy way to manage lost and found items
@@ -246,6 +305,10 @@ function Homepage2() {
               students reconnect with their items.
             </p>
           </div>
+
+
+
+
           <div
             className="homepage-fade ItemStatus" // Applying the same effect here
             ref={itemStatusRef} // Assigning ref for ItemStatus
@@ -261,7 +324,7 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Memo1" id="Memo1">
+        <div className="Memo1" id="Memo1" ref={(el) => (sectionRefs.current[1] = el)}> 
           <img
             src={Memo1Img}
             className="Memo1Img fade-content1"
@@ -285,7 +348,7 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Memo2">
+        <div className="Memo2" >
           <div
             className="Memo2TextContainer fade-content2"
             ref={(el) => (textRefs.current[1] = el)}
@@ -321,7 +384,7 @@ function Homepage2() {
           />
         </div>
 
-        <div className="Report1" id="Report1">
+        <div className="Report1" id="Report1" ref={(el) => (sectionRefs.current[3] = el)}> 
           <img
             src={Report1Img}
             className="Report1Img fade-content1"
@@ -349,7 +412,7 @@ function Homepage2() {
           </div>
         </div>
 
-        <div className="Report2">
+        <div className="Report2" >
           <div
             className="Report2TextContainer fade-content2"
             ref={(el) => (textRefs.current[3] = el)}
