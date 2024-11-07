@@ -18,7 +18,6 @@ import Notification from "./notification"; // Import your notification component
 
 function Homepage2() {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
   const [foundItems, setFoundItems] = useState([]);
@@ -39,7 +38,7 @@ function Homepage2() {
       if (user) {
         setUid(user.uid);
       } else {
-        console.log("No user is logged in");
+        
       }
 
       setLoading(false);
@@ -145,26 +144,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
     }
   }, [uid]);
 
-  useEffect(() => {
-    const foundItemsQuery = collectionGroup(db, "itemReports");
 
-    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
-
-        return {
-          id: doc.id,
-          ...data,
-          userName,
-        };
-      });
-
-      setFoundItems(items);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
@@ -213,7 +193,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
           <h2>Notifications:</h2>
           <div className="notifScroll">
             {notifications.length === 0 ? (
-              <p>No notifications available.</p>
+              <p className="noNotificationsMessage" >No notifications available.</p>
             ) : (
               notifications.map((notification) => (
                 <Notification key={notification.id} data={notification} /> // Use the Notification component

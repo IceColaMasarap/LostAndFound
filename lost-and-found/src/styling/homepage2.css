@@ -446,3 +446,8 @@ html {
 .FoundStatus h2 {
   color: white;
 }
+
+.noNotificationsMessage {
+  color: black;
+}
+

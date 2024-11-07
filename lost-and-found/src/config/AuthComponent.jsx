@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }) => {
   // Use effect to listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("User detected:", user); // Add this to verify user detection
       if (user) {
         // Fetch additional user details from Firestore
         const userRef = doc(db, "users", user.uid);
