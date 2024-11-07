@@ -13,11 +13,8 @@ function ReportFoundItem() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [code, setCode] = useState("");
   const [otherCategory, setOtherCategory] = useState("");
-  const [userData, setUserData] = useState({
-    name: "",
-    email: "",
-    contactNumber: "",
-  });
+  const [userData, setUserData] = useState("");
+
   const [timeFound, setTimeFound] = useState("");
   const [brand, setBrand] = useState("");
   const [objectName, setObjectName] = useState("");
@@ -35,7 +32,19 @@ function ReportFoundItem() {
   const [codeExpired, setCodeExpired] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   // Function to generate a code and handle auto-deletion after 30 seconds
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  useEffect(() => {
+    const user = JSON.parse(sessionStorage.getItem("user"));
+
+    if (user) {
+      setUserData({
+        name: `${user.firstName} ${user.lastName}`, // Combine first and last name
+        email: user.email,
+        contactNumber: user.contact,
+      });
+    } else {
+      console.log("No user data found in sessionStorage.");
+    }
+  }, []); // This effect runs only once when the component mounts
 
   const generateCode = async () => {
     const generatedCode = Math.floor(
@@ -52,7 +61,7 @@ function ReportFoundItem() {
       code: generatedCode,
       confirmed: false,
       createdat: fullDateTime,
-      id: user.id, // Replace with session or user context if needed
+      id: userData?.id, // Replace with session or user context if needed
     };
 
     try {
@@ -128,7 +137,7 @@ function ReportFoundItem() {
     if (!file) return;
     setUploading(true);
     const { data, error } = await supabase.storage
-      .from("item-reports")
+      .from("lost-items")
       .upload(`found-items/${file.name}`, file);
 
     if (error) {
@@ -136,8 +145,9 @@ function ReportFoundItem() {
       setUploading(false);
       return;
     }
-
-    const imageUrl = `${supabase.storageURL}/item-reports/found-items/${data.path}`;
+    const baseUrl =
+      "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
+    const imageUrl = `${baseUrl}${data.path}`;
     setImageUrl(imageUrl);
     setUploading(false);
     console.log("Image available at:", imageUrl);
@@ -393,7 +403,7 @@ function ReportFoundItem() {
                   className="FInput"
                   type="text"
                   id="NameInp"
-                  value={userData?.firstname}
+                  value={userData?.name}
                   readOnly
                   required
                 />
@@ -417,7 +427,7 @@ function ReportFoundItem() {
                   className="FInput"
                   type="text"
                   id="ContactNumInp"
-                  value={userData?.contact}
+                  value={userData?.contactNumber}
                   readOnly
                   required
                 />

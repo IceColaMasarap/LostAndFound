@@ -22,10 +22,10 @@ const Login = () => {
     try {
       // Step 1: Retrieve the user data from the database based on the email
       const { data, error } = await supabase
-        .from("userinfo") // Make sure the table name matches
+        .from("userinfo") // Make sure 'userinfo' is the correct table name
         .select("*")
-        .eq("email", email)
-        .single(); // Retrieve the user matching the email
+        .eq("email", email) // Make sure the 'email' column exists in the table
+        .single(); // Retrieves only one record that matches
 
       if (error || !data) {
         setError("User not found");

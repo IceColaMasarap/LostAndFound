@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../config/firebase"; // Firebase imports
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc } from "firebase/firestore";
-import { v4 as uuidv4 } from "uuid"; // Import the uuid generator
+import { v4 as uuidv4 } from "uuid";
+import bcrypt from "bcryptjs"; // Import bcrypt
 import "../styling/login.css";
 import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
@@ -42,51 +40,26 @@ const SignUpForm = () => {
     }
 
     try {
-      // Step 1: Create user in Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
+      // Generate a UUID for the new user
+      const userId = uuidv4();
 
-      // Step 2: Store user details in Firebase Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        firstName,
-        lastName,
-        email,
-        contact,
-      });
+      // Hash the password before storing it
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-      console.log("Data stored in Firebase");
+      // Raw SQL to insert the user data into the 'userinfo' table
+      const sql = `
+        INSERT INTO userinfo (id, firstName, lastName, email, contact, password, is_admin)
+        VALUES ('${userId}', '${firstName}', '${lastName}', '${email}', '${contact}', '${hashedPassword}', false);
+      `;
 
-      // Step 3: Generate a UUID for Supabase and insert user data
-      const uuid = uuidv4(); // Generate a valid UUID
+      const { error: insertError } = await supabase.rpc("execute_sql", { sql });
 
-      // Step 3: Store user details in Supabase (ensure firebase_uid is passed)
-      const { data, error: supabaseError } = await supabase
-        .from("users")
-        .insert([
-          {
-            firebase_uid: user.uid, // Pass Firebase UID into Supabase
-            firstName: firstName, // Ensure correct casing for Supabase table columns
-            lastName: lastName,
-            email: email,
-            contact: contact,
-          },
-        ]);
-
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
+      if (insertError) {
+        throw new Error(insertError.message);
       }
 
-      console.log("Data stored in Supabase");
-
-      setSuccessMessage(
-        "Account created successfully in Firebase and Supabase!"
-      );
-      // Optional: Redirect the user after success
-      setTimeout(() => navigate("/login"), 2000);
+      setSuccessMessage("Account created successfully! You can now log in.");
+      setTimeout(() => navigate("/login"), 2000); // Redirect to login after success
     } catch (err) {
       setError(err.message);
       console.log(err);
