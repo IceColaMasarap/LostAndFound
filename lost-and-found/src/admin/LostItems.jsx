@@ -2,159 +2,268 @@ import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBoxArchive, faCheck } from "@fortawesome/free-solid-svg-icons";
-import { db } from "../config/firebase";
 import {
-  collectionGroup,
-  onSnapshot,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-import { getDoc } from "firebase/firestore";
+  faBoxArchive,
+  faCheck,
+  faBell,
+} from "@fortawesome/free-solid-svg-icons";
+import { supabase } from "../supabaseClient"; // Import Supabase client
 
-function LostItems() {
+function lostitems() {
   const [foundItems, setFoundItems] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [colorFilter, setColorFilter] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [remark, setArchiveRemark] = useState("");
-
   const [currentItemId, setCurrentItemId] = useState(null);
+  const [currentHolderId, setCurrentHolderId] = useState(null);
+  const [notificationText, setNotificationText] = useState(
+    "Your lost item might have been matched."
+  );
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
     claimedBy: "",
     claimContactNumber: "",
     claimEmail: "",
   });
 
+  // Fetch data using Supabase
   useEffect(() => {
-    const foundItemsQuery = collectionGroup(db, "itemReports");
+    const fetchFoundItems = async () => {
+      let query = supabase
+        .from("item_reports2")
+        .select(
+          `
+          *,
+          userinfo:holderid (firstname, lastname, email, contact)
+        `
+        )
+        .eq("status", "pending")
+        .eq("type", "Found") // Filter items where type is "Found"
+        .eq("confirmed", true) // Add this line to only fetch items where confirmed is true
+        .order("createdat", { ascending: false }); // Order by createdAt in descending order
 
-    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs
-        .map((doc) => {
-          const data = doc.data();
-          const userName = data.userDetails?.name || "N/A";
-          const userId = doc.ref.parent.parent.id; // Get userId from the document path
+      // Apply filters directly in Supabase query
+      if (categoryFilter) {
+        query = query.eq("category", categoryFilter);
+      }
 
+      if (colorFilter) {
+        query = query.eq("color", colorFilter);
+      }
+
+      if (dateRange.start) {
+        query = query.gte("datefound", dateRange.start); // Start date filter
+      }
+
+      if (dateRange.end) {
+        query = query.lte("datefound", dateRange.end); // End date filter
+      }
+
+      // Order items by dateFound and timeFound
+      const { data, error } = await query
+        .order("datefound", { ascending: false })
+        .order("timefound", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching found items:", error);
+      } else {
+        const items = data.map((item) => {
+          const userName =
+            item.userinfo?.firstname && item.userinfo?.lastname
+              ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
+              : "N/A";
           return {
-            id: doc.id,
-            userId, // Add userId to the item data
-            ...data,
+            ...item,
             userName,
           };
-        })
-        .sort((a, b) => new Date(b.dateFound) - new Date(a.dateFound));
+        });
+        setFoundItems(items);
+      }
+    };
 
-      setFoundItems(items);
-    });
 
-    return () => unsubscribe();
-  }, []);
-  const filteredItems = foundItems.filter((item) => {
-    const isLost = item.status === "lost";
-    const matchesCategory =
-      categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(
-            item.category
-          )
-        : categoryFilter
-        ? item.category === categoryFilter
-        : true;
+    fetchFoundItems();
+  }, [categoryFilter, colorFilter, dateRange]); // Re-fetch when filters change
 
-    const matchesColor = colorFilter ? item.color === colorFilter : true;
+  const openRemoveModal = (itemId) => {
+    setCurrentItemId(itemId);
+    setShowRemoveModal(true);
+  };
 
-    const itemDate = new Date(item.dateFound);
-    const matchesDateRange =
-      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-      (!dateRange.end || itemDate <= new Date(dateRange.end));
+  const openNotifModal = (itemId, holderId) => {
+    setCurrentItemId(itemId);
+    setCurrentHolderId(holderId);
+    setShowNotifModal(true);
+  };
 
-    const isConfirmed = item.confirmed === true;
-
-    return (
-      isLost &&
-      matchesCategory &&
-      matchesColor &&
-      matchesDateRange &&
-      isConfirmed
-    );
-  });
-
-  const sortedFilteredItems = filteredItems.sort((a, b) => {
-    const dateComparison = b.dateFound.localeCompare(a.dateFound);
-    if (dateComparison === 0) {
-      return b.timeFound.localeCompare(a.timeFound);
-    }
-    return dateComparison;
-  });
-
-  // Functions for handling item removal and claims
-  const handleArchiveItem = async (itemId, userId) => {
+  const handleSendNotification = async () => {
     try {
-      const itemRef = doc(db, `users/${userId}/itemReports`, itemId);
+      const { data: itemData, error: fetchError } = await supabase
+        .from("item_reports2")
+        .select("*")
+        .eq("id", currentItemId)
+        .single();
 
-      // Check if the document exists
-      const docSnap = await getDoc(itemRef);
-      if (!docSnap.exists()) {
-        console.error("No such document!");
-        return; // Handle this case appropriately
+      if (fetchError) {
+        console.error("Error fetching item data:", fetchError);
+        return;
       }
 
-      // Update the document
-      await updateDoc(itemRef, {
-        status: "archived",
-        remark, // Include the remark
-      });
+      const holderId = itemData.holderId;
 
-      console.log("Item archived successfully");
-      // Reset remark state after archiving
-      setArchiveRemark("");
+      if (!holderId) {
+        console.error("No holder ID found for this item:", currentItemId);
+        return; // Stop if no holder ID is available
+      }
+
+      // Update the item report to mark the user as notified
+      await supabase
+        .from("item_reports2")
+        .update({ notified: true })
+        .eq("id", currentItemId);
+
+      console.log(
+        `Notification sent for item ${currentItemId} to holder ${holderId}`
+      );
+
+      // Check if notificationText is defined
+      if (!notificationText) {
+        console.error("Notification text is not defined.");
+        return; // Stop if no notification text is available
+      }
+
+      // Create a new notification record
+      const { error: notifError } = await supabase
+        .from("notifications")
+        .insert([
+          {
+            userId: holderId,
+            itemId: currentItemId,
+            objectName: itemData.objectname || "Unknown Item",
+            message: notificationText,
+            timestamp: new Date(),
+          },
+        ]);
+
+      if (notifError) {
+        console.error("Error sending notification:", notifError);
+      } else {
+        console.log("Notification added successfully");
+        setShowNotifModal(false);
+      }
     } catch (error) {
-      console.error("Error archiving item:", error);
+      console.error("Error sending notification: ", error);
     }
   };
-  const handleClaimButtonClick = (item) => {
-    setShowClaimModal(true);
-    setCurrentItemId(item.id);
-    setCurrentUserId(item.userId); // Store the userId when opening the modal
-  };
-  const handleClaimItem = async () => {
-    try {
-      const itemRef = doc(
-        db,
-        `users/${currentUserId}/itemReports`,
-        currentItemId
-      ); // Use the currentUserId here
 
-      // Check if the document exists
-      const docSnap = await getDoc(itemRef);
-      if (!docSnap.exists()) {
-        console.error("No such document!");
-        return; // or set some error state to display to the user
+  const openClaimModal = (itemId) => {
+    setCurrentItemId(itemId);
+    setShowClaimModal(true);
+  };
+
+  const handleArchiveItem = async () => {
+    if (!currentItemId || !remark.trim()) return; // Ensure itemId and remark are provided
+
+    try {
+      const { error } = await supabase
+        .from("item_reports2")
+        .update({
+          status: "archived",
+          archiveremark: remark, // Save the archive remark
+        })
+        .eq("id", currentItemId);
+
+      if (error) {
+        console.error("Error archiving item:", error);
+      } else {
+        setFoundItems(foundItems.filter(item => item.id !== currentItemId)); // Remove the archived item from the list
+        setShowRemoveModal(false); // Close the modal
+        setArchiveRemark(""); // Clear the remark input
+        console.log("Item archived successfully.");
+      }
+    } catch (error) {
+      console.error("Error archiving item: ", error);
+    }
+  };
+
+  const handleClaimItem = async () => {
+    // Ensure claim details are filled out
+    if (
+      !claimerDetails.claimedBy.trim() ||
+      !claimerDetails.claimContactNumber.trim() ||
+      !claimerDetails.claimEmail.trim()
+    ) {
+      return; // Exit if any claim detail is missing
+    }
+
+    try {
+      // Update the item status to "claimed" in the database
+      const { error } = await supabase
+        .from("item_reports2")
+        .update({
+          status: "claimed",
+          claimedby: claimerDetails.claimedBy,
+          claimcontactnumber: claimerDetails.claimContactNumber,
+          claimemail: claimerDetails.claimEmail,
+        })
+        .eq("id", currentItemId);
+
+      if (error) {
+        console.error("Error updating claim status:", error);
+        return; // Exit if there's an error during the update
       }
 
-      // Update the document
-      await updateDoc(itemRef, {
-        claimedBy: claimerDetails.claimedBy,
-        claimContactNumber: claimerDetails.claimContactNumber,
-        claimEmail: claimerDetails.claimEmail,
-        dateClaimed: new Date().toISOString(),
-        confirmed: true,
-        status: "claimed",
-      });
+      // Re-fetch the updated list of found items
+      const fetchFoundItems = async () => {
+        let query = supabase
+          .from("item_reports2")
+          .select(
+            `
+            *,
+            userinfo:holderid (firstname, lastname, email, contact)
+          `
+          )
+          .eq("status", "pending")
+          .eq("type", "Found")
+          .eq("confirmed", true)
+          .order("createdat", { ascending: false });
 
-      setShowClaimModal(false);
-      setCurrentItemId(null);
-      setCurrentUserId(null); // Reset after claim
+        // Apply filters directly in the query
+        if (categoryFilter) {
+          query = query.eq("category", categoryFilter);
+        }
+        if (colorFilter) {
+          query = query.eq("color", colorFilter);
+        }
+        if (dateRange.start) {
+          query = query.gte("datefound", dateRange.start);
+        }
+        if (dateRange.end) {
+          query = query.lte("datefound", dateRange.end);
+        }
+
+        const { data, error: fetchError } = await query;
+
+        if (fetchError) {
+          console.error("Error fetching updated items:", fetchError);
+        } else {
+          setFoundItems(data);
+        }
+      };
+
+      await fetchFoundItems(); // Fetch updated data to reflect changes
+      setShowClaimModal(false); // Close the claim modal
       setClaimerDetails({
         claimedBy: "",
         claimContactNumber: "",
         claimEmail: "",
-      });
+      }); // Reset claim details form
+      console.log("Item successfully marked as claimed.");
     } catch (error) {
-      console.error("Error claiming item:", error);
+      console.error("Error handling claim:", error);
     }
   };
 
@@ -204,57 +313,49 @@ function LostItems() {
                   setDateRange((prev) => ({
                     ...prev,
                     start: newStart,
-                    end: prev.end && prev.end < newStart ? newStart : prev.end,
+                    end: prev.end < newStart ? newStart : prev.end,
                   }));
                 }}
               />
               <label className="tolabel">–</label>
-
               <input
                 type="date"
                 value={dateRange.end}
                 onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    end: e.target.value,
-                  }))
+                  setDateRange({ ...dateRange, end: e.target.value })
                 }
                 min={dateRange.start}
               />
             </div>
           </div>
         </div>
-        <label className="adminh2">{filteredItems.length}</label>
+        <label className="adminh2">{foundItems.length} </label>
       </div>
 
       <div className="containerlostdata">
-        {sortedFilteredItems.map((item) => (
+        {foundItems.map((item) => (
           <div key={item.id} className="lostitemcontainer">
             <img
               className="lostitemimg"
-              src={item.imageUrl || placeholder}
+              src={item.imageurl || placeholder}
               alt="Lost Item"
             />
             <div className="lostitembody">
               <div className="lostitemtop">
-                <label className="lostitemlabel">{item.objectName}</label>
+                <label className="lostitemlabel">{item.objectname}</label>
                 <div className="buttonslost">
+              
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
-                    onClick={() => {
-                      setShowRemoveModal(true);
-                      setCurrentItemId(item.id);
-                      // Assuming `userId` is part of the item data
-                      setCurrentUserId(item.userId);
-                    }}
+                    onClick={() => openRemoveModal(item.id)}
                   >
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
                   <button
                     className="lostitemimg2"
                     id="checklostitem"
-                    onClick={() => handleClaimButtonClick(item)} // Updated to use the new function
+                    onClick={() => openClaimModal(item.id)}
                   >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
@@ -271,26 +372,33 @@ function LostItems() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">{item.userName}</label>
+                  <label className="lostitemlabel3">
+                    {item.userinfo?.firstname && item.userinfo?.lastname
+                      ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
+                      : "N/A"}
+                  </label>
                   <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">{item.contactNumber}</label>
+                  <label className="lostitemlabel3">
+                    {item.userinfo?.contact}
+                  </label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">{item.email}</label>
+                  <label className="lostitemlabel3">
+                    {item.userinfo?.email}
+                  </label>
                 </div>
                 <div className="lostitempanel2">
                   <label className="lostitemlabel2">Date Found</label>
                   <label className="lostitemlabel3">
-                    {item.dateFound} at {item.timeFound}
+                    {item.datefound} at {item.timefound}
                   </label>
                   <label className="lostitemlabel2">Location Found</label>
-                  <label className="lostitemlabel3">{item.locationFound}</label>
+                  <label className="lostitemlabel3">{item.locationfound}</label>
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
-
       {showRemoveModal && (
         <div className="modal">
           <div className="modal-content">
@@ -303,7 +411,7 @@ function LostItems() {
             <div className="modalBtnDiv">
               <button
                 onClick={() => {
-                  handleArchiveItem(currentItemId, currentUserId);
+                  handleArchiveItem(currentItemId);
                   setShowRemoveModal(false); // Close modal after archiving
                 }}
                 disabled={!remark.trim()} // Disable if remark is empty
@@ -376,8 +484,10 @@ function LostItems() {
           </div>
         </div>
       )}
+
+
     </>
   );
 }
 
-export default LostItems;
+export default lostitems;
