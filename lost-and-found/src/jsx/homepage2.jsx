@@ -41,7 +41,6 @@ function Homepage2() {
     }
   };
 
-
   const fetchCounts = async () => {
     try {
       // Fetch count of 'found' items with 'pending' status
@@ -79,7 +78,6 @@ function Homepage2() {
     return () => clearInterval(intervalId);
   }, []);
 
-  
   useEffect(() => {
     const targetSection = localStorage.getItem("scrollToSection");
 
@@ -370,12 +368,12 @@ function Homepage2() {
             ref={itemStatusRef} // Assigning ref for ItemStatus
           >
             <div className="LostStatus">
-        <h2 id="lostitems">{lostItemsPending}</h2>
-        <span>Lost Items</span>
-      </div>
-      <div className="FoundStatus">
-        <h2 id="founditems">{foundItemsPending}</h2>
-        <span>Found Items</span>
+              <h2 id="lostitems">{lostItemsPending}</h2>
+              <span>Lost Items</span>
+            </div>
+            <div className="FoundStatus">
+              <h2 id="founditems">{foundItemsPending}</h2>
+              <span>Found Items</span>
             </div>
           </div>
         </div>

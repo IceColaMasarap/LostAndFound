@@ -26,7 +26,7 @@ function ReportFoundItem() {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [codeGenerated, setCodeGenerated] = useState(false);
-  const [otherColor, setOtherColor] = useState(""); 
+  const [otherColor, setOtherColor] = useState("");
 
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
@@ -96,7 +96,9 @@ function ReportFoundItem() {
     setCodeGenerated(true);
 
     try {
-      const now = new Date().toISOString();
+      const now = new Date();
+      now.setDate(now.getDate() + 1); // Add 1 day
+      const newDate = now.toISOString(); // Convert to ISO string
       const validDateFound = dateFound || now.split("T")[0];
       const validTimeFound = timeFound || "00:00:00";
       const holderId = userData.id;
@@ -114,7 +116,7 @@ function ReportFoundItem() {
           {
             code: parseInt(code, 10),
             confirmed: false,
-            createdat: now,
+            createdat: newDate,
             holderid: holderId,
             category,
             brand,

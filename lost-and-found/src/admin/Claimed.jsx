@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBoxArchive,
-  faCheck,
-  faBell,
-} from "@fortawesome/free-solid-svg-icons";
+
 import { supabase } from "../supabaseClient"; // Import Supabase client
 
 function Claimed() {

@@ -104,11 +104,15 @@ function ReportLostItem() {
         return;
       }
 
-      console.log(`User has created ${recentReports.length} reports in the last hour.`);
+      console.log(
+        `User has created ${recentReports.length} reports in the last hour.`
+      );
 
       // Check if the user has reached the limit of 5 reports per hour
       if (recentReports.length >= 5) {
-        alert("You have reached the limit of 5 reports per hour. Please wait before reporting again.");
+        alert(
+          "You have reached the limit of 5 reports per hour. Please wait before reporting again."
+        );
         console.log("User has reached the limit of 5 reports per hour.");
         return;
       }
@@ -118,7 +122,9 @@ function ReportLostItem() {
         const latestReportTime = new Date(recentReports[0].createdat);
         if (latestReportTime >= threeMinutesAgo) {
           alert("Please wait 3 minutes before submitting another report.");
-          console.log("User must wait 3 minutes before submitting another report.");
+          console.log(
+            "User must wait 3 minutes before submitting another report."
+          );
           return;
         }
       }
@@ -329,7 +335,7 @@ function ReportLostItem() {
                 {category === "Other" && (
                   <input
                     type="text"
-                    className="OtherInput"
+                    className="FInput"
                     placeholder="Other category"
                     value={otherCategory}
                     onChange={(e) => setOtherCategory(e.target.value)}
@@ -464,7 +470,7 @@ function ReportLostItem() {
 
               {itemDetails.color === "Others" && (
                 <input
-                className="FInput"
+                  className="FInput"
                   type="text"
                   placeholder="Specify color"
                   value={otherColor}
