@@ -354,7 +354,11 @@ function All() {
                       {Object.keys(visibleColumns).map(
                         (column) =>
                           visibleColumns[column] && (
-                            <td key={column}>{item[column] || "N/A"}</td>
+                            <td key={column}>
+                              {column === "type"
+                                ? getTypeDisplay(item[column])
+                                : item[column] || "N/A"}
+                            </td>
                           )
                       )}
                     </tr>
