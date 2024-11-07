@@ -10,7 +10,7 @@ import Memo2Img from "../assets/Memo2Img.png";
 import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { collectionGroup, onSnapshot, collection } from "firebase/firestore";
 import { db } from "./firebase"; // Import Firestore instance
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
@@ -24,12 +24,6 @@ function Homepage2() {
   const [foundItems, setFoundItems] = useState([]);
   const [notifications, setNotifications] = useState([]); // State to hold notifications
   const [showNotifications, setShowNotifications] = useState(false); // State to toggle notifications
-
-  const lastScrollTimeRef = useRef(0); // Ref to track last scroll time
-  const textRefs = useRef([]); // For text containers
-  const imgRefs = useRef([]); // For image containers
-  const homepageRef = useRef(null); // For HomePageContent
-  const itemStatusRef = useRef(null); // For ItemStatus
 
   useEffect(() => {
     const fetchAuthenticatedUserUid = async () => {
@@ -48,81 +42,6 @@ function Homepage2() {
     fetchAuthenticatedUserUid();
   }, []);
 
-  // Scroll effect for fade-in
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-          } else {
-            entry.target.classList.remove("visible");
-          }
-        });
-      },
-      { threshold: 0.3 } // Trigger when 30% of the section is visible
-    );
-
-    // Observe text and image containers
-    textRefs.current.forEach((textRef) => {
-      if (textRef) observer.observe(textRef);
-    });
-
-    imgRefs.current.forEach((imgRef) => {
-      if (imgRef) observer.observe(imgRef);
-    });
-
-    // Observe the HomePageContent for the unique effect
-    if (homepageRef.current) observer.observe(homepageRef.current);
-// Observe the ItemStatus for the fade effect
-if (itemStatusRef.current) observer.observe(itemStatusRef.current);
-
-    return () => observer.disconnect();
-  }, []);
-
-  const handleScroll = (event) => {
-    event.preventDefault(); // Prevent default scroll behavior
-
-    const currentTime = new Date().getTime();
-    const timeDifference = currentTime - lastScrollTimeRef.current;
-
-    if (timeDifference < 600) return; // Throttle scroll to 600ms
-
-    lastScrollTimeRef.current = currentTime; // Update last scroll time
-
-    // Get all section elements
-    const sections = document.querySelectorAll(".sections > div");
-    const viewportHeight = window.innerHeight;
-
-    // Find the section currently at the top
-    const currentSectionIndex = Array.from(sections).findIndex((section) => {
-      const rect = section.getBoundingClientRect();
-      return rect.top >= 0 && rect.top < viewportHeight;
-    });
-
-    let nextSectionIndex;
-
-    if (event.deltaY > 0) {
-      // Scroll down
-      nextSectionIndex =
-        currentSectionIndex + 1 < sections.length ? currentSectionIndex + 1 : currentSectionIndex;
-    } else {
-      // Scroll up
-      nextSectionIndex =
-        currentSectionIndex - 1 >= 0 ? currentSectionIndex - 1 : currentSectionIndex;
-    }
-
-    sections[nextSectionIndex].scrollIntoView({ behavior: "smooth" });
-  };
-
-  // Set up scroll event listener
-  useEffect(() => {
-    const handleWheelScroll = (e) => handleScroll(e);
-
-    window.addEventListener("wheel", handleWheelScroll, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheelScroll);
-  }, []);
-  
   useEffect(() => {
     if (!loading && uid === "4skSWo0Ld2YnIZG1hGRaNQd3Kg72") {
       navigate("/adminpage");
@@ -230,10 +149,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
 
       <div className="sections">
         <div className="HomePage" id="HomePage">
-        <div 
-            className="homepage-fade HomePageContent" 
-            ref={homepageRef} // Assigning ref for HomePageContent
-          >
+          <div className="HomePageContent">
             <h1>The lost items are in DO’s hands.</h1>
             <p>
               Welcome to our page, the easy way to manage lost and found items
@@ -241,10 +157,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
               students reconnect with their items.
             </p>
           </div>
-          <div 
-            className="homepage-fade ItemStatus" // Applying the same effect here
-            ref={itemStatusRef} // Assigning ref for ItemStatus
-          >
+          <div className="ItemStatus">
             <div className="LostStatus">
               <h2 id="lostitems">{lostItemsCount}</h2>
               <span>Found Items</span>
@@ -257,14 +170,8 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
         </div>
 
         <div className="Memo1" id="Memo1">
-          <img
-            src={Memo1Img}
-            className="Memo1Img fade-content1"
-            ref={(el) => (imgRefs.current[0] = el)}
-          />
-          <div className="Memo1TextContainer fade-content1"
-            ref={(el) => (textRefs.current[0] = el)}
-          >
+          <img src={Memo1Img} className="Memo1Img" />
+          <div className="Memo1TextContainer">
             <h1>Memorandum for the Disposal of Found Items.</h1>
             <p>
               • Unclaimed property that easily decays, releases odor, or is
@@ -280,9 +187,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
         </div>
 
         <div className="Memo2">
-          <div className="Memo2TextContainer fade-content2"
-            ref={(el) => (textRefs.current[1] = el)}
-          >
+          <div className="Memo2TextContainer">
             <h1>Memorandum for the Claiming of Found Items.</h1>
             <p>
               • Perishable and personal items that can emit foul odor must be
@@ -307,18 +212,12 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
               <br />• Electronics
             </p>
           </div>
-          <img src={Memo2Img} className="Memo2Img fade-content2"
-            ref={(el) => (imgRefs.current[1] = el)}
-          />
+          <img src={Memo2Img} className="Memo2Img" />
         </div>
 
         <div className="Report1" id="Report1">
-          <img src={Report1Img} className="Report1Img fade-content1"
-            ref={(el) => (imgRefs.current[2] = el)}
-          />
-          <div className="Report1TextContainer fade-content1"
-            ref={(el) => (textRefs.current[2] = el)}
-          >
+          <img src={Report1Img} className="Report1Img" />
+          <div className="Report1TextContainer">
             <h1>Report a Found Item.</h1>
             <p>
               When reporting a found item, please follow the necessary steps
@@ -338,9 +237,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
         </div>
 
         <div className="Report2">
-          <div className="Report2TextContainer fade-content2"
-            ref={(el) => (textRefs.current[3] = el)}
-          >
+          <div className="Report2TextContainer">
             <h1>Report a Missing Item.</h1>
             <p>
               When reporting a missing item, please follow the necessary steps
@@ -357,9 +254,7 @@ if (itemStatusRef.current) observer.observe(itemStatusRef.current);
               Report a Missing Item
             </button>
           </div>
-          <img src={Report2Img} className="Report2Img fade-content2"
-            ref={(el) => (imgRefs.current[4] = el)}
-          />
+          <img src={Report2Img} className="Report2Img" />
         </div>
 
         <div className="dark-blue-footer">
