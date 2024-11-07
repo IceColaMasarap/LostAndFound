@@ -23,15 +23,7 @@ function App() {
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/report-lost-item/*" element={<ReportLostItem />} />
             <Route path="/report-found-item/*" element={<ReportFoundItem />} />
-
-            <Route
-              path="/adminpage/*"
-              element={
-                <PrivateRoute adminOnly={true}>
-                  <AdminPage />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/adminpage/*" element={<AdminPage />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

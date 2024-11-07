@@ -2,16 +2,7 @@ import "./Admin.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import React, { useState, useEffect } from "react";
-import {
-  setDoc,
-  collectionGroup,
-  query,
-  getDocs,
-  where,
-  onSnapshot,
-} from "firebase/firestore";
-
-import { db } from "../config/firebase";
+import { supabase } from "../supabaseClient"; // Import your Supabase client
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -19,22 +10,42 @@ function Dashboard() {
   const [inputCode, setInputCode] = useState("");
   const [message, setMessage] = useState("");
   const [foundItems, setFoundItems] = useState([]);
+  const [userData, setUserData] = useState(null); // Store user data here
+
+  // Retrieve user data from sessionStorage
+  useEffect(() => {
+    const user = JSON.parse(sessionStorage.getItem("user"));
+
+    if (user) {
+      setUserData({
+        name: `${user.firstname} ${user.lastname}`,
+        email: user.email,
+        contactNumber: user.contact,
+        userId: user.id, // Assuming the user object contains the userId
+      });
+    } else {
+      console.log("No user data found in sessionStorage.");
+    }
+  }, []);
 
   const handleCodeInput = (e) => {
     setInputCode(e.target.value);
   };
 
+  // Fetch item based on code from Supabase
   const fetchItem = async () => {
     try {
-      const foundItemsQuery = query(
-        collectionGroup(db, "itemReports"),
-        where("code", "==", inputCode)
-      );
-      const querySnapshot = await getDocs(foundItemsQuery);
+      const { data, error } = await supabase
+        .from("item_reports2")
+        .select("*")
+        .eq("code", inputCode)
+        .single(); // Retrieve single item based on the code
 
-      if (!querySnapshot.empty) {
-        const docSnapshot = querySnapshot.docs[0];
-        await confirmItem(docSnapshot.ref);
+      if (error) {
+        setMessage("Error fetching item. Please try again.");
+        console.error(error);
+      } else if (data) {
+        await confirmItem(data.id);
         toast.success("Reported found item received successfully!");
       } else {
         setMessage("No matching item found for the given code.");
@@ -45,35 +56,46 @@ function Dashboard() {
     }
   };
 
-  const confirmItem = async (docRef) => {
+  // Confirm item by updating the status in Supabase
+  const confirmItem = async (itemId) => {
     try {
-      setInputCode("");
-      await setDoc(docRef, { confirmed: true }, { merge: true });
+      const { error } = await supabase
+        .from("item_reports2")
+        .update({ confirmed: true })
+        .eq("id", itemId); // Mark item as confirmed
+
+      if (error) {
+        toast.error("Error confirming the item. Please try again.");
+        console.error("Error updating confirmation status:", error);
+      } else {
+        setInputCode(""); // Reset input field after confirmation
+      }
     } catch (error) {
-      console.error("Error updating confirmation status:", error);
+      console.error("Error confirming item:", error);
       toast.error("Error confirming the item. Please try again.");
     }
   };
 
   useEffect(() => {
-    const foundItemsQuery = collectionGroup(db, "itemReports");
+    // Fetch found items from Supabase
+    const fetchFoundItems = async () => {
+      try {
+        const { data, error } = await supabase.from("item_reports2").select(`
+          *,
+          userinfo:holderid (firstname, lastname)
+        `);
 
-    const unsubscribe = onSnapshot(foundItemsQuery, (querySnapshot) => {
-      const items = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const userName = data.userDetails?.name || "N/A"; // Access userDetails.name
+        if (error) {
+          console.error("Error fetching found items: ", error);
+        } else {
+          setFoundItems(data);
+        }
+      } catch (error) {
+        console.error("Error fetching found items: ", error);
+      }
+    };
 
-        return {
-          id: doc.id,
-          ...data,
-          userName,
-        };
-      });
-
-      setFoundItems(items);
-    });
-
-    return () => unsubscribe();
+    fetchFoundItems();
   }, []);
 
   // Count the items based on their status
@@ -148,17 +170,21 @@ function Dashboard() {
                   foundItems
                     .filter((item) => item.status) // Filter out items without status
                     .sort(
-                      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                      (a, b) => new Date(b.createdat) - new Date(a.createdat)
                     ) // Sort in descending order by date
                     .slice(0, 5) // Limit to 5 rows
                     .map((item) => (
                       <tr key={item.id}>
-                        <td>{item.name}</td>
-                        <td>{item.category}</td>
-                        <td>{item.objectName}</td>
                         <td>
-                          {item.createdAt
-                            ? new Date(item.createdAt).toLocaleString() // Convert string to Date for display
+                          {item.userinfo?.firstname && item.userinfo?.lastname
+                            ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
+                            : "N/A"}
+                        </td>
+                        <td>{item.category}</td>
+                        <td>{item.objectname}</td>
+                        <td>
+                          {item.createdat
+                            ? new Date(item.createdat).toLocaleString() // Convert string to Date for display
                             : "N/A"}
                         </td>
                         <td>
@@ -170,7 +196,7 @@ function Dashboard() {
                             ? "Claimed"
                             : "N/A"}
                         </td>
-                        <td>{item.claimedBy ? item.claimedBy : "N/A"}</td>
+                        <td>{item.claimedby ? item.claimedby : "N/A"}</td>
                       </tr>
                     ))
                 ) : (

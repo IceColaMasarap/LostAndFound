@@ -1,26 +1,16 @@
+// PrivateRoute.jsx
 import React from "react";
-import { useAuth } from "../hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
-const PrivateRoute = ({ children, adminOnly = false }) => {
-  const { user, isLoading } = useAuth();
+const PrivateRoute = ({ isAdminRequired }) => {
+  const user = JSON.parse(sessionStorage.getItem("user"));
 
-  if (isLoading) {
-    return <div>Loading...</div>; // Handle loading state
+  if (!user || (isAdminRequired && !user.is_admin)) {
+    // Redirect to login or homepage if not admin
+    return <Navigate to="/login" />;
   }
 
-  console.log(user); // Debugging the user state
-
-  if (!user) {
-    return <Navigate to="/" replace={true} />; // Redirect if not authenticated
-  }
-
-  // Check if the route is admin-only and if the user is not the admin
-  if (adminOnly && user.email !== "admin@gmail.com") {
-    return <Navigate to="/homepage" replace={true} />; // Redirect non-admin users
-  }
-
-  return children;
+  return <Outlet />; // Render nested routes
 };
 
 export default PrivateRoute;
