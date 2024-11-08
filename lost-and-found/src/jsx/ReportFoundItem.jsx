@@ -99,7 +99,7 @@ function ReportFoundItem() {
     try {
       const now = new Date();
       now.setDate(now.getDate() + 1); // Add 1 day
-      const newDate = now.toISOString(); // Convert to ISO string
+    
       const validDateFound = dateFound || now.split("T")[0];
       const validTimeFound = timeFound || "00:00:00";
       const holderId = userData.id;
@@ -640,6 +640,7 @@ function ReportFoundItem() {
                 Previous
               </button>
               <button
+              
                 className="Nextbtn"
                 onClick={nextStep}
                 disabled={!confirmed}
