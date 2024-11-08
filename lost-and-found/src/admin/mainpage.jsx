@@ -15,6 +15,7 @@ import {
   faClipboardCheck,
   faBorderAll,
   faBoxArchive,
+  faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
 import logo from "../assets/logo.png";
 import "./Admin.css";
@@ -58,6 +59,7 @@ function MainPage() {
           </li>
           <li>
             <Link to="/login">
+              <FontAwesomeIcon icon={faRightFromBracket} />
               Logout
             </Link>
           </li>
