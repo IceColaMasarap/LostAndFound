@@ -33,18 +33,29 @@ function Homepage2() {
       targetSection.scrollIntoView({ behavior: "smooth" }); // Scroll smoothly to the target section
     }
   };
-
   const fetchNotifications = async () => {
     try {
+      // Retrieve user data from sessionStorage
+      const user = JSON.parse(sessionStorage.getItem("user"));
+
+      if (!user) {
+        console.log("No user data found in sessionStorage.");
+        return;
+      }
+
+      const userId = user.id; // Get the user ID from sessionStorage
+
+      // Fetch notifications for the specific user from Supabase
       const { data, error } = await supabase
         .from("item_reports2")
-        .select("id, message,imageurl")
-        .eq("notified", true);
+        .select("id, message, imageurl, objectname, notifdate")
+        .eq("holderid", userId) // Filter notifications based on user_id
+        .eq("notified", true); // Assuming 'notified' is a column to check for new notifications
 
       if (error) {
         console.error("Error fetching notifications:", error);
       } else {
-        setNotifications(data);
+        setNotifications(data); // Set the notifications state
       }
     } catch (error) {
       console.error("Unexpected error fetching notifications:", error);
@@ -110,18 +121,14 @@ function Homepage2() {
     }
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      // Use Supabase's signOut method to log the user out
-      const { error } = await supabase.auth.signOut();
+      // Remove user data from sessionStorage
+      sessionStorage.removeItem("user");
 
-      if (error) {
-        console.error("Error logging out:", error.message);
-      } else {
-        console.log("User logged out successfully");
-        // Redirect user to a specific page or refresh the page
-        navigate("/login"); // For example, navigate to the login page
-      }
+      console.log("User logged out successfully");
+      // Redirect the user to the login page or home page
+      navigate("/login"); // For example, navigate to the login page
     } catch (error) {
       console.error("Unexpected error during logout:", error.message);
     }
@@ -294,6 +301,11 @@ function Homepage2() {
           className="notif"
           onClick={handleShowNotifications}
         />
+
+        {/* Display red circle if there are unread notifications */}
+        {notifications.length > 0 && (
+          <div className="notifIndicator">{notifications.length}</div>
+        )}
       </div>
 
       {showNotifications && (
@@ -307,30 +319,39 @@ function Homepage2() {
               </p>
             ) : (
               <>
-                <p style={{ color: "black" }}>Total Notifications: {notifications.length}</p>{" "}
-                {/* Display number of notifications */}
+                <p style={{ color: "black" }}>
+                  Total Notifications: {notifications.length}
+                </p>
                 {notifications.map((notification) => (
-                  <div key={notification.id} className="notificationItem">
-
-
-{notification.imageurl && (
-            <img
-              src={notification.imageurl}
-              alt="Notification Image"
-              className="notificationImage"
-              style={{ width: "50px", height: "50px", marginRight: "10px" }}
-            />
-          )}
-          <p style={{ color: "black" }}>
-            {notification.message}
-          </p>
-
-                    
+                  <div key={notification.id} className="notif1">
+                    {notification.imageurl && (
+                      <img
+                        src={notification.imageurl}
+                        alt="Notification Image"
+                        className="notifImg"
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          marginRight: "10px",
+                        }}
+                      />
+                    )}
+                    <div className="innerBody">
+                      <p id="pxD" className="notifName">
+                        {notification.objectname}
+                      </p>
+                      <label id="labelxD" className="notifDesc">
+                        {notification.message}
+                      </label>
+                      <p className="notifDate">
+                        {" "}
+                        {new Date(notification.notifdate).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </>
             )}
-            {console.log(notifications)} {/* Log the notifications array */}
           </div>
 
           <div className="logoutDiv">
