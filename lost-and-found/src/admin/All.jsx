@@ -11,7 +11,6 @@ function All() {
   const [showCheckboxContainer, setShowCheckboxContainer] = useState(true);
   const [searchTerm, setSearchTerm] = useState(""); // New state for search term
 
-
   // Columns state to manage visibility
   const [visibleColumns, setVisibleColumns] = useState({
     type: true,
@@ -32,8 +31,17 @@ function All() {
     dateclaimed: true,
     status: true,
   });
-
-
+  const handlePrint = () => {
+    const printContent = document.getElementById("printable-table").outerHTML; // Get table HTML
+    const newWindow = window.open("", "", "width=800, height=600");
+    newWindow.document.write(
+      "<html><head><title>Print Table</title></head><body>"
+    );
+    newWindow.document.write(printContent);
+    newWindow.document.write("</body></html>");
+    newWindow.document.close();
+    newWindow.print();
+  };
 
   const showCustomCheckbox = () => {
     setShowCheckboxContainer((prev) => !prev);
@@ -160,6 +168,38 @@ function All() {
       }, {})
     );
   };
+  const fetchUserInfo = async (userId) => {
+    const { data, error } = await supabase
+      .from("userinfo")
+      .select("firstname, lastname, contact, email")
+      .eq("id", userId)
+      .single(); // Ensure only one user info is fetched
+    if (error) {
+      console.error("Error fetching user data:", error);
+      return null;
+    }
+    return data;
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await supabase.from("item_reports2").select("*");
+      const itemsWithUserInfo = await Promise.all(
+        result.data.map(async (item) => {
+          // Fetch user info based on the holderid
+          const userInfo = await fetchUserInfo(item.holderid);
+          return {
+            ...item,
+            name: `${userInfo.firstname} ${userInfo.lastname}`,
+            contactnumber: userInfo.contact,
+            email: userInfo.email,
+          };
+        })
+      );
+      setItems(itemsWithUserInfo);
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -203,11 +243,11 @@ function All() {
 
   const filteredItems = items.filter((item) => {
     const matchesType =
-      (filter === "lost" && item.type === "Lost") ||
-      (filter === "pending" && item.type === "Found") ||
+      (filter === "lost" && item.type === "Found") ||
+      (filter === "pending" && item.type === "Lost") ||
       (filter === "claimed" && item.status === "claimed") ||
       filter === "all";
-  
+
     const matchesCategory =
       categoryFilter === "Others"
         ? !["Personal Belonging", "Electronics", "Documents"].includes(
@@ -216,18 +256,18 @@ function All() {
         : categoryFilter
         ? item.category === categoryFilter
         : true;
-  
+
     const matchesColor = colorFilter ? item.color === colorFilter : true;
-  
+
     const itemDate = new Date(item.dateclaimed); // Use dateclaimed for filtering
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
       (!dateRange.end || itemDate <= new Date(dateRange.end));
-  
+
     const matchesSearchTerm = item.objectname
       ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
       : false;
-  
+
     return (
       matchesType &&
       matchesCategory &&
@@ -334,6 +374,7 @@ function All() {
           <button className="togglev" onClick={showCustomCheckbox}>
             Toggle
           </button>{" "}
+          <button onClick={handlePrint}>Print Table</button>
         </div>
       </div>
 
@@ -354,7 +395,7 @@ function All() {
       <div className="dashboardbody">
         <div className="dashboardtable">
           <div className="table-containerAll">
-            <table className="report-table">
+            <table id="printable-table" className="report-table">
               <thead>
                 <tr>
                   {Object.keys(visibleColumns).map(
