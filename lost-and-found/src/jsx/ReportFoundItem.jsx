@@ -28,7 +28,6 @@ function ReportFoundItem() {
   const [codeGenerated, setCodeGenerated] = useState(false);
   const [otherColor, setOtherColor] = useState("");
   const today = new Date().toLocaleDateString("en-CA"); // Using Canadian format 'YYYY-MM-DD' for local time
-  const [otherColor, setOtherColor] = useState("");
 
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));

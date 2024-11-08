@@ -84,7 +84,6 @@ function lostitems() {
       }
     };
 
-
     fetchFoundItems();
   }, [categoryFilter, colorFilter, dateRange]); // Re-fetch when filters change
 
@@ -179,7 +178,7 @@ function lostitems() {
       if (error) {
         console.error("Error archiving item:", error);
       } else {
-        setFoundItems(foundItems.filter(item => item.id !== currentItemId)); // Remove the archived item from the list
+        setFoundItems(foundItems.filter((item) => item.id !== currentItemId)); // Remove the archived item from the list
         setShowRemoveModal(false); // Close the modal
         setArchiveRemark(""); // Clear the remark input
         console.log("Item archived successfully.");
@@ -344,7 +343,6 @@ function lostitems() {
               <div className="lostitemtop">
                 <label className="lostitemlabel">{item.objectname}</label>
                 <div className="buttonslost">
-              
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
@@ -484,8 +482,6 @@ function lostitems() {
           </div>
         </div>
       )}
-
-
     </>
   );
 }
