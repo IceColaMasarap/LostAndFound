@@ -38,7 +38,7 @@ function Homepage2() {
     try {
       const { data, error } = await supabase
         .from("item_reports2")
-        .select("id, message")
+        .select("id, message,imageurl")
         .eq("notified", true);
 
       if (error) {
@@ -307,15 +307,25 @@ function Homepage2() {
               </p>
             ) : (
               <>
-                <p>Total Notifications: {notifications.length}</p>{" "}
+                <p style={{ color: "black" }}>Total Notifications: {notifications.length}</p>{" "}
                 {/* Display number of notifications */}
                 {notifications.map((notification) => (
                   <div key={notification.id} className="notificationItem">
-                    {/* Optional, if you want to show the ID */}
-                    <p style={{ color: "black" }}>
-                      {notification.message}
-                    </p>{" "}
-                    {/* Display the message */}
+
+
+{notification.imageurl && (
+            <img
+              src={notification.imageurl}
+              alt="Notification Image"
+              className="notificationImage"
+              style={{ width: "50px", height: "50px", marginRight: "10px" }}
+            />
+          )}
+          <p style={{ color: "black" }}>
+            {notification.message}
+          </p>
+
+                    
                   </div>
                 ))}
               </>
