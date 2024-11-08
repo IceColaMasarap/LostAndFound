@@ -196,45 +196,34 @@ function Archive() {
   };
 
   const filteredItems = items.filter((item) => {
-    // Use status for the "Claimed" filter
-
-    // Use type for the "Lost" and "Missing" filters
     const matchesType =
       (filter === "lost" && item.type === "Lost") ||
       (filter === "pending" && item.type === "Found") ||
       (filter === "claimed" && item.status === "claimed") ||
-      filter === "all" // All items are included when "all" is selected
-        ? true
-        : false;
-
+      filter === "all";
+  
     const matchesCategory =
       categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(
-            item.category
-          )
+        ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category)
         : categoryFilter
         ? item.category === categoryFilter
         : true;
-
+  
     const matchesColor = colorFilter ? item.color === colorFilter : true;
-
-    const itemDate = new Date(item.createdAt);
+  
+    // Adjust date parsing to ignore timezone
+    const itemDate = item.createdat ? new Date(item.createdat.split("T")[0]) : null; // Extract the date part only
+    const startDate = dateRange.start ? new Date(dateRange.start + "T00:00:00") : null;
+    const endDate = dateRange.end ? new Date(dateRange.end + "T23:59:59") : null;
+  
     const matchesDateRange =
-      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-      (!dateRange.end || itemDate <= new Date(dateRange.end));
-
-    // Only include items where confirmed is not false
-    const isConfirmed = item.confirmed !== false;
+      itemDate &&
+      (!startDate || itemDate >= startDate) &&
+      (!endDate || itemDate <= endDate);
+  
     const archive = item.status === "archived";
-
-    return (
-      matchesType &&
-      matchesCategory &&
-      matchesColor &&
-      matchesDateRange &&
-      isConfirmed &&
-      archive
-    );
+  
+    return matchesType && matchesCategory && matchesColor && matchesDateRange && archive;
   });
 
   return (
@@ -297,7 +286,6 @@ function Archive() {
                 }
               />
               <label className="tolabel">–</label>
-
               <input
                 type="date"
                 value={dateRange.end}
@@ -307,6 +295,7 @@ function Archive() {
                 min={dateRange.start}
               />
             </div>
+
           </div>
         </div>
 

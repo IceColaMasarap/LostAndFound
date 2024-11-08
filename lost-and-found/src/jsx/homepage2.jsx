@@ -1,17 +1,12 @@
 import "../styling/homepage2.css";
 import logo from "../assets/NULAFD_LOGO.svg";
 import notif from "../assets/notif.svg";
-import img1 from "../assets/info-1-1.png";
-import img2 from "../assets/info-2-2.png";
-import Report1_Img from "../assets/Report1_Img.png";
-import Report2_Img from "../assets/Report2_Img.png";
 import Memo1Img from "../assets/Memo1Img.png";
 import Memo2Img from "../assets/Memo2Img.png";
 import Report1Img from "../assets/Report1Img.png";
 import Report2Img from "../assets/Report2Img.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import Notification from "./notification"; // Import your notification component
 import { supabase } from "../config/supabase"; // Adjust the path according to your project structure
 
@@ -36,6 +31,23 @@ function Homepage2() {
     const targetSection = document.getElementById(targetId); // Get the target section element
     if (targetSection) {
       targetSection.scrollIntoView({ behavior: "smooth" }); // Scroll smoothly to the target section
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("item_reports2")
+        .select("id, message")
+        .eq("notified", true);
+
+      if (error) {
+        console.error("Error fetching notifications:", error);
+      } else {
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error("Unexpected error fetching notifications:", error);
     }
   };
 
@@ -66,13 +78,15 @@ function Homepage2() {
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchCounts();
+    fetchNotifications(); // Initial notification fetch
 
-    // Set up polling to fetch data every 5 seconds (5000 ms)
-    const intervalId = setInterval(fetchCounts, 5000);
+    // Polling setup
+    const intervalId = setInterval(() => {
+      fetchCounts();
+      fetchNotifications(); // Fetch notifications periodically
+    }, 5000);
 
-    // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, []);
 
@@ -135,22 +149,6 @@ function Homepage2() {
     });
 
     return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const fetchAuthenticatedUserUid = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser; // Get the current authenticated user
-
-      if (user) {
-        setUid(user.uid);
-      } else {
-      }
-
-      setLoading(false);
-    };
-
-    fetchAuthenticatedUserUid();
   }, []);
 
   // Scroll effect for fade-in
@@ -232,8 +230,6 @@ function Homepage2() {
     return () => window.removeEventListener("wheel", handleWheelScroll);
   }, []);
 
-
-
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(
     (item) => item.status === "lost"
@@ -303,17 +299,30 @@ function Homepage2() {
       {showNotifications && (
         <div className="notifbody">
           <h2>Notifications:</h2>
+
           <div className="notifScroll">
             {notifications.length === 0 ? (
               <p className="noNotificationsMessage">
                 No notifications available.
               </p>
             ) : (
-              notifications.map((notification) => (
-                <Notification key={notification.id} data={notification} /> // Use the Notification component
-              ))
+              <>
+                <p>Total Notifications: {notifications.length}</p>{" "}
+                {/* Display number of notifications */}
+                {notifications.map((notification) => (
+                  <div key={notification.id} className="notificationItem">
+                    {/* Optional, if you want to show the ID */}
+                    <p style={{ color: "black" }}>
+                      {notification.message}
+                    </p>{" "}
+                    {/* Display the message */}
+                  </div>
+                ))}
+              </>
             )}
+            {console.log(notifications)} {/* Log the notifications array */}
           </div>
+
           <div className="logoutDiv">
             <button
               className="logoutBtnxd"
@@ -503,21 +512,6 @@ function Homepage2() {
             className="Report2Img fade-content2"
             ref={(el) => (imgRefs.current[4] = el)}
           />
-        </div>
-
-        <div className="dark-blue-footer">
-          <div className="footerContent">
-            <h3>Contact Us:</h3>
-            <ul>
-              <li>
-                Email:{" "}
-                <a href="mailto:nu.lostandfound.dasmarinas@gmail.com">
-                  nu.lostandfound.dasmarinas@gmail.com
-                </a>
-              </li>
-              <li>Contact No.: 0999-999-9999</li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

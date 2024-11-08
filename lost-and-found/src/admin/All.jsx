@@ -9,6 +9,8 @@ function All() {
   const [colorFilter, setColorFilter] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [showCheckboxContainer, setShowCheckboxContainer] = useState(true);
+  const [searchTerm, setSearchTerm] = useState(""); // New state for search term
+
 
   // Columns state to manage visibility
   const [visibleColumns, setVisibleColumns] = useState({
@@ -30,6 +32,8 @@ function All() {
     dateclaimed: true,
     status: true,
   });
+
+
 
   const showCustomCheckbox = () => {
     setShowCheckboxContainer((prev) => !prev);
@@ -105,6 +109,7 @@ function All() {
       dateclaimed: false,
       status: true,
     },
+
     claimed: {
       type: true,
       category: true,
@@ -124,6 +129,7 @@ function All() {
       dateclaimed: true,
       status: true,
     },
+
     all: {
       type: true,
       category: true,
@@ -196,17 +202,12 @@ function All() {
   };
 
   const filteredItems = items.filter((item) => {
-    // Use status for the "Claimed" filter
-
-    // Use type for the "Lost" and "Missing" filters
     const matchesType =
       (filter === "lost" && item.type === "Lost") ||
       (filter === "pending" && item.type === "Found") ||
       (filter === "claimed" && item.status === "claimed") ||
-      filter === "all" // All items are included when "all" is selected
-        ? true
-        : false;
-
+      filter === "all";
+  
     const matchesCategory =
       categoryFilter === "Others"
         ? !["Personal Belonging", "Electronics", "Documents"].includes(
@@ -215,26 +216,27 @@ function All() {
         : categoryFilter
         ? item.category === categoryFilter
         : true;
-
+  
     const matchesColor = colorFilter ? item.color === colorFilter : true;
-
-    const itemDate = new Date(item.createdAt);
+  
+    const itemDate = new Date(item.dateclaimed); // Use dateclaimed for filtering
     const matchesDateRange =
       (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
       (!dateRange.end || itemDate <= new Date(dateRange.end));
-
-    // Only include items where confirmed is not false
-    const isConfirmed = item.confirmed !== false;
-
+  
+    const matchesSearchTerm = item.objectname
+      ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
+      : false;
+  
     return (
       matchesType &&
       matchesCategory &&
       matchesColor &&
       matchesDateRange &&
-      isConfirmed
+      matchesSearchTerm &&
+      item.confirmed !== false
     );
   });
-
   // Modify the rendering of the type column based on the filter
   const getTypeDisplay = (type) => {
     if (filter === "lost" && type === "Found") {
@@ -303,7 +305,6 @@ function All() {
                 }
               />
               <label className="tolabel">–</label>
-
               <input
                 type="date"
                 value={dateRange.end}
@@ -313,6 +314,13 @@ function All() {
                 min={dateRange.start}
               />
             </div>
+            <input
+              type="text"
+              className="searchbar"
+              placeholder="Search by object name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)} // Update search term on input change
+            />
           </div>
         </div>
 

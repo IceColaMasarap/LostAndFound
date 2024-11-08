@@ -197,8 +197,20 @@ function lostitems() {
     ) {
       return; // Exit if any claim detail is missing
     }
-
+  
     try {
+      // Get the current date and time in local timezone
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+      const day = String(currentDate.getDate()).padStart(2, "0");
+      const hours = String(currentDate.getHours()).padStart(2, "0");
+      const minutes = String(currentDate.getMinutes()).padStart(2, "0");
+      const seconds = String(currentDate.getSeconds()).padStart(2, "0");
+  
+      // Format the date and time as a timestamp in "YYYY-MM-DDTHH:mm:ss" format
+      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  
       // Update the item status to "claimed" in the database
       const { error } = await supabase
         .from("item_reports2")
@@ -207,14 +219,15 @@ function lostitems() {
           claimedby: claimerDetails.claimedBy,
           claimcontactnumber: claimerDetails.claimContactNumber,
           claimemail: claimerDetails.claimEmail,
+          dateclaimed: localTimestamp, // Use the local timestamp
         })
         .eq("id", currentItemId);
-
+  
       if (error) {
         console.error("Error updating claim status:", error);
         return; // Exit if there's an error during the update
       }
-
+  
       // Re-fetch the updated list of found items
       const fetchFoundItems = async () => {
         let query = supabase
@@ -229,7 +242,7 @@ function lostitems() {
           .eq("type", "Found")
           .eq("confirmed", true)
           .order("createdat", { ascending: false });
-
+  
         // Apply filters directly in the query
         if (categoryFilter) {
           query = query.eq("category", categoryFilter);
@@ -243,16 +256,16 @@ function lostitems() {
         if (dateRange.end) {
           query = query.lte("datefound", dateRange.end);
         }
-
+  
         const { data, error: fetchError } = await query;
-
+  
         if (fetchError) {
           console.error("Error fetching updated items:", fetchError);
         } else {
           setFoundItems(data);
         }
       };
-
+  
       await fetchFoundItems(); // Fetch updated data to reflect changes
       setShowClaimModal(false); // Close the claim modal
       setClaimerDetails({
@@ -265,7 +278,6 @@ function lostitems() {
       console.error("Error handling claim:", error);
     }
   };
-
   return (
     <>
       <div className="adminnavbar">
