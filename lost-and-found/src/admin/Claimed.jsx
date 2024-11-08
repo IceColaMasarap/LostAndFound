@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBoxArchive, faCheck, faBell } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBoxArchive,
+  faCheck,
+  faBell,
+} from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "../supabaseClient"; // Import Supabase client
 
 function Claimed() {
@@ -13,7 +17,9 @@ function Claimed() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
-  const [notificationText, setNotificationText] = useState("Your lost item might have been matched.");
+  const [notificationText, setNotificationText] = useState(
+    "Your lost item might have been matched."
+  );
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
@@ -33,11 +39,11 @@ function Claimed() {
       )
       .not("claimedby", "is", null) // Filter items where claimedby is not null
       .order("dateclaimed", { ascending: false }); // Order by createdat in descending order
-  
+
     // Apply category and color filters
     if (categoryFilter) query = query.eq("category", categoryFilter);
     if (colorFilter) query = query.eq("color", colorFilter);
-  
+
     // Apply date range filter for `dateclaimed`
     if (dateRange.start) {
       // Adjust the start date to the beginning of the day in local time
@@ -45,16 +51,16 @@ function Claimed() {
       startDate.setHours(0, 0, 0, 0); // Set to the beginning of the day
       query = query.gte("dateclaimed", startDate.toISOString());
     }
-  
+
     if (dateRange.end) {
       // Adjust the end date to the end of the day in local time
       const endDate = new Date(dateRange.end);
       endDate.setHours(23, 59, 59, 999); // Set to the end of the day
       query = query.lte("dateclaimed", endDate.toISOString());
     }
-  
+
     const { data, error } = await query;
-  
+
     if (error) {
       console.error("Error fetching found items:", error);
     } else {

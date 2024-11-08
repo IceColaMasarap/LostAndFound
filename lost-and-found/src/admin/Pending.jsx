@@ -8,6 +8,7 @@ import {
   faBell,
 } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "../supabaseClient"; // Import Supabase client
+import emailjs from "emailjs-com";
 
 function Pending() {
   const [foundItems, setFoundItems] = useState([]);
@@ -80,6 +81,7 @@ function Pending() {
 
   const handleSendNotification = async () => {
     try {
+      // Fetch item data
       const { data: itemData, error: fetchError } = await supabase
         .from("item_reports2")
         .select("*")
@@ -91,11 +93,24 @@ function Pending() {
         return;
       }
 
-      const holderId = itemData.holderid;
+      // Fetch the owner's data using the holderId (assumed to be in userinfo table)
+      const { data: userData, error: userError } = await supabase
+        .from("userinfo")
+        .select("firstname, lastname, email")
+        .eq("id", currentHolderId)
+        .single();
 
-      if (!holderId) {
-        console.error("No holder ID found for this item:", currentItemId);
-        return; // Stop if no holder ID is available
+      if (userError) {
+        console.error("Error fetching user data:", userError);
+        return;
+      }
+
+      // Get the owner's email
+      const ownerEmail = userData?.email;
+
+      if (!ownerEmail) {
+        console.error("Owner's email is missing");
+        return; // Stop if no email is found
       }
 
       // Update the item report to mark the user as notified
@@ -109,18 +124,36 @@ function Pending() {
         .eq("id", currentItemId);
 
       console.log(
-        `Notification sent for item ${currentItemId} to holder ${holderId}`
+        `Notification sent for item ${currentItemId} to holder ${currentHolderId}`
       );
+      sendEmail(userData, itemData);
+      setNotificationText("Your lost item might have been matched.");
       setShowNotifModal(false);
-
-      // Check if notificationText is defined
-      if (!notificationText) {
-        console.error("Notification text is not defined.");
-        return; // Stop if no notification text is available
-      }
     } catch (error) {
       console.error("Error sending notification: ", error);
     }
+  };
+
+  const sendEmail = (userData, itemData) => {
+    emailjs
+      .send(
+        "service_qkeo7fe",
+        "template_0eal5kf",
+        {
+          to_name: `${userData.firstname} ${userData.lastname}`, // User's full name
+          email: userData?.email, // User's email
+          message: notificationText,
+        },
+        "ukdUNXpTIsD5n9sfO"
+      )
+      .then(
+        (response) => {
+          console.log("SUCCESS!", response);
+        },
+        (err) => {
+          console.log("FAILED...", err);
+        }
+      );
   };
 
   const openClaimModal = (itemId) => {

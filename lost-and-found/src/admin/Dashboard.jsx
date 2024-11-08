@@ -171,7 +171,7 @@ function Dashboard() {
                   <th>Object Name</th>
                   <th>Reported Date</th>
                   <th>Type</th>
-                  <th>Claimed By</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,8 +180,8 @@ function Dashboard() {
                     .filter((item) => item.status) // Filter out items without status
                     .sort(
                       (a, b) => new Date(b.createdat) - new Date(a.createdat)
-                    ) // Sort in descending order by date
-                    .slice(0, 5) // Limit to 5 rows
+                    )
+                    .slice(0, 5)
                     .map((item) => (
                       <tr key={item.id}>
                         <td>
@@ -196,16 +196,8 @@ function Dashboard() {
                             ? new Date(item.createdat).toLocaleString() // Convert string to Date for display
                             : "N/A"}
                         </td>
-                        <td>
-                          {item.status === "lost"
-                            ? "Lost"
-                            : item.status === "pending"
-                            ? "Missing"
-                            : item.status === "claimed"
-                            ? "Claimed"
-                            : "N/A"}
-                        </td>
-                        <td>{item.claimedby ? item.claimedby : "N/A"}</td>
+                        <td>{item.type}</td>
+                        <td>{item.status}</td>
                       </tr>
                     ))
                 ) : (
