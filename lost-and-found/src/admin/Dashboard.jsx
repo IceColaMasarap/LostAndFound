@@ -181,7 +181,7 @@ function Dashboard() {
                     .sort(
                       (a, b) => new Date(b.createdat) - new Date(a.createdat)
                     )
-                    .slice(0, 5)
+
                     .map((item) => (
                       <tr key={item.id}>
                         <td>

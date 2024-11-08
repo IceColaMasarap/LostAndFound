@@ -254,3 +254,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 input [type="text"] {
   background-color: wheat;
 }
+
+.Nextbtn {
+  background-color: #36408e;
+}

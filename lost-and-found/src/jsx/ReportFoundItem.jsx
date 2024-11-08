@@ -98,8 +98,8 @@ function ReportFoundItem() {
 
     try {
       const now = new Date();
-      now.setDate(now.getDate() + 1); // Add 1 day
-    
+      now.setDate(now.getDate() + 0); // Add 1 day
+      const newDate = now.toISOString(); // Convert to ISO string
       const validDateFound = dateFound || now.split("T")[0];
       const validTimeFound = timeFound || "00:00:00";
       const holderId = userData.id;
@@ -264,7 +264,7 @@ function ReportFoundItem() {
                 be shared with anyone else without your permission.
               </p>
               <p>
-                Please note that NU Lost and Found Dasmariñas is not <br />{" "}
+                Please note that NU Lost and Found DasmariÃ±as is not <br />{" "}
                 responsible for any damage to items you surrender. We <br />{" "}
                 sincerely appreciate your honesty in returning found <br />{" "}
                 items.
@@ -337,10 +337,10 @@ function ReportFoundItem() {
                   />
                   Personal Belonging
                   <ul>
-                    <li>• Wallet</li>
-                    <li>• Bag</li>
-                    <li>• Clothing</li>
-                    <li>• Jewelry, etc...</li>
+                    <li>⦁ Wallet</li>
+                    <li>⦁ Bag</li>
+                    <li>⦁ Clothing</li>
+                    <li>⦁ Jewelry, etc...</li>
                   </ul>
                 </label>
                 <label>
@@ -353,10 +353,10 @@ function ReportFoundItem() {
                   />
                   Electronics
                   <ul>
-                    <li>• Phones</li>
-                    <li>• Laptop</li>
-                    <li>• Charger</li>
-                    <li>• Camera, etc...</li>
+                    <li>⦁ Phones</li>
+                    <li>⦁ Laptop</li>
+                    <li>⦁ Charger</li>
+                    <li>⦁ Camera, etc...</li>
                   </ul>
                 </label>
                 <label>
@@ -369,10 +369,10 @@ function ReportFoundItem() {
                   />
                   Documents
                   <ul>
-                    <li>• ID</li>
-                    <li>• Cards</li>
-                    <li>• Printed Materials</li>
-                    <li>• School works, etc...</li>
+                    <li>⦁ ID</li>
+                    <li>⦁ Cards</li>
+                    <li>⦁ Printed Materials</li>
+                    <li>⦁ School works, etc...</li>
                   </ul>
                 </label>
                 <label>
@@ -640,7 +640,6 @@ function ReportFoundItem() {
                 Previous
               </button>
               <button
-              
                 className="Nextbtn"
                 onClick={nextStep}
                 disabled={!confirmed}
