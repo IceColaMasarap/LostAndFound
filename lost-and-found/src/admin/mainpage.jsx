@@ -6,6 +6,7 @@ import Pending from "./Pending";
 import Claimed from "./Claimed";
 import All from "./All";
 import Archive from "./Archive";
+import Logout from "../jsx/Login";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFileExcel,
@@ -55,6 +56,11 @@ function MainPage() {
               <FontAwesomeIcon icon={faBoxArchive} /> Archived Reports
             </Link>
           </li>
+          <li>
+            <Link to="/login">
+              Logout
+            </Link>
+          </li>
         </ul>
       </div>
       <div className="content">
@@ -65,6 +71,7 @@ function MainPage() {
           <Route path="/claimed" element={<Claimed />} />
           <Route path="/all" element={<All />} />
           <Route path="/archive" element={<Archive />} />
+          <Route path="/login" element={<Logout />} />
         </Routes>
       </div>
     </div>
