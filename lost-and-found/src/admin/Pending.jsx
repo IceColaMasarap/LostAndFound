@@ -236,7 +236,7 @@ function Pending() {
               <option value="Personal Belonging">Personal Belonging</option>
               <option value="Electronics">Electronics</option>
               <option value="Documents">Documents</option>
-              <option value="Others">Others</option>
+              <option value="Other">Others</option>
             </select>
 
             <select

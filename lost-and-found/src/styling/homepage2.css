@@ -25,7 +25,6 @@ html {
   /* Space between the logo and other content */
 }
 
-
 .notif {
   width: 40px;
   height: auto;
@@ -454,7 +453,6 @@ html {
 
 /* Style for active navbar link */
 .nav a.active {
-
   color: #ffd41f; /* Blue or your preferred color for the active link */
   text-decoration: underline;
 }
@@ -469,7 +467,48 @@ html {
 
 .nav a:hover {
   color: #ffd41f; /* Hover color */
-  
 }
 
+.innerBody {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+}
 
+.notifDate {
+  color: rgb(81, 81, 81);
+  font-size: smaller;
+  align-self: flex-end; /* This aligns it to the right */
+}
+.notifImg {
+  margin: 2px;
+}
+
+.notif {
+  position: relative;
+  width: 40px; /* Adjust based on your icon size */
+  height: 40px; /* Adjust based on your icon size */
+}
+
+.notifIndicator {
+  position: absolute;
+  top: 28px;
+  right: 21px;
+  width: 15px; /* Red circle size */
+  height: 15px; /* Red circle size */
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#founditems,
+#lostitems {
+  font-size: 4em;
+  font-family: "public sans";
+  margin-top: -10px;
+  font-weight: 730; /* You can change this to 900 for even bolder */
+}
