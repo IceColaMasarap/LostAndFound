@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
-import bcrypt from "bcryptjs"; // Import bcrypt
+import axios from "axios";
 import "../styling/login.css";
-import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
 const SignUpForm = () => {
   const [firstName, setFirstName] = useState("");
@@ -40,31 +38,26 @@ const SignUpForm = () => {
     }
 
     try {
-      // Generate a UUID for the new user
-      const userId = uuidv4();
+      const response = await axios.post("http://localhost:3001/api/register", {
+        firstName,
+        lastName,
+        email,
+        contact,
+        password,
+      });
 
-      // Hash the password before storing it
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Raw SQL to insert the user data into the 'userinfo' table
-      const sql = `
-        INSERT INTO userinfo (id, firstName, lastName, email, contact, password, is_admin)
-        VALUES ('${userId}', '${firstName}', '${lastName}', '${email}', '${contact}', '${hashedPassword}', false);
-      `;
-
-      const { error: insertError } = await supabase.rpc("execute_sql", { sql });
-
-      if (insertError) {
-        throw new Error(insertError.message);
-      }
-
-      setSuccessMessage("Account created successfully! You can now log in.");
+      setSuccessMessage(response.data.message);
       setTimeout(() => navigate("/login"), 2000); // Redirect to login after success
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.response
+          ? err.response.data.message
+          : "Error occurred during registration"
+      );
       console.log(err);
     }
   };
+
   return (
     <div className="signup-container">
       <h1>LOST AND FOUND</h1>
@@ -84,9 +77,9 @@ const SignUpForm = () => {
             backgroundColor: "white",
             color: "#36408e",
             border: "none",
-            opacity: 1, // Keep opacity consistent
-            cursor: "not-allowed", // Change cursor to indicate disabled state
-            pointerEvents: "none", // Disable interaction
+            opacity: 1,
+            cursor: "not-allowed",
+            pointerEvents: "none",
           }}
         >
           Register
@@ -120,7 +113,6 @@ const SignUpForm = () => {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-
         <div className="passwords">
           <input
             type="password"

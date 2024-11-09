@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import bcrypt from "bcryptjs"; // Import bcrypt
+import axios from "axios"; // Use axios for making HTTP requests
 import "../styling/login.css";
 import { supabase } from "../supabaseClient"; // Adjust the path accordingly
 
@@ -8,8 +9,8 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const navigate = useNavigate(); // Use navigate hook for redirection
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -20,53 +21,36 @@ const Login = () => {
     }
 
     try {
-      // Step 1: Retrieve the user data from the database based on the email
-      const { data, error } = await supabase
-        .from("userinfo") // Make sure 'userinfo' is the correct table name
-        .select("*")
-        .eq("email", email) // Make sure the 'email' column exists in the table
-        .single(); // Retrieves only one record that matches
+      // Send a POST request to the login endpoint
+      const response = await axios.post("http://localhost:3001/api/login", {
+        email,
+        password,
+      });
 
-      if (error || !data) {
-        setError("User not found");
-        return;
-      }
+      const data = response.data;
+      console.log("User data from backend:", data);
 
-      // Step 2: Compare the entered password with the hashed password stored in the database
-      const passwordMatch = await bcrypt.compare(password, data.password);
+      // Store user data in sessionStorage (excluding sensitive info like password)
+      sessionStorage.setItem("user", JSON.stringify(data));
 
-      if (!passwordMatch) {
-        setError("Invalid password");
-        return;
-      }
-
-      // Log user data for debugging
-      console.log("User data from Supabase:", data);
-
-      // Step 3: Save the user data to sessionStorage
-      sessionStorage.setItem("user", JSON.stringify(data)); // Save to sessionStorage
-      const user = JSON.parse(sessionStorage.getItem("user"));
-
-      if (user) {
-        console.log("Logged-in user data:", user);
-      } else {
-        console.log("No user logged in");
-      }
-
-      // Step 4: Check the "is_admin" field and navigate accordingly
+      // Redirect based on user role
       if (data.is_admin) {
-        navigate("/adminpage"); // Redirect to admin page if user is an admin
+        navigate("/adminpage");
       } else {
-        navigate("/homepage"); // Redirect to homepage if user is not an admin
+        navigate("/homepage");
       }
     } catch (err) {
-      setError("An error occurred during login");
+      if (err.response) {
+        setError(err.response.data.error);
+      } else {
+        setError("An error occurred during login");
+      }
       console.log("Error logging in:", err);
     }
   };
 
   const goToRegister = () => {
-    navigate("/"); // Navigate to ./register route
+    navigate("/"); // Navigate to register route
   };
 
   return (

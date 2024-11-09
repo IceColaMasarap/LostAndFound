@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styling/ReportLostItem.css";
-import { supabase } from "../supabaseClient";
+import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
+import { supabase } from "../supabaseClient";
 
 function ReportLostItem() {
   const navigate = useNavigate();
@@ -29,14 +30,17 @@ function ReportLostItem() {
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const today = new Date().toLocaleDateString("en-CA"); // Using Canadian format 'YYYY-MM-DD' for local time
+
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));
 
     if (user) {
       setUserData({
-        name: `${user.firstname} ${user.lastname}`,
+        firstname: user.firstName,
+        lastname: user.lastname,
         email: user.email,
-        contactNumber: user.contact,
+        contactnumber: user.contact,
+        id: user.id,
       });
     } else {
       console.log("No user data found in sessionStorage.");
@@ -53,22 +57,22 @@ function ReportLostItem() {
     if (image) {
       try {
         const uniqueFileName = `${uuidv4()}-${image.name}`;
+
+        // Upload image to Supabase storage
         const { data, error } = await supabase.storage
-          .from("lost-items")
+          .from("lost-items") // Replace with your Supabase bucket name
           .upload(`lost-items/${uniqueFileName}`, image, {
-            cacheControl: "3600",
-            upsert: false,
+            cacheControl: "3600", // Set caching if needed
+            upsert: false, // Don't overwrite existing files
           });
 
         if (error) {
-          console.error("Error uploading image:", error);
+          console.error("Error uploading image:", error.message);
           return null;
         }
 
-        const baseUrl =
-          "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
-        const imageUrl = `${baseUrl}${data.path}`;
-
+        // Construct the image URL
+        const imageUrl = `https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/${data.path}`;
         setImageUrl(imageUrl);
         return imageUrl;
       } catch (err) {
@@ -76,95 +80,39 @@ function ReportLostItem() {
         return null;
       }
     }
+
     return null;
   };
 
   const saveLostItem = async () => {
     try {
-      const user = JSON.parse(sessionStorage.getItem("user"));
-      const uid = user?.id;
-
-      if (!uid) {
-        console.error("User is not authenticated");
-        return;
-      }
-
-      const now = new Date();
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-      const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
-
-      const { data: recentReports, error: countError } = await supabase
-        .from("item_reports2")
-        .select("createdat", { count: "exact" })
-        .eq("holderid", uid)
-        .gte("createdat", oneHourAgo.toISOString());
-
-      if (countError) {
-        console.error("Error fetching recent reports:", countError.message);
-        return;
-      }
-
-      console.log(
-        `User has created ${recentReports.length} reports in the last hour.`
-      );
-
-      // Check if the user has reached the limit of 5 reports per hour
-      if (recentReports.length >= 5) {
-        alert(
-          "You have reached the limit of 5 reports per hour. Please wait before reporting again."
-        );
-        console.log("User has reached the limit of 5 reports per hour.");
-        return;
-      }
-
-      // Check if the user has submitted a report within the last 3 minutes
-      if (recentReports.length > 0) {
-        const latestReportTime = new Date(recentReports[0].createdat);
-        if (latestReportTime >= threeMinutesAgo) {
-          alert("Please wait 3 minutes before submitting another report.");
-          console.log(
-            "User must wait 3 minutes before submitting another report."
-          );
-          return;
-        }
-      }
-
-      const fullDateTime = now.toLocaleString();
-      const uploadedImageUrl = await uploadImage();
+      const uploadedImageUrl = await uploadImage(); // Now it's okay to use await here
       const finalImageUrl = uploadedImageUrl || null;
 
-      const sql = `
-        INSERT INTO item_reports2 (
-          category, brand, color, datelost, timelost, locationlost, objectname, 
-          imageurl, holderid, createdat, type, status
-        )
-        VALUES (
-          '${category === "Other" ? otherCategory : category}', 
-          '${itemDetails.brand}', 
-          '${itemDetails.color}', 
-          '${itemDetails.dateFound}', 
-          '${itemDetails.timeFound}', 
-          '${itemDetails.locationFound}', 
-          '${itemDetails.objectName}', 
-          ${finalImageUrl ? `'${finalImageUrl}'` : "null"}, 
-          '${uid}', 
-          '${fullDateTime}', 
-          'Lost', 
-          'pending'
-        );
-      `;
+      // Call your API to save the report and item details
+      const response = await axios.post(
+        "http://localhost:3001/api/report-lost-item",
+        {
+          category: category === "Other" ? otherCategory : category,
+          brand: itemDetails.brand,
+          color: itemDetails.color,
+          objectName: itemDetails.objectName,
+          datelost: itemDetails.dateFound,
+          timelost: itemDetails.timeFound,
+          locationlost: itemDetails.locationFound,
+          imageUrl: finalImageUrl,
+          holderid: userData.id, // Assuming user ID is stored in userData
+        }
+      );
 
-      const { error: insertError } = await supabase.rpc("execute_sql", { sql });
-
-      if (insertError) {
-        console.error("Error executing RPC with raw SQL:", insertError.message);
-        return;
+      if (response.status === 201) {
+        console.log("Item data saved successfully!");
+        setStep(step + 1);
+      } else {
+        console.error("Error saving item:", response.data.message);
       }
-
-      console.log("Item data saved successfully via raw SQL!");
-      setStep(step + 1);
     } catch (error) {
-      console.error("Error saving item via raw SQL:", error);
+      console.error("Error saving item:", error.message);
     }
   };
 
@@ -379,7 +327,7 @@ function ReportLostItem() {
               <input
                 className="FInput"
                 type="text"
-                value={userData.name}
+                value={`${userData.firstname} ${userData.lastname}`}
                 onChange={(e) =>
                   setUserData({ ...userData, name: e.target.value })
                 }
@@ -405,9 +353,9 @@ function ReportLostItem() {
               <input
                 className="FInput"
                 type="text"
-                value={userData.contactNumber}
+                value={userData.contactnumber}
                 onChange={(e) =>
-                  setUserData({ ...userData, contactNumber: e.target.value })
+                  setUserData({ ...userData, contactnumber: e.target.value })
                 }
                 readOnly
               />
