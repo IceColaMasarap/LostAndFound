@@ -276,6 +276,35 @@ app.get("/api/item-reports", (req, res) => {
   });
 });
 
+app.get("/api/get-claimed-items", (req, res) => {
+  const sql = `
+    SELECT 
+      ir.id,
+      ir.objectname,
+      ir.imageurl,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ci.claimedby,
+      ci.claimedemail,
+      ci.claimcontactnumber,
+      ci.dateclaimed,
+      u.firstname,
+      u.lastname
+    FROM item_reports2 ir
+    JOIN claimed_items ci ON ir.id = ci.item_id
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+    WHERE ir.status = 'claimed';
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching claimed items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch claimed items" });
+    }
+    res.status(200).json(result);
+  });
+});
 
 app.post("/api/report-found-item", async (req, res) => {
   const {
