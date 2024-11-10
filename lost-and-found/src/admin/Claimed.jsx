@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBoxArchive, faCheck, faBell } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBoxArchive,
+  faCheck,
+  faBell,
+} from "@fortawesome/free-solid-svg-icons";
 import axios from "axios"; // Import Axios
 
 function Claimed() {
@@ -27,7 +31,9 @@ function Claimed() {
   // Fetch claimed items using Axios
   const fetchFoundItems = async () => {
     try {
-      const response = await axios.get("http://localhost:3001/api/get-claimed-items");
+      const response = await axios.get(
+        "http://localhost:3001/api/get-claimed-items"
+      );
       let items = response.data;
 
       // Apply filters on the client side

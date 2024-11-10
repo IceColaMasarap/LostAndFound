@@ -547,3 +547,19 @@ h2 {
   font-size: small;
   color: black;
 }
+
+.notifText {
+  width: 90%px;
+  border-radius: 25px;
+  background-color: rgba(246, 246, 246, 0.682);
+  border: 2.5px solid #e8e8e8;
+  margin-right: 10px;
+  text-align: start;
+  resize: none;
+  padding: 10px;
+  height: auto;
+  padding-left: 10px;
+  font-family: "Poppins";
+  font-size: small;
+  color: black;
+}
