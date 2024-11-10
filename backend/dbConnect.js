@@ -219,7 +219,7 @@ app.get("/api/get-found-items", async (req, res) => {
     SELECT 
       ir.id, ir.code, ir.status, ir.type, ir.createdat, 
       ir.holderid, ir.category, ir.brand, ir.color, ir.objectname, ir.imageurl, 
-      u.firstname, u.lastname,
+      u.firstname, u.lastname
     FROM item_reports2 ir
     LEFT JOIN userinfo u ON ir.holderid = u.id
   `;
