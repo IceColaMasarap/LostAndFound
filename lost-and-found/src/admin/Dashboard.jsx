@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient"; // Import your Supabase client
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 function Dashboard() {
   const [inputCode, setInputCode] = useState("");
@@ -86,19 +87,16 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    // Fetch found items from Supabase
+    // Fetch found items from the backend API
     const fetchFoundItems = async () => {
       try {
-        const { data, error } = await supabase.from("item_reports2").select(`
-          *,
-          userinfo:holderid (firstname, lastname)
-        `);
+        const response = await axios.get(
+          "http://localhost:3001/api/get-found-items"
+        );
 
-        if (error) {
-          console.error("Error fetching found items: ", error);
-        } else {
-          setFoundItems(data);
-        }
+        // Assuming the API returns an array of found items
+        setFoundItems(response.data);
+        console.log("found items: ", response.data);
       } catch (error) {
         console.error("Error fetching found items: ", error);
       }
@@ -111,9 +109,11 @@ function Dashboard() {
   const lostItemsCount = foundItems.filter(
     (item) => item.status === "pending" && item.type === "Found"
   ).length;
+
   const pendingClaimsCount = foundItems.filter(
     (item) => item.status === "pending" && item.type === "Lost"
   ).length;
+
   const claimedItemsCount = foundItems.filter(
     (item) => item.status === "claimed"
   ).length;
@@ -185,8 +185,8 @@ function Dashboard() {
                     .map((item) => (
                       <tr key={item.id}>
                         <td>
-                          {item.userinfo?.firstname && item.userinfo?.lastname
-                            ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
+                          {item.firstname && item.lastname
+                            ? `${item.firstname} ${item.lastname}`
                             : "N/A"}
                         </td>
                         <td>{item.category}</td>
