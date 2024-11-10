@@ -290,6 +290,65 @@ app.delete("/api/code-expiration/:id", (req, res) => {
     res.status(200).json({ message: "Code expired and report deleted" });
   });
 });
+app.get("/api/get-found-items", async (req, res) => {
+  const sql = `
+    SELECT 
+      ir.id, ir.code, ir.status, ir.type, ir.createdat, 
+      ir.holderid, ir.category, ir.brand, ir.color, ir.objectname, ir.imageurl, 
+      u.firstname, u.lastname
+    FROM item_reports2 ir
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching found items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch found items" });
+    }
+    res.status(200).json(result);
+  });
+});
+
+// Route to get item reports along with user and lost item details
+app.get("/api/item-reports", (req, res) => {
+  const query = `
+    SELECT 
+      ir.objectname,
+      ir.imageurl,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ui.firstName,
+      ui.lastName,
+      ui.contact,
+      ui.email,
+      lid.datelost,
+      lid.timelost,
+      lid.locationlost
+    FROM 
+      item_reports2 ir
+    JOIN 
+      userinfo ui ON ir.holderid = ui.id
+    JOIN 
+      lost_item_details lid ON ir.id = lid.item_report_id
+    WHERE 
+      ir.type = 'lost' 
+      AND ir.status = 'pending';
+  `;
+
+  // Execute the query
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching item reports:", err);
+      res.status(500).send("An error occurred");
+    } else {
+      res.json(result); // Send the resulting data as a JSON response
+    }
+  });
+});
+
+
+
 
 const PORT = 3001;
 app.listen(PORT, () => {
