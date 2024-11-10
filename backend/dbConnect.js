@@ -540,8 +540,9 @@ app.get("/api/founditem-reports", (req, res) => {
       found_item_details lid ON ir.id = lid.item_report_id
     WHERE 
       ir.type = 'found' 
-      AND ir.status = 'pending'`;
-  ;
+      AND ir.status = 'pending'
+    ORDER BY 
+      ir.createdat DESC`; // Add ORDER BY clause to order by createdat column
 
   db.query(query, (err, result) => {
     if (err) {
