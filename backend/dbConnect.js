@@ -348,6 +348,41 @@ app.get("/api/item-reports", (req, res) => {
 });
 
 
+app.get("/api/founditem-reports", (req, res) => {
+  const query = `
+    SELECT 
+      ir.imageurl,
+      ir.objectname,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ui.firstName,
+      ui.lastName,
+      ui.contact,
+      ui.email,
+      lid.datefound,
+      lid.timefound,
+      lid.locationfound
+    FROM 
+      item_reports2 ir
+    JOIN 
+      userinfo ui ON ir.holderid = ui.id
+    JOIN 
+      found_item_details lid ON ir.id = lid.item_report_id
+    WHERE 
+      ir.type = 'found' 
+      AND ir.status = 'pending';
+  `;
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching item reports:", err.message);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    res.json(result); // Send the resulting data as a JSON response
+  });
+});
+
 app.post("/api/report-found-item", async (req, res) => {
   const {
     code,

@@ -1,27 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from 'react';
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBoxArchive,
-  faCheck,
-  faBell,
-} from "@fortawesome/free-solid-svg-icons";
-import { supabase } from "../supabaseClient"; // Import Supabase client
+import { faBoxArchive, faCheck } from "@fortawesome/free-solid-svg-icons";
+import axios from 'axios';
 
-function lostitems() {
-  const [foundItems, setFoundItems] = useState([]);
+function LostItems() {
+  const [reports, setReports] = useState([]); // State to store fetched data
+  const [filteredReports, setFilteredReports] = useState([]); // State to store filtered reports
+  const [error, setError] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [colorFilter, setColorFilter] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
-  const [currentHolderId, setCurrentHolderId] = useState(null);
-  const [notificationText, setNotificationText] = useState(
-    "Your lost item might have been matched."
-  );
-  const [showNotifModal, setShowNotifModal] = useState(false);
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
     claimedBy: "",
@@ -29,167 +22,59 @@ function lostitems() {
     claimEmail: "",
   });
 
-  // Fetch data using Supabase
   useEffect(() => {
-    const fetchFoundItems = async () => {
-      let query = supabase
-        .from("item_reports2")
-        .select(
-          `
-          *,
-          userinfo:holderid (firstname, lastname, email, contact)
-        `
-        )
-        .eq("status", "pending")
-        .eq("type", "Found") // Filter items where type is "Found"
-        .eq("confirmed", true) // Add this line to only fetch items where confirmed is true
-        .order("createdat", { ascending: false }); // Order by createdAt in descending order
+    // Fetch data when the component mounts
+    axios
+      .get('http://localhost:3001/api/founditem-reports')
+      .then((response) => {
+        setReports(response.data); // Update state with the fetched data
+        setFilteredReports(response.data); // Initially show all reports
+      })
+      .catch((error) => {
+        setError(error.message); // Handle error
+        console.error('Error fetching data:', error);
+      });
+  }, []);
 
-      // Apply filters directly in Supabase query
-      if (categoryFilter) {
-        query = query.eq("category", categoryFilter);
-      }
+  // Filter reports based on the selected filters
+  useEffect(() => {
+    let filtered = [...reports]; // Start with the reports data
 
-      if (colorFilter) {
-        query = query.eq("color", colorFilter);
-      }
-
-      if (dateRange.start) {
-        query = query.gte("datefound", dateRange.start); // Start date filter
-      }
-
-      if (dateRange.end) {
-        query = query.lte("datefound", dateRange.end); // End date filter
-      }
-
-      // Order items by dateFound and timeFound
-      const { data, error } = await query
-        .order("datefound", { ascending: false })
-        .order("timefound", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching found items:", error);
-      } else {
-        const items = data.map((item) => {
-          const userName =
-            item.userinfo?.firstname && item.userinfo?.lastname
-              ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
-              : "N/A";
-          return {
-            ...item,
-            userName,
-          };
-        });
-        setFoundItems(items);
-      }
-    };
-
-    fetchFoundItems();
-  }, [categoryFilter, colorFilter, dateRange]); // Re-fetch when filters change
-
-  const openRemoveModal = (itemId) => {
-    setCurrentItemId(itemId);
-    setShowRemoveModal(true);
-  };
-
-  const openNotifModal = (itemId, holderId) => {
-    setCurrentItemId(itemId);
-    setCurrentHolderId(holderId);
-    setShowNotifModal(true);
-  };
-
-  const handleSendNotification = async () => {
-    try {
-      const { data: itemData, error: fetchError } = await supabase
-        .from("item_reports2")
-        .select("*")
-        .eq("id", currentItemId)
-        .single();
-
-      if (fetchError) {
-        console.error("Error fetching item data:", fetchError);
-        return;
-      }
-
-      const holderId = itemData.holderId;
-
-      if (!holderId) {
-        console.error("No holder ID found for this item:", currentItemId);
-        return; // Stop if no holder ID is available
-      }
-
-      // Update the item report to mark the user as notified
-      await supabase
-        .from("item_reports2")
-        .update({ notified: true })
-        .eq("id", currentItemId);
-
-      console.log(
-        `Notification sent for item ${currentItemId} to holder ${holderId}`
-      );
-
-      // Check if notificationText is defined
-      if (!notificationText) {
-        console.error("Notification text is not defined.");
-        return; // Stop if no notification text is available
-      }
-
-      // Create a new notification record
-      const { error: notifError } = await supabase
-        .from("notifications")
-        .insert([
-          {
-            userId: holderId,
-            itemId: currentItemId,
-            objectName: itemData.objectname || "Unknown Item",
-            message: notificationText,
-            timestamp: new Date(),
-          },
-        ]);
-
-      if (notifError) {
-        console.error("Error sending notification:", notifError);
-      } else {
-        console.log("Notification added successfully");
-        setShowNotifModal(false);
-      }
-    } catch (error) {
-      console.error("Error sending notification: ", error);
+    // Filter by category
+    if (categoryFilter) {
+      filtered = filtered.filter((item) => item.category === categoryFilter);
     }
-  };
 
-  const openClaimModal = (itemId) => {
-    setCurrentItemId(itemId);
-    setShowClaimModal(true);
-  };
+    // Filter by color
+    if (colorFilter) {
+      filtered = filtered.filter((item) => item.color === colorFilter);
+    }
 
-  const handleArchiveItem = async () => {
+    // Filter by date range
+    if (dateRange.start && dateRange.end) {
+      filtered = filtered.filter((item) => {
+        const itemDate = new Date(item.datefound); // Assuming item.datefound is a valid date string
+        const startDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+    }
+
+    setFilteredReports(filtered); // Update filtered reports state
+  }, [categoryFilter, colorFilter, dateRange, reports]); // Re-run the filter whenever any filter changes
+
+  // Handle archiving the item
+  const handleArchiveItem = () => {
     if (!currentItemId || !remark.trim()) return; // Ensure itemId and remark are provided
-
-    try {
-      const { error } = await supabase
-        .from("item_reports2")
-        .update({
-          status: "archived",
-          archiveremark: remark, // Save the archive remark
-        })
-        .eq("id", currentItemId);
-
-      if (error) {
-        console.error("Error archiving item:", error);
-      } else {
-        setFoundItems(foundItems.filter((item) => item.id !== currentItemId)); // Remove the archived item from the list
-        setShowRemoveModal(false); // Close the modal
-        setArchiveRemark(""); // Clear the remark input
-        console.log("Item archived successfully.");
-      }
-    } catch (error) {
-      console.error("Error archiving item: ", error);
-    }
+    setReports(reports.filter((item) => item.id !== currentItemId)); // Remove item from state
+    setFilteredReports(filteredReports.filter((item) => item.id !== currentItemId)); // Update filtered state
+    setShowRemoveModal(false); // Close the modal
+    setArchiveRemark(""); // Clear the remark input
+    console.log("Item archived successfully.");
   };
 
-  const handleClaimItem = async () => {
-    // Ensure claim details are filled out
+  // Handle claiming the item
+  const handleClaimItem = () => {
     if (
       !claimerDetails.claimedBy.trim() ||
       !claimerDetails.claimContactNumber.trim() ||
@@ -197,87 +82,15 @@ function lostitems() {
     ) {
       return; // Exit if any claim detail is missing
     }
-  
-    try {
-      // Get the current date and time in local timezone
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, "0"); // Months are zero-based
-      const day = String(currentDate.getDate()).padStart(2, "0");
-      const hours = String(currentDate.getHours()).padStart(2, "0");
-      const minutes = String(currentDate.getMinutes()).padStart(2, "0");
-      const seconds = String(currentDate.getSeconds()).padStart(2, "0");
-  
-      // Format the date and time as a timestamp in "YYYY-MM-DDTHH:mm:ss" format
-      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-  
-      // Update the item status to "claimed" in the database
-      const { error } = await supabase
-        .from("item_reports2")
-        .update({
-          status: "claimed",
-          claimedby: claimerDetails.claimedBy,
-          claimcontactnumber: claimerDetails.claimContactNumber,
-          claimemail: claimerDetails.claimEmail,
-          dateclaimed: localTimestamp, // Use the local timestamp
-        })
-        .eq("id", currentItemId);
-  
-      if (error) {
-        console.error("Error updating claim status:", error);
-        return; // Exit if there's an error during the update
-      }
-  
-      // Re-fetch the updated list of found items
-      const fetchFoundItems = async () => {
-        let query = supabase
-          .from("item_reports2")
-          .select(
-            `
-            *,
-            userinfo:holderid (firstname, lastname, email, contact)
-          `
-          )
-          .eq("status", "pending")
-          .eq("type", "Found")
-          .eq("confirmed", true)
-          .order("createdat", { ascending: false });
-  
-        // Apply filters directly in the query
-        if (categoryFilter) {
-          query = query.eq("category", categoryFilter);
-        }
-        if (colorFilter) {
-          query = query.eq("color", colorFilter);
-        }
-        if (dateRange.start) {
-          query = query.gte("datefound", dateRange.start);
-        }
-        if (dateRange.end) {
-          query = query.lte("datefound", dateRange.end);
-        }
-  
-        const { data, error: fetchError } = await query;
-  
-        if (fetchError) {
-          console.error("Error fetching updated items:", fetchError);
-        } else {
-          setFoundItems(data);
-        }
-      };
-  
-      await fetchFoundItems(); // Fetch updated data to reflect changes
-      setShowClaimModal(false); // Close the claim modal
-      setClaimerDetails({
-        claimedBy: "",
-        claimContactNumber: "",
-        claimEmail: "",
-      }); // Reset claim details form
-      console.log("Item successfully marked as claimed.");
-    } catch (error) {
-      console.error("Error handling claim:", error);
-    }
+    console.log("Item successfully claimed.");
+    setShowClaimModal(false); // Close the claim modal
+    setClaimerDetails({
+      claimedBy: "",
+      claimContactNumber: "",
+      claimEmail: "",
+    }); // Reset claim details form
   };
+
   return (
     <>
       <div className="adminnavbar">
@@ -340,91 +153,90 @@ function lostitems() {
             </div>
           </div>
         </div>
-        <label className="adminh2">{foundItems.length} </label>
+        <label className="adminh2">{filteredReports.length}</label> {/* Display count of filtered reports */}
       </div>
 
       <div className="containerlostdata">
-        {foundItems.map((item) => (
-          <div key={item.id} className="lostitemcontainer">
-            <img
-              className="lostitemimg"
-              src={item.imageurl || placeholder}
-              alt="Lost Item"
-            />
-            <div className="lostitembody">
-              <div className="lostitemtop">
-                <label className="lostitemlabel">{item.objectname}</label>
-                <div className="buttonslost">
-                  <button
-                    className="lostitemimg2"
-                    id="removelostitem"
-                    onClick={() => openRemoveModal(item.id)}
-                  >
-                    <FontAwesomeIcon icon={faBoxArchive} />
-                  </button>
-                  <button
-                    className="lostitemimg2"
-                    id="checklostitem"
-                    onClick={() => openClaimModal(item.id)}
-                  >
-                    <FontAwesomeIcon icon={faCheck} />
-                  </button>
+        {filteredReports.length === 0 ? ( // Show loading or no data message if no filtered reports
+          <p>No items found</p>
+        ) : (
+          filteredReports.map((item) => (
+            <div key={item.id} className="lostitemcontainer">
+              <img
+                className="lostitemimg"
+                src={item.imageurl || placeholder}
+                alt="Lost Item"
+              />
+              <div className="lostitembody">
+                <div className="lostitemtop">
+                  <label className="lostitemlabel">{item.objectname}</label>
+                  <div className="buttonslost">
+                    <button
+                      className="lostitemimg2"
+                      id="removelostitem"
+                      onClick={() => {
+                        setCurrentItemId(item.id);
+                        setShowRemoveModal(true);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faBoxArchive} />
+                    </button>
+                    <button
+                      className="lostitemimg2"
+                      id="checklostitem"
+                      onClick={() => {
+                        setCurrentItemId(item.id);
+                        setShowClaimModal(true);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faCheck} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="lostitembody1">
-                <div className="lostitempanel1">
-                  <label className="lostitemlabel2">Category</label>
-                  <label className="lostitemlabel3">{item.category}</label>
-                  <label className="lostitemlabel2">Brand</label>
-                  <label className="lostitemlabel3">{item.brand}</label>
-                  <label className="lostitemlabel2">Color</label>
-                  <label className="lostitemlabel3">{item.color}</label>
-                </div>
-                <div className="lostitempanel1">
-                  <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">
-                    {item.userinfo?.firstname && item.userinfo?.lastname
-                      ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
-                      : "N/A"}
-                  </label>
-                  <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">
-                    {item.userinfo?.contact}
-                  </label>
-                  <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">
-                    {item.userinfo?.email}
-                  </label>
-                </div>
-                <div className="lostitempanel2">
-                  <label className="lostitemlabel2">Date Found</label>
-                  <label className="lostitemlabel3">
-                    {item.datefound} at {item.timefound}
-                  </label>
-                  <label className="lostitemlabel2">Location Found</label>
-                  <label className="lostitemlabel3">{item.locationfound}</label>
+                <div className="lostitembody1">
+                  <div className="lostitempanel1">
+                    <label className="lostitemlabel2">Category</label>
+                    <label className="lostitemlabel3">{item.category}</label>
+                    <label className="lostitemlabel2">Brand</label>
+                    <label className="lostitemlabel3">{item.brand}</label>
+                    <label className="lostitemlabel2">Color</label>
+                    <label className="lostitemlabel3">{item.color}</label>
+                  </div>
+                  <div className="lostitempanel1">
+                    <label className="lostitemlabel2">Reported by:</label>
+                    <label className="lostitemlabel3">{item.firstName} {item.lastName}</label>
+                    <label className="lostitemlabel2">Contact Number</label>
+                    <label className="lostitemlabel3">{item.contact}</label>
+                    <label className="lostitemlabel2">Email</label>
+                    <label className="lostitemlabel3">{item.email}</label>
+                  </div>
+                  <div className="lostitempanel2">
+                    <label className="lostitemlabel2">Date Found</label>
+                    <label className="lostitemlabel3">{new Date(item.datefound).toLocaleDateString("en-US")} at {item.timefound}</label>
+                    <label className="lostitemlabel2">Location Found</label>
+                    <label className="lostitemlabel3">{item.locationfound}</label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
+
+      {/* Remove Modal */}
       {showRemoveModal && (
         <div className="modal">
           <div className="modal-content">
             <p>Archive this item?</p>
             <input
               placeholder="Archive Reason"
-              value={remark} // Bind to state
-              onChange={(e) => setArchiveRemark(e.target.value)} // Update state on change
+              value={remark}
+              onChange={(e) => setArchiveRemark(e.target.value)}
             />
             <div className="modalBtnDiv">
               <button
-                onClick={() => {
-                  handleArchiveItem(currentItemId);
-                  setShowRemoveModal(false); // Close modal after archiving
-                }}
-                disabled={!remark.trim()} // Disable if remark is empty
+                onClick={handleArchiveItem}
+                disabled={!remark.trim()}
               >
                 Yes
               </button>
@@ -433,11 +245,12 @@ function lostitems() {
           </div>
         </div>
       )}
+
+      {/* Claim Modal */}
       {showClaimModal && (
         <div className="modal">
           <div className="modal-content">
             <h2>Claim Item</h2>
-
             <label>Claimed By:</label>
             <input
               type="text"
@@ -450,7 +263,6 @@ function lostitems() {
               }
               required
             />
-
             <label>Contact Number:</label>
             <input
               type="number"
@@ -462,9 +274,7 @@ function lostitems() {
                 })
               }
               required
-              onWheel={(e) => e.target.blur()} // Prevent number scroll behavior
             />
-
             <label>Email:</label>
             <input
               type="email"
@@ -477,19 +287,9 @@ function lostitems() {
               }
               required
             />
-
             <div className="modal-buttons">
               <button onClick={() => setShowClaimModal(false)}>Cancel</button>
-              <button
-                onClick={handleClaimItem}
-                disabled={
-                  !claimerDetails.claimedBy.trim() ||
-                  !claimerDetails.claimContactNumber.trim() ||
-                  !claimerDetails.claimEmail.trim()
-                }
-              >
-                Confirm Claim
-              </button>
+              <button onClick={handleClaimItem}>Claim</button>
             </div>
           </div>
         </div>
@@ -498,4 +298,4 @@ function lostitems() {
   );
 }
 
-export default lostitems;
+export default LostItems;
