@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import { supabase } from "../supabaseClient"; // Adjust the path accordingly
+import axios from "axios";
 
 function All() {
   const [items, setItems] = useState([]);
@@ -19,14 +20,14 @@ function All() {
     color: true,
     objectname: true,
     name: true,
-    contactnumber: true,
+    contact: true,
     email: true,
     datefound: true,
     locationfound: true,
     datelost: true,
     locationlost: true,
     claimedby: true,
-    claimemail: true,
+    claimedemail: true,
     claimcontactnumber: true,
     dateclaimed: true,
     status: true,
@@ -55,14 +56,14 @@ function All() {
     color: "Color",
     objectname: "Object Name",
     name: "Reported By Name",
-    contactnumber: "Reported By Contact",
+    contact: "Reported By Contact",
     email: "Reported By Email",
     datefound: "Date Found",
     locationfound: "Location Found",
     datelost: "Date Lost",
     locationlost: "Location Lost",
     claimedby: "Claimer's Name",
-    claimemail: "Claimer's Email",
+    claimedemail: "Claimer's Email",
     claimcontactnumber: "Claimer's Contact",
     dateclaimed: "Date Claimed",
     status: "Status",
@@ -86,14 +87,14 @@ function All() {
       color: true,
       objectname: true,
       name: true,
-      contactnumber: true,
+      contact: true,
       email: true,
       datefound: false,
       locationfound: false,
       datelost: false,
       locationlost: false,
       claimedby: false,
-      claimemail: false,
+      claimedemail: false,
       claimcontactnumber: false,
       dateclaimed: false,
       status: true,
@@ -105,14 +106,14 @@ function All() {
       color: true,
       objectname: true,
       name: true,
-      contactnumber: true,
+      contact: true,
       email: true,
       datefound: false,
       locationfound: false,
       datelost: true,
       locationlost: true,
       claimedby: false,
-      claimemail: false,
+      claimedemail: false,
       claimcontactnumber: false,
       dateclaimed: false,
       status: true,
@@ -125,14 +126,14 @@ function All() {
       color: true,
       objectname: true,
       name: true,
-      contactnumber: true,
+      contact: true,
       email: true,
       datefound: false,
       locationfound: false,
       datelost: false,
       locationlost: false,
       claimedby: true,
-      claimemail: true,
+      claimedemail: true,
       claimcontactnumber: true,
       dateclaimed: true,
       status: true,
@@ -145,20 +146,23 @@ function All() {
       color: true,
       objectname: true,
       name: true,
-      contactnumber: true,
+      contact: true,
       email: true,
       datefound: true,
       locationfound: true,
       datelost: true,
       locationlost: true,
       claimedby: true,
-      claimemail: true,
+      claimedemail: true,
       claimcontactnumber: true,
       dateclaimed: true,
       status: true,
     },
   };
-
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return d.toLocaleDateString("en-CA"); // 'en-CA' is the locale for yyyy-mm-dd format
+  };
   // Deselect all columns
   const deselectAllColumns = () => {
     setVisibleColumns(
@@ -168,47 +172,19 @@ function All() {
       }, {})
     );
   };
-  const fetchUserInfo = async (userId) => {
-    const { data, error } = await supabase
-      .from("userinfo")
-      .select("firstname, lastname, contact, email")
-      .eq("id", userId)
-      .single(); // Ensure only one user info is fetched
-    if (error) {
-      console.error("Error fetching user data:", error);
-      return null;
-    }
-    return data;
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const result = await supabase.from("item_reports2").select("*");
-      const itemsWithUserInfo = await Promise.all(
-        result.data.map(async (item) => {
-          // Fetch user info based on the holderid
-          const userInfo = await fetchUserInfo(item.holderid);
-          return {
-            ...item,
-            name: `${userInfo.firstname} ${userInfo.lastname}`,
-            contactnumber: userInfo.contact,
-            email: userInfo.email,
-          };
-        })
-      );
-      setItems(itemsWithUserInfo);
-    };
-    fetchData();
-  }, []);
-
   useEffect(() => {
     const fetchItems = async () => {
-      const { data, error } = await supabase.from("item_reports2").select("*");
-
-      if (error) {
-        console.error("Error fetching data: ", error);
-      } else {
-        setItems(data);
+      try {
+        const response = await axios.get(
+          "http://localhost:3001/api/get-all-items"
+        );
+        setItems(response.data);
+        console.log("items set:", response.data); // After setting state
+      } catch (error) {
+        console.error(
+          "Error fetching items:",
+          error.response || error.message || error
+        );
       }
     };
 
@@ -241,51 +217,48 @@ function All() {
     }
   };
 
-  const filteredItems = items.filter((item) => {
-    const matchesType =
-      (filter === "lost" && item.type === "Found") ||
-      (filter === "pending" && item.type === "Lost") ||
-      (filter === "claimed" && item.status === "claimed") ||
-      filter === "all";
+  const filteredItems = Array.isArray(items)
+    ? items.filter((item) => {
+        const matchesType =
+          (filter === "lost" && item.type === "Found") ||
+          (filter === "pending" && item.type === "Lost") ||
+          (filter === "claimed" && item.status === "claimed") ||
+          filter === "all";
 
-    const matchesCategory =
-      categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(
-            item.category
-          )
-        : categoryFilter
-        ? item.category === categoryFilter
-        : true;
+        const matchesCategory =
+          categoryFilter === "Others"
+            ? !["Personal Belonging", "Electronics", "Documents"].includes(
+                item.category
+              )
+            : categoryFilter
+            ? item.category === categoryFilter
+            : true;
 
-    const matchesColor = colorFilter ? item.color === colorFilter : true;
+        const matchesColor = colorFilter ? item.color === colorFilter : true;
+        const itemDate = new Date(item.dateclaimed);
+        const matchesDateRange =
+          (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
+          (!dateRange.end || itemDate <= new Date(dateRange.end));
 
-    const itemDate = new Date(item.dateclaimed); // Use dateclaimed for filtering
-    const matchesDateRange =
-      (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-      (!dateRange.end || itemDate <= new Date(dateRange.end));
+        const matchesSearchTerm = item.objectname
+          ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
+          : false;
 
-    const matchesSearchTerm = item.objectname
-      ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
-      : false;
+        return (
+          matchesType &&
+          matchesCategory &&
+          matchesColor &&
+          matchesDateRange &&
+          matchesSearchTerm &&
+          item.confirmed !== false
+        );
+      })
+    : [];
 
-    return (
-      matchesType &&
-      matchesCategory &&
-      matchesColor &&
-      matchesDateRange &&
-      matchesSearchTerm &&
-      item.confirmed !== false
-    );
-  });
-  // Modify the rendering of the type column based on the filter
   const getTypeDisplay = (type) => {
-    if (filter === "lost" && type === "Found") {
-      return "Lost"; // If filtered by "lost", show "Found" as "Lost"
-    }
-    if (filter === "pending" && type === "Lost") {
-      return "Missing"; // If filtered by "pending", show "Lost" as "Missing"
-    }
-    return type; // Otherwise, show the original type
+    if (filter === "lost" && type === "Found") return "Lost";
+    if (filter === "pending" && type === "Lost") return "Missing";
+    return type;
   };
 
   return (
@@ -414,7 +387,9 @@ function All() {
                         (column) =>
                           visibleColumns[column] && (
                             <td key={column}>
-                              {column === "type"
+                              {column === "name"
+                                ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
+                                : column === "type"
                                 ? getTypeDisplay(item[column])
                                 : item[column] || "N/A"}
                             </td>
