@@ -443,6 +443,39 @@ app.delete("/api/code-expiration/:id", (req, res) => {
 });
 
 
+app.get("/api/item-by-code/:code", (req, res) => {
+  const code = parseInt(req.params.code, 10);
+  const sql = `SELECT * FROM item_reports2 WHERE code = ?`;
+
+  db.query(sql, [code], (err, result) => {
+    if (err) {
+      console.error("Error fetching item:", err.message);
+      return res.status(500).json({ error: "Error fetching item" });
+    }
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+    res.status(200).json(result[0]); // Send the first matching item
+  });
+});
+// API endpoint to confirm the item
+app.put("/api/confirm-item/:id", (req, res) => {
+  const itemId = req.params.id;
+
+  const sql = `UPDATE item_reports2 SET confirmed = 1 WHERE id = ?`;
+  db.query(sql, [itemId], (err, result) => {
+    if (err) {
+      console.error("Error updating item confirmation:", err.message);
+      return res.status(500).json({ error: "Failed to update confirmation" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Item not found or already confirmed" });
+    }
+
+    res.status(200).json({ message: "Item confirmed successfully" });
+  });
+});
 
 
 
