@@ -310,6 +310,44 @@ app.get("/api/get-found-items", async (req, res) => {
   });
 });
 
+// Route to get item reports along with user and lost item details
+app.get("/api/item-reports", (req, res) => {
+  const query = `
+    SELECT 
+      ir.objectname,
+      ir.imageurl,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ui.firstName,
+      ui.lastName,
+      ui.contact,
+      ui.email,
+      lid.datelost,
+      lid.timelost,
+      lid.locationlost
+    FROM 
+      item_reports2 ir
+    JOIN 
+      userinfo ui ON ir.holderid = ui.id
+    JOIN 
+      lost_item_details lid ON ir.id = lid.item_report_id
+    WHERE 
+      ir.type = 'lost' 
+      AND ir.status = 'pending';
+  `;
+
+  // Execute the query
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching item reports:", err);
+      res.status(500).send("An error occurred");
+    } else {
+      res.json(result); // Send the resulting data as a JSON response
+    }
+  });
+});
+
 app.get("/api/get-all-items", async (req, res) => {
   const sql = `
     SELECT 
