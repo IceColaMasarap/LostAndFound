@@ -287,7 +287,9 @@ JOIN
   lost_item_details lid ON ir.id = lid.item_report_id
 WHERE 
   ir.type = 'lost' 
-  AND ir.status = 'pending';
+  AND ir.status = 'pending'
+  ORDER BY 
+      ir.createdat DESC;
   `;
 
   // Execute the query
