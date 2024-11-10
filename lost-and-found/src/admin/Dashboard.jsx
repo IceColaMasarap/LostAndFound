@@ -36,74 +36,61 @@ function Dashboard() {
   // Fetch item based on code from Supabase
   const fetchItem = async () => {
     try {
-      // Use Supabase's query method to fetch the item based on the input code
-      const { data, error } = await supabase
-        .from("item_reports2")
-        .select("*")
-        .eq("code", parseInt(inputCode, 10)) // Ensure code is compared as an integer
-        .single(); // Fetch a single item
-
-      if (error) {
-        setMessage("Error fetching item. Please try again.");
-        console.error("Error fetching item:", error);
-        toast.error("Error fetching item. Please try again.");
-      } else if (data) {
-        // Check if the item is not already confirmed
-        if (!data.confirmed) {
-          await confirmItem(data.id);
-          toast.success("Reported found item confirmed successfully!");
-        } else {
-          toast.info("This item has already been confirmed.");
-        }
-        setInputCode(""); // Reset the input field
+      // Use axios to make a GET request to your Express backend
+      const response = await axios.get(`http://localhost:3001/api/item-by-code/${inputCode}`);
+      const data = response.data;
+  
+      // Check if the item exists and is not confirmed
+      if (data && !data.confirmed) {
+        await confirmItem(data.id); // Confirm the item if not already confirmed
+        toast.success("Reported found item confirmed successfully!");
+      } else if (data && data.confirmed) {
+        toast.info("This item has already been confirmed.");
       } else {
-        setMessage("No matching item found for the given code.");
         toast.warning("No matching item found for the given code.");
       }
+  
+      setInputCode(""); // Reset the input field
     } catch (error) {
-      console.error("Error fetching document:", error);
-      setMessage("Error fetching item. Please try again.");
+      console.error("Error fetching item:", error);
       toast.error("Error fetching item. Please try again.");
     }
   };
+  
+  
 
   // Function to confirm the item
-  const confirmItem = async (itemId) => {
-    try {
-      // Use Supabase's update method to set confirmed to true
-      const { error } = await supabase
-        .from("item_reports2")
-        .update({ confirmed: true })
-        .eq("id", itemId);
 
-      if (error) {
-        toast.error("Error confirming the item. Please try again.");
-        console.error("Error updating confirmation status:", error);
-      }
-    } catch (error) {
-      console.error("Error confirming item:", error);
+const confirmItem = async (itemId) => {
+  try {
+    // Use axios to make a PUT request to your Express backend
+    const response = await axios.put(`http://localhost:3001/api/confirm-item/${itemId}`);
+
+    if (!response.status === 200) {
       toast.error("Error confirming the item. Please try again.");
     }
-  };
+  } catch (error) {
+    console.error("Error confirming item:", error);
+    toast.error("Error confirming the item. Please try again.");
+  }
+};
+  
 
+  // Fetch all found items on mount
   useEffect(() => {
-    // Fetch found items from the backend API
     const fetchFoundItems = async () => {
       try {
         const response = await axios.get(
           "http://localhost:3001/api/get-found-items"
         );
-
-        // Assuming the API returns an array of found items
         setFoundItems(response.data);
-        console.log("found items: ", response.data);
       } catch (error) {
         console.error("Error fetching found items: ", error);
       }
     };
-
     fetchFoundItems();
   }, []);
+
 
   // Count the items based on their status
   const lostItemsCount = foundItems.filter(

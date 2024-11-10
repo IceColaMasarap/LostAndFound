@@ -41,6 +41,40 @@ function Pending() {
     fetch("http://localhost:3001/api/item-reports")
       .then((response) => response.json())
       .then((data) => {
+        // Apply filters here
+        let filteredItems = data;
+  
+        if (categoryFilter) {
+          filteredItems = filteredItems.filter(
+            (item) => item.category === categoryFilter
+          );
+        }
+  
+        if (colorFilter) {
+          filteredItems = filteredItems.filter((item) => item.color === colorFilter);
+        }
+  
+        if (dateRange.start && dateRange.end) {
+          filteredItems = filteredItems.filter((item) => {
+            const itemDate = new Date(item.datelost);
+            const startDate = new Date(dateRange.start);
+            const endDate = new Date(dateRange.end);
+            return itemDate >= startDate && itemDate <= endDate;
+          });
+        }
+  
+        setFoundItems(filteredItems);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
+  }, [categoryFilter, colorFilter, dateRange]);
+
+  
+  useEffect(() => {
+    fetch("http://localhost:3001/api/item-reports")
+      .then((response) => response.json())
+      .then((data) => {
         setFoundItems(data);
       })
       .catch((error) => {
