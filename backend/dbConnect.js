@@ -10,7 +10,7 @@ app.use(express.json());
 // Configure CORS to allow requests from localhost:5173
 app.use(
   cors({
-    origin: "http://localhost:5173", // Allow requests from this frontend origin
+    origin: "http://localhost:5174", // Allow requests from this frontend origin
     methods: ["GET", "POST"], // Allow specific HTTP methods
     credentials: true, // Allow credentials to be included in requests
   })
