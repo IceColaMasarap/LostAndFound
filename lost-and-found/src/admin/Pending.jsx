@@ -8,6 +8,7 @@ import {
   faBell,
 } from "@fortawesome/free-solid-svg-icons";
 import emailjs from "emailjs-com";
+import axios from "axios";
 
 function Pending() {
   const [foundItems, setFoundItems] = useState([]);
@@ -37,25 +38,22 @@ function Pending() {
     setFoundItems([]);
   };
 
+  // Filtering data based on user selections
   useEffect(() => {
     fetch("http://localhost:3001/api/item-reports")
       .then((response) => response.json())
       .then((data) => {
-        // Apply filters here
         let filteredItems = data;
-
         if (categoryFilter) {
           filteredItems = filteredItems.filter(
             (item) => item.category === categoryFilter
           );
         }
-
         if (colorFilter) {
           filteredItems = filteredItems.filter(
             (item) => item.color === colorFilter
           );
         }
-
         if (dateRange.start && dateRange.end) {
           filteredItems = filteredItems.filter((item) => {
             const itemDate = new Date(item.datelost);
@@ -64,7 +62,6 @@ function Pending() {
             return itemDate >= startDate && itemDate <= endDate;
           });
         }
-
         setFoundItems(filteredItems);
       })
       .catch((error) => {
@@ -87,8 +84,9 @@ function Pending() {
     fetchFoundItems();
   }, [categoryFilter, colorFilter, dateRange]);
 
-  const openRemoveModal = (itemId) => {
-    setCurrentItemId(itemId);
+  const openRemoveModal = (id) => {
+    console.log("Opening remove modal for item ID:", id);
+    setCurrentItemId(id); // Keep using currentItemId in your state
     setShowRemoveModal(true);
   };
 
@@ -132,10 +130,34 @@ function Pending() {
     setShowClaimModal(true);
   };
 
-  const handleArchiveItem = (itemId) => {
-    if (!itemId || !remark.trim()) return;
-    console.log("Item archived:", itemId);
-    setShowRemoveModal(false);
+  const handleArchiveItem = async (itemid) => {
+    if (!itemid || !remark.trim()) {
+      console.error("Item ID or remark is missing!");
+      return;
+    }
+
+    console.log("Archiving item with ID:", itemid);
+
+    try {
+      // Update the status of the item in item_reports2
+      await axios.put(`http://localhost:3001/api/archive-item/${itemid}`, {
+        status: "archived",
+      });
+
+      // Insert data into archived_items using itemid (lowercase)
+      await axios.post("http://localhost:3001/api/add-to-archived", {
+        item_id: itemid, // Using itemid as required by your database schema
+        archiveremark: remark,
+        archivedate: new Date().toISOString(),
+      });
+
+      console.log("Item archived successfully:", itemid);
+    } catch (error) {
+      console.error("Error archiving item:", error.message);
+    } finally {
+      setShowRemoveModal(false);
+      fetchFoundItems();
+    }
   };
 
   const handleClaimItem = () => {
@@ -221,8 +243,10 @@ function Pending() {
       </div>
 
       <div className="containerlostdata">
-        {foundItems.map((item) => (
-          <div key={item.id} className="lostitemcontainer">
+        {foundItems.map((item, index) => (
+          <div key={item.id || index} className="lostitemcontainer">
+            {" "}
+            {/* Ensure a unique key */}
             <img
               className="lostitemimg"
               src={item.imageurl || placeholder}
@@ -239,13 +263,15 @@ function Pending() {
                   >
                     <FontAwesomeIcon icon={faBell} />
                   </button>
+                  {/* Place your button for removing items here */}
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
-                    onClick={() => openRemoveModal(item.id)}
+                    onClick={() => openRemoveModal(item.id)} // Update `item.id` to the correct property name, if necessary
                   >
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
+
                   <button
                     className="lostitemimg2"
                     id="checklostitem"
@@ -269,7 +295,7 @@ function Pending() {
                   <label className="lostitemlabel3">
                     {item.firstName} {item.lastName}
                   </label>
-                  <label className="lostitemlabel2">Contact Number </label>
+                  <label className="lostitemlabel2">Contact Number</label>
                   <label className="lostitemlabel3">{item.contact}</label>
                   <label className="lostitemlabel2">Email</label>
                   <label className="lostitemlabel3">{item.email}</label>
@@ -301,13 +327,15 @@ function Pending() {
             <div className="modalBtnDiv">
               <button
                 onClick={() => {
-                  handleArchiveItem(currentItemId);
+                  console.log("Yes button clicked");
+                  handleArchiveItem(currentItemId); // Ensure this uses the correct state variable
                   setShowRemoveModal(false);
                 }}
                 disabled={!remark.trim()}
               >
                 Yes
               </button>
+
               <button onClick={() => setShowRemoveModal(false)}>No</button>
             </div>
           </div>
