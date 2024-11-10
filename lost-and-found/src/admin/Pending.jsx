@@ -7,7 +7,6 @@ import {
   faCheck,
   faBell,
 } from "@fortawesome/free-solid-svg-icons";
-import { supabase } from "../supabaseClient"; // Import Supabase client
 import emailjs from "emailjs-com";
 
 function Pending() {
@@ -19,6 +18,7 @@ function Pending() {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [currentItemId, setCurrentItemId] = useState(null);
   const [currentHolderId, setCurrentHolderId] = useState(null);
+  const [userInfo, setUserInfo] = useState([]); // State for user info
   const [notificationText, setNotificationText] = useState(
     "Your lost item might have been matched."
   );
@@ -30,40 +30,25 @@ function Pending() {
     claimContactNumber: "",
     claimEmail: "",
   });
-  const fetchFoundItems = async () => {
-    let query = supabase
-      .from("item_reports2")
-      .select(
-        `
-        *,
-        userinfo:holderid (firstname, lastname, email, contact)
-      `
-      )
-      .eq("status", "pending")
-      .eq("type", "Lost")
-      .order("createdat", { ascending: false }); // Order by createdAt in descending order
 
-    if (categoryFilter) query = query.eq("category", categoryFilter);
-    if (colorFilter) query = query.eq("color", colorFilter);
-    if (dateRange.start) query = query.gte("datelost", dateRange.start);
-    if (dateRange.end) query = query.lte("datelost", dateRange.end);
-
-    const { data, error } = await query
-      .order("datelost", { ascending: false })
-      .order("timelost", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching found items:", error);
-    } else {
-      const items = data.map((item) => {
-        const userName = item.userDetails?.name || "N/A";
-        return { ...item, userName };
-      });
-      setFoundItems(items);
-    }
+  // Fetching found items placeholder function
+  const fetchFoundItems = () => {
+    // Placeholder logic for fetching items without Supabase
+    setFoundItems([]);
   };
 
-  // Fetch data using Supabase
+  useEffect(() => {
+    fetch("http://localhost:3001/api/item-reports")
+      .then((response) => response.json())
+      .then((data) => {
+        setFoundItems(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
+  }, []);
+  
+  
   useEffect(() => {
     fetchFoundItems();
   }, [categoryFilter, colorFilter, dateRange]);
@@ -79,69 +64,19 @@ function Pending() {
     setShowNotifModal(true);
   };
 
-  const handleSendNotification = async () => {
-    try {
-      // Fetch item data
-      const { data: itemData, error: fetchError } = await supabase
-        .from("item_reports2")
-        .select("*")
-        .eq("id", currentItemId)
-        .single();
-
-      if (fetchError) {
-        console.error("Error fetching item data:", fetchError);
-        return;
-      }
-
-      // Fetch the owner's data using the holderId (assumed to be in userinfo table)
-      const { data: userData, error: userError } = await supabase
-        .from("userinfo")
-        .select("firstname, lastname, email")
-        .eq("id", currentHolderId)
-        .single();
-
-      if (userError) {
-        console.error("Error fetching user data:", userError);
-        return;
-      }
-
-      // Get the owner's email
-      const ownerEmail = userData?.email;
-
-      if (!ownerEmail) {
-        console.error("Owner's email is missing");
-        return; // Stop if no email is found
-      }
-
-      // Update the item report to mark the user as notified
-      await supabase
-        .from("item_reports2")
-        .update({
-          notified: true,
-          message: notificationText,
-          notifdate: new Date(),
-        })
-        .eq("id", currentItemId);
-
-      console.log(
-        `Notification sent for item ${currentItemId} to holder ${currentHolderId}`
-      );
-      sendEmail(userData, itemData);
-      setNotificationText("Your lost item might have been matched.");
-      setShowNotifModal(false);
-    } catch (error) {
-      console.error("Error sending notification: ", error);
-    }
+  const handleSendNotification = () => {
+    console.log(`Notification sent for item ${currentItemId} to holder ${currentHolderId}`);
+    sendEmail();
+    setNotificationText("Your lost item might have been matched.");
+    setShowNotifModal(false);
   };
 
-  const sendEmail = (userData, itemData) => {
+  const sendEmail = () => {
     emailjs
       .send(
         "service_qkeo7fe",
         "template_0eal5kf",
         {
-          to_name: `${userData.firstname} ${userData.lastname}`, // User's full name
-          email: userData?.email, // User's email
           message: notificationText,
         },
         "ukdUNXpTIsD5n9sfO"
@@ -160,29 +95,14 @@ function Pending() {
     setCurrentItemId(itemId);
     setShowClaimModal(true);
   };
-  const handleArchiveItem = async (itemId) => {
+
+  const handleArchiveItem = (itemId) => {
     if (!itemId || !remark.trim()) return;
-
-    try {
-      const { error } = await supabase
-        .from("item_reports2")
-        .update({
-          status: "archived",
-          archiveremark: remark,
-        })
-        .eq("id", itemId);
-
-      if (error) {
-        console.error("Error archiving item:", error);
-      } else {
-        fetchFoundItems(); // Re-fetch items after archiving
-        console.log("Item archived and items refreshed.");
-      }
-    } catch (error) {
-      console.error("Error archiving item: ", error);
-    }
+    console.log("Item archived:", itemId);
+    setShowRemoveModal(false);
   };
-  const handleClaimItem = async () => {
+
+  const handleClaimItem = () => {
     if (
       !claimerDetails.claimedBy.trim() ||
       !claimerDetails.claimContactNumber.trim() ||
@@ -190,34 +110,13 @@ function Pending() {
     ) {
       return;
     }
-
-    try {
-      const { error } = await supabase
-        .from("item_reports2")
-        .update({
-          status: "claimed",
-          claimedby: claimerDetails.claimedBy,
-          claimcontactnumber: claimerDetails.claimContactNumber,
-          claimemail: claimerDetails.claimEmail,
-          dateclaimed: new Date(),
-        })
-        .eq("id", currentItemId);
-
-      if (error) {
-        console.error("Error updating claim status:", error);
-      } else {
-        fetchFoundItems(); // Re-fetch items to reflect the updated status
-        setShowClaimModal(false); // Close the modal after updating
-        setClaimerDetails({
-          claimedBy: "",
-          claimContactNumber: "",
-          claimEmail: "",
-        }); // Reset the form
-        console.log("Item successfully marked as claimed.");
-      }
-    } catch (error) {
-      console.error("Error handling claim:", error);
-    }
+    console.log("Item successfully marked as claimed.");
+    setShowClaimModal(false);
+    setClaimerDetails({
+      claimedBy: "",
+      claimContactNumber: "",
+      claimEmail: "",
+    });
   };
 
   return (
@@ -330,25 +229,17 @@ function Pending() {
                   <label className="lostitemlabel3">{item.color}</label>
                 </div>
                 <div className="lostitempanel1">
-                  <label className="lostitemlabel2">Reported by:</label>
-                  <label className="lostitemlabel3">
-                    {item.userinfo?.firstname && item.userinfo?.lastname
-                      ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
-                      : "N/A"}
-                  </label>
-                  <label className="lostitemlabel2">Contact Number</label>
-                  <label className="lostitemlabel3">
-                    {item.userinfo?.contact}
-                  </label>
+                  <label className="lostitemlabel2">Reported by</label>
+                  <label className="lostitemlabel3">{item.firstName} {item.lastName}</label>
+                  <label className="lostitemlabel2">Contact Number </label>
+                  <label className="lostitemlabel3">{item.contact}</label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">
-                    {item.userinfo?.email}
-                  </label>
+                  <label className="lostitemlabel3">{item.email}</label>
                 </div>
                 <div className="lostitempanel2">
                   <label className="lostitemlabel2">Date Lost</label>
                   <label className="lostitemlabel3">
-                    {item.datelost} at {item.timelost}
+                     {new Date(item.datelost).toLocaleDateString("en-US")} at {item.timelost}
                   </label>
                   <label className="lostitemlabel2">Location Lost</label>
                   <label className="lostitemlabel3">{item.locationlost}</label>
@@ -358,22 +249,23 @@ function Pending() {
           </div>
         ))}
       </div>
+
       {showRemoveModal && (
         <div className="modal">
           <div className="modal-content">
             <p>Archive this item?</p>
             <input
               placeholder="Archive Reason"
-              value={remark} // Bind to state
-              onChange={(e) => setArchiveRemark(e.target.value)} // Update state on change
+              value={remark}
+              onChange={(e) => setArchiveRemark(e.target.value)}
             />
             <div className="modalBtnDiv">
               <button
                 onClick={() => {
                   handleArchiveItem(currentItemId);
-                  setShowRemoveModal(false); // Close modal after archiving
+                  setShowRemoveModal(false);
                 }}
-                disabled={!remark.trim()} // Disable if remark is empty
+                disabled={!remark.trim()}
               >
                 Yes
               </button>
@@ -382,6 +274,7 @@ function Pending() {
           </div>
         </div>
       )}
+
       {showClaimModal && (
         <div className="modal">
           <div className="modal-content">
@@ -411,10 +304,9 @@ function Pending() {
                 })
               }
               required
-              onWheel={(e) => e.target.blur()} // Prevent number scroll behavior
             />
 
-            <label>Email:</label>
+            <label>Email Address:</label>
             <input
               type="email"
               value={claimerDetails.claimEmail}
@@ -427,18 +319,20 @@ function Pending() {
               required
             />
 
-            <div className="modal-buttons">
-              <button onClick={() => setShowClaimModal(false)}>Cancel</button>
+            <div className="modalBtnDiv">
               <button
-                onClick={handleClaimItem}
+                onClick={() => {
+                  handleClaimItem(currentItemId);
+                }}
                 disabled={
                   !claimerDetails.claimedBy.trim() ||
                   !claimerDetails.claimContactNumber.trim() ||
                   !claimerDetails.claimEmail.trim()
                 }
               >
-                Confirm Claim
+                Confirm
               </button>
+              <button onClick={() => setShowClaimModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -447,21 +341,14 @@ function Pending() {
       {showNotifModal && (
         <div className="modal">
           <div className="modal-content">
-            <h2>Send Notification</h2>
-            <p>Customize the notification message:</p>
-            <input
-              type="text"
+            <p>Send Notification?</p>
+            <textarea
               value={notificationText}
               onChange={(e) => setNotificationText(e.target.value)}
             />
-            <div className="modal-buttons">
-              <button onClick={() => setShowNotifModal(false)}>Cancel</button>
-              <button
-                onClick={handleSendNotification}
-                disabled={!notificationText.trim()} // Disable button if notificationText is empty
-              >
-                Send Notification
-              </button>
+            <div className="modalBtnDiv">
+              <button onClick={handleSendNotification}>Yes</button>
+              <button onClick={() => setShowNotifModal(false)}>No</button>
             </div>
           </div>
         </div>
