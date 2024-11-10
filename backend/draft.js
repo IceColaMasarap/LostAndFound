@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: "http://localhost:5174", // Allow requests from this frontend origin
-    methods: ["GET", "POST", "DELETE", "PUT"], // Allow specific HTTP methods
+    methods: ["GET", "POST", "DELETE", "PUT"], // Include all necessary methods
     credentials: true, // Allow credentials to be included in requests
   })
 );
@@ -175,102 +175,6 @@ app.post("/api/report-lost-item", async (req, res) => {
   }
 });
 
-app.get("/api/get-all-items", async (req, res) => {
-  const sql = `
-    SELECT 
-      ir.type, 
-      ir.category, 
-      ir.brand, 
-      ir.color, 
-      ir.objectname, 
-      u.firstName, 
-      u.lastName, 
-      u.email, 
-      u.contact, 
-      f.datefound, 
-      f.timefound, 
-      f.locationfound, 
-      l.datelost, 
-      l.timelost, 
-      l.locationlost, 
-      c.claimedby, 
-      c.claimedemail, 
-      c.claimcontactnumber, 
-      c.dateclaimed, 
-      ir.status
-    FROM item_reports2 ir
-    LEFT JOIN userinfo u ON ir.holderid = u.id
-    LEFT JOIN lost_item_details l ON ir.id = l.item_report_id
-    LEFT JOIN found_item_details f ON ir.id = f.item_report_id
-    LEFT JOIN claimed_items c ON ir.id = c.item_id;
-  `;
-
-  db.query(sql, (err, result) => {
-    if (err) {
-      console.error("Error fetching items:", err.message);
-      return res.status(500).json({ error: "Failed to fetch items" });
-    }
-    res.status(200).json(result);
-  });
-});
-
-app.get("/api/get-found-items", async (req, res) => {
-  const sql = `
-    SELECT 
-      ir.id, ir.code, ir.status, ir.type, ir.createdat, 
-      ir.holderid, ir.category, ir.brand, ir.color, ir.objectname, ir.imageurl, 
-      u.firstname, u.lastname,
-    FROM item_reports2 ir
-    LEFT JOIN userinfo u ON ir.holderid = u.id
-  `;
-
-  db.query(sql, (err, result) => {
-    if (err) {
-      console.error("Error fetching found items:", err.message);
-      return res.status(500).json({ error: "Failed to fetch found items" });
-    }
-    res.status(200).json(result);
-  });
-});
-
-// Route to get item reports along with user and lost item details
-app.get("/api/item-reports", (req, res) => {
-  const query = `
-    SELECT 
-      ir.objectname,
-      ir.imageurl,
-      ir.category,
-      ir.brand,
-      ir.color,
-      ui.firstName,
-      ui.lastName,
-      ui.contact,
-      ui.email,
-      lid.datelost,
-      lid.timelost,
-      lid.locationlost
-    FROM 
-      item_reports2 ir
-    JOIN 
-      userinfo ui ON ir.holderid = ui.id
-    JOIN 
-      lost_item_details lid ON ir.id = lid.item_report_id
-    WHERE 
-      ir.type = 'lost' 
-      AND ir.status = 'pending';
-  `;
-
-  // Execute the query
-  db.query(query, (err, result) => {
-    if (err) {
-      console.error("Error fetching item reports:", err);
-      res.status(500).send("An error occurred");
-    } else {
-      res.json(result); // Send the resulting data as a JSON response
-    }
-  });
-});
-
 app.post("/api/report-found-item", async (req, res) => {
   const {
     code,
@@ -296,9 +200,7 @@ app.post("/api/report-found-item", async (req, res) => {
     db.query(checkHolderSql, [holderid], (err, result) => {
       if (err) {
         console.error("Error checking holder ID:", err.message);
-        return res
-          .status(500)
-          .json({ error: "Database error checking holder ID" });
+        return res.status(500).json({ error: "Database error checking holder ID" });
       }
       if (result.length === 0) {
         return res.status(400).json({ error: "Invalid holder ID" });
@@ -328,9 +230,7 @@ app.post("/api/report-found-item", async (req, res) => {
         (err, result) => {
           if (err) {
             console.error("Error inserting into item_reports2:", err.message);
-            return res
-              .status(500)
-              .json({ error: "Failed to insert item report" });
+            return res.status(500).json({ error: "Failed to insert item report" });
           }
 
           // Insert into found_item_details table
@@ -343,13 +243,8 @@ app.post("/api/report-found-item", async (req, res) => {
             [datefound, timefound, locationfound, reportId],
             (err, result) => {
               if (err) {
-                console.error(
-                  "Error inserting into found_item_details:",
-                  err.message
-                );
-                return res
-                  .status(500)
-                  .json({ error: "Failed to insert item details" });
+                console.error("Error inserting into found_item_details:", err.message);
+                return res.status(500).json({ error: "Failed to insert item details" });
               }
 
               res.status(200).json({ id: reportId });
@@ -363,6 +258,7 @@ app.post("/api/report-found-item", async (req, res) => {
     res.status(500).json({ error: "Server error while saving found item" });
   }
 });
+
 
 app.get("/api/code-confirmation/:id", (req, res) => {
   const reportId = req.params.id;
@@ -405,9 +301,7 @@ app.delete("/api/code-expiration/:id", (req, res) => {
 
       if (result.affectedRows === 0) {
         return db.rollback(() => {
-          res
-            .status(404)
-            .json({ error: "Item details not found or already confirmed" });
+          res.status(404).json({ error: "Item details not found or already confirmed" });
         });
       }
 
@@ -426,9 +320,7 @@ app.delete("/api/code-expiration/:id", (req, res) => {
 
         if (result.affectedRows === 0) {
           return db.rollback(() => {
-            res
-              .status(404)
-              .json({ error: "Report not found or already confirmed" });
+            res.status(404).json({ error: "Report not found or already confirmed" });
           });
         }
 
@@ -447,6 +339,10 @@ app.delete("/api/code-expiration/:id", (req, res) => {
     });
   });
 });
+
+
+
+
 
 const PORT = 3001;
 app.listen(PORT, () => {
