@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import Notification from "./notification"; // Import your notification component
 import { supabase } from "../config/supabase"; // Adjust the path according to your project structure
+import axios from "axios"; // Import axios
 
 function Homepage2() {
   const navigate = useNavigate();
@@ -65,24 +66,12 @@ function Homepage2() {
   const fetchCounts = async () => {
     try {
       // Fetch count of 'found' items with 'pending' status
-      const { count: foundCount, error: foundError } = await supabase
-        .from("item_reports2")
-        .select("*", { count: "exact" })
-        .eq("type", "Found")
-        .eq("status", "pending");
-
-      if (foundError) throw foundError;
-      setFoundItemsPending(foundCount);
-
+      const foundResponse = await axios.get("http://localhost:3001/api/count-found-items");
+      setFoundItemsPending(foundResponse.data.count);
+  
       // Fetch count of 'lost' items with 'pending' status
-      const { count: lostCount, error: lostError } = await supabase
-        .from("item_reports2")
-        .select("*", { count: "exact" })
-        .eq("type", "Lost")
-        .eq("status", "pending");
-
-      if (lostError) throw lostError;
-      setLostItemsPending(lostCount);
+      const lostResponse = await axios.get("http://localhost:3001/api/count-lost-items");
+      setLostItemsPending(lostResponse.data.count);
     } catch (error) {
       console.error("Error fetching counts:", error);
     }

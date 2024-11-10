@@ -554,6 +554,39 @@ app.get("/api/founditem-reports", (req, res) => {
 });
 
 
+// Endpoint to get the count of 'found' items with 'pending' status
+app.get("/api/count-found-items", (req, res) => {
+  const query = `
+    SELECT COUNT(*) AS count FROM item_reports2 
+    WHERE type = 'Found' AND status = 'pending';
+  `;
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching count of found items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch count of found items" });
+    }
+    res.status(200).json({ count: result[0].count });
+  });
+});
+
+// Endpoint to get the count of 'lost' items with 'pending' status
+app.get("/api/count-lost-items", (req, res) => {
+  const query = `
+    SELECT COUNT(*) AS count FROM item_reports2 
+    WHERE type = 'Lost' AND status = 'pending';
+  `;
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching count of lost items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch count of lost items" });
+    }
+    res.status(200).json({ count: result[0].count });
+  });
+});
+
+
 
 const PORT = 3001;
 app.listen(PORT, () => {
