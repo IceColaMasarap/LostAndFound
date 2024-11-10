@@ -463,7 +463,7 @@ function All() {
                                 ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
                                 : column === "type"
                                   ? getTypeDisplay(item[column])
-                                  : column === "datefound" || column === "datelost" || column === "dateclaimed"
+                                  : column === "datefound" || column === "datelost" || column === "dateclaimed" 
                                     ? formatDate(item[column]) // Format the date columns
                                     : item[column] || "N/A"}
                             </td>

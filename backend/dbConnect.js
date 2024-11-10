@@ -280,6 +280,7 @@ app.get("/api/item-reports", (req, res) => {
       ui.lastName,
       ui.contact,
       ui.email,
+      ui.id as userid,
       lid.datelost,
       lid.timelost,
       lid.locationlost,
@@ -727,7 +728,7 @@ app.get("/api/get-all-items2", async (req, res) => {
       ir.brand, 
       ir.color, 
       ir.objectname, 
-            ir.createdat, 
+      ir.createdat, 
       u.firstName, 
       u.lastName, 
       u.email, 
@@ -762,6 +763,33 @@ app.get("/api/get-all-items2", async (req, res) => {
   });
 });
 
+
+app.get("/api/notifications/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  const sql = 
+   ` SELECT 
+      ir.objectname, 
+      ir.imageurl, 
+      n.message, 
+      n.notifdate
+    FROM 
+      notifications AS n
+    INNER JOIN 
+      item_reports2 AS ir ON n.item_id = ir.id
+    WHERE 
+      n.user_id = ? 
+    ORDER BY 
+      n.notifdate DESC;`
+  ;
+
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      console.error("Error fetching notifications:", err);
+      return res.status(500).send("Server error");
+    }
+    res.status(200).send(result); // Send the fetched notifications to the client
+  });
+});
 
 const PORT = 3001;
 app.listen(PORT, () => {

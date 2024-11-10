@@ -183,24 +183,21 @@ function Archive() {
   
     const matchesCategory =
       categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(
-            item.category
-          )
+        ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category)
         : categoryFilter
         ? item.category === categoryFilter
         : true;
   
     const matchesColor = colorFilter ? item.color === colorFilter : true;
   
-    // Adjust date parsing to ensure proper comparisons
-    const itemDate = item.archivedate ? new Date(item.archivedate) : null; // Parse 'archivedate'
+    // Parsing and normalizing dates to remove the time part
+    const itemDate = item.createdat ? new Date(item.createdat) : null;
     const startDate = dateRange.start ? new Date(dateRange.start) : null;
     const endDate = dateRange.end ? new Date(dateRange.end) : null;
   
-    // Normalize the time for comparison
-    if (itemDate) itemDate.setHours(0, 0, 0, 0);
+    if (itemDate) itemDate.setHours(0, 0, 0, 0); // Normalize time for comparison
     if (startDate) startDate.setHours(0, 0, 0, 0);
-    if (endDate) endDate.setHours(23, 59, 59, 999);
+    if (endDate) endDate.setHours(23, 59, 59, 999); // Set to end of the day
   
     const matchesDateRange =
       (!startDate || itemDate >= startDate) &&
@@ -210,11 +207,26 @@ function Archive() {
   
     return matchesType && matchesCategory && matchesColor && matchesDateRange && archive;
   });
+
+
   const getTypeDisplay = (type) => {
     if (filter === "pending" && type === "Found") return "Lost";
     if (filter === "pending" && type === "Lost") return "Missing";
     return type;
   };
+
+  const formatDate = (date) => {
+    if (!date) return "N/A"; // Handle null or undefined dates
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "Invalid Date"; // Check for invalid dates
+
+    const month = String(d.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+    const day = String(d.getDate()).padStart(2, "0");
+    const year = d.getFullYear();
+
+    return `${month}/${day}/${year}`;
+  };
+
   return (
     <>
       <div className="adminnavbar">
@@ -339,8 +351,10 @@ function Archive() {
                               {column === "name"
                                 ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
                                 : column === "type"
-                                ? getTypeDisplay(item[column])
-                                : item[column] || "N/A"}
+                                  ? getTypeDisplay(item[column])
+                                  : column === "createdat"
+                                    ? formatDate(item[column]) // Format the 'createdat' date
+                                    : item[column] || "N/A"}
                             </td>
                           )
                       )}
