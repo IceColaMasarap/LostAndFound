@@ -290,14 +290,35 @@ app.delete("/api/code-expiration/:id", (req, res) => {
     res.status(200).json({ message: "Code expired and report deleted" });
   });
 });
+
 app.get("/api/get-found-items", async (req, res) => {
   const sql = `
     SELECT 
       ir.id, ir.code, ir.status, ir.type, ir.createdat, 
       ir.holderid, ir.category, ir.brand, ir.color, ir.objectname, ir.imageurl, 
-      u.firstname, u.lastname
+      u.firstname, u.lastname,
     FROM item_reports2 ir
     LEFT JOIN userinfo u ON ir.holderid = u.id
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching found items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch found items" });
+    }
+    res.status(200).json(result);
+  });
+});
+
+app.get("/api/get-all-items", async (req, res) => {
+  const sql = `
+    SELECT 
+       ir.type, ir.category, ir.brand, ir.color, ir.objectname, u.firstName, u.lastName, u.email, u.contact, f.datefound, f.timefound, f.locationfound, l.datelost, l.timelost, l.locationlost, c.claimedby, c.claimedemail, c.claimcontactnumber, c.dateclaimed, ir.status
+    FROM item_reports2 ir
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+    LEFT JOIN lost_item_details l ON ir.id = l.item_report_id
+    LEFT JOIN found_item_details f ON ir.id = f.item_report_id
+    LEFT JOIN claimed_items c ON ir.id = c.item_id;
   `;
 
   db.query(sql, (err, result) => {
