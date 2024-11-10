@@ -233,6 +233,35 @@ app.get("/api/get-found-items", async (req, res) => {
   });
 });
 
+
+app.get("/api/get-claimed-items", (req, res) => {
+  const sql = 
+   ` SELECT 
+      ir.id,
+      ir.objectname,
+      ir.imageurl,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ci.claimedby,
+      ci.claimedemail,
+      ci.claimcontactnumber,
+      ci.dateclaimed,
+      u.firstname,
+      u.lastname
+    FROM item_reports2 ir
+    JOIN claimed_items ci ON ir.id = ci.item_id
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+    WHERE ir.status = 'claimed'`;
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching claimed items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch claimed items" });
+    }
+    res.status(200).json(result);
+  });
+});
+
 // Route to get item reports along with user and lost item details
 app.get("/api/item-reports", (req, res) => {
   const query = `
@@ -379,6 +408,43 @@ app.get("/api/code-confirmation/:id", (req, res) => {
   });
 });
 
+app.get("/api/item-by-code/:code", (req, res) => {
+  const code = parseInt(req.params.code, 10);
+  const sql = `SELECT * FROM item_reports2 WHERE code = ?`;
+
+  db.query(sql, [code], (err, result) => {
+    if (err) {
+      console.error("Error fetching item:", err.message);
+      return res.status(500).json({ error: "Error fetching item" });
+    }
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+    res.status(200).json(result[0]); // Send the first matching item
+  });
+});
+// API endpoint to confirm the item
+app.put("/api/confirm-item/:id", (req, res) => {
+  const itemId = req.params.id;
+
+  const sql = `UPDATE item_reports2 SET confirmed = 1 WHERE id = ?`;
+  db.query(sql, [itemId], (err, result) => {
+    if (err) {
+      console.error("Error updating item confirmation:", err.message);
+      return res.status(500).json({ error: "Failed to update confirmation" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ error: "Item not found or already confirmed" });
+    }
+
+    res.status(200).json({ message: "Item confirmed successfully" });
+  });
+});
+
+
 app.delete("/api/code-expiration/:id", (req, res) => {
   const reportId = req.params.id;
 
@@ -447,6 +513,43 @@ app.delete("/api/code-expiration/:id", (req, res) => {
     });
   });
 });
+
+
+app.get("/api/founditem-reports", (req, res) => {
+  const query = 
+    `SELECT 
+      ir.imageurl,
+      ir.objectname,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ui.firstName,
+      ui.lastName,
+      ui.contact,
+      ui.email,
+      lid.datefound,
+      lid.timefound,
+      lid.locationfound
+    FROM 
+      item_reports2 ir
+    JOIN 
+      userinfo ui ON ir.holderid = ui.id
+    JOIN 
+      found_item_details lid ON ir.id = lid.item_report_id
+    WHERE 
+      ir.type = 'found' 
+      AND ir.status = 'pending'`;
+  ;
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching item reports:", err.message);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    res.json(result); // Send the resulting data as a JSON response
+  });
+});
+
 
 const PORT = 3001;
 app.listen(PORT, () => {
