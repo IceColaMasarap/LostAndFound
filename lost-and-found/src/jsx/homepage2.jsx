@@ -34,6 +34,7 @@ function Homepage2() {
       targetSection.scrollIntoView({ behavior: "smooth" }); // Scroll smoothly to the target section
     }
   };
+
   const fetchNotifications = async () => {
     try {
       // Retrieve user data from sessionStorage
@@ -46,17 +47,16 @@ function Homepage2() {
 
       const userId = user.id; // Get the user ID from sessionStorage
 
-      // Fetch notifications for the specific user from Supabase
-      const { data, error } = await supabase
-        .from("item_reports2")
-        .select("id, message, imageurl, objectname, notifdate")
-        .eq("holderid", userId) // Filter notifications based on user_id
-        .eq("notified", true); // Assuming 'notified' is a column to check for new notifications
+      // Make an API request to fetch notifications for the specific user
+      const response = await axios.get(
+        `http://localhost:3001/api/notifications/${userId}`
+      );
 
-      if (error) {
-        console.error("Error fetching notifications:", error);
+      // Assuming the response contains a 'notifications' array
+      if (response.data) {
+        setNotifications(response.data); // Directly set the data if it matches the structure
       } else {
-        setNotifications(data); // Set the notifications state
+        console.error("No notifications found in response.");
       }
     } catch (error) {
       console.error("Unexpected error fetching notifications:", error);
@@ -66,11 +66,15 @@ function Homepage2() {
   const fetchCounts = async () => {
     try {
       // Fetch count of 'found' items with 'pending' status
-      const foundResponse = await axios.get("http://localhost:3001/api/count-found-items");
+      const foundResponse = await axios.get(
+        "http://localhost:3001/api/count-found-items"
+      );
       setFoundItemsPending(foundResponse.data.count);
-  
+
       // Fetch count of 'lost' items with 'pending' status
-      const lostResponse = await axios.get("http://localhost:3001/api/count-lost-items");
+      const lostResponse = await axios.get(
+        "http://localhost:3001/api/count-lost-items"
+      );
       setLostItemsPending(lostResponse.data.count);
     } catch (error) {
       console.error("Error fetching counts:", error);
