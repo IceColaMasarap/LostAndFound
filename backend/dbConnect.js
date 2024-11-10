@@ -348,6 +348,207 @@ app.get("/api/item-reports", (req, res) => {
 });
 
 
+app.post("/api/report-found-item", async (req, res) => {
+  const {
+    code,
+    confirmed,
+    createdat,
+    holderid,
+    category,
+    brand,
+    color,
+    datefound,
+    timefound,
+    locationfound,
+    objectname,
+    imageurl,
+    type,
+    status,
+  } = req.body;
+  const reportId = uuidv4();
+
+  try {
+    // Check if holder ID exists
+    const checkHolderSql = "SELECT id FROM userinfo WHERE id = ?";
+    db.query(checkHolderSql, [holderid], (err, result) => {
+      if (err) {
+        console.error("Error checking holder ID:", err.message);
+        return res.status(500).json({ error: "Database error checking holder ID" });
+      }
+      if (result.length === 0) {
+        return res.status(400).json({ error: "Invalid holder ID" });
+      }
+
+      // Insert into item_reports2 table
+      const sql = `INSERT INTO item_reports2 
+        (id, code, confirmed, createdat, holderid, category, brand, color, objectname, imageurl, type, status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+      db.query(
+        sql,
+        [
+          reportId,
+          code,
+          confirmed,
+          createdat,
+          holderid,
+          category,
+          brand,
+          color,
+          objectname,
+          imageurl,
+          type,
+          status,
+        ],
+        (err, result) => {
+          if (err) {
+            console.error("Error inserting into item_reports2:", err.message);
+            return res.status(500).json({ error: "Failed to insert item report" });
+          }
+
+          // Insert into found_item_details table
+          const detailsSql = `INSERT INTO found_item_details 
+            (datefound, timefound, locationfound, item_report_id) 
+            VALUES (?, ?, ?, ?)`;
+
+          db.query(
+            detailsSql,
+            [datefound, timefound, locationfound, reportId],
+            (err, result) => {
+              if (err) {
+                console.error("Error inserting into found_item_details:", err.message);
+                return res.status(500).json({ error: "Failed to insert item details" });
+              }
+
+              res.status(200).json({ id: reportId });
+            }
+          );
+        }
+      );
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    res.status(500).json({ error: "Server error while saving found item" });
+  }
+});
+
+
+app.get("/api/code-confirmation/:id", (req, res) => {
+  const reportId = req.params.id;
+
+  const sql = `SELECT confirmed FROM item_reports2 WHERE id = ?`;
+  db.query(sql, [reportId], (err, result) => {
+    if (err) {
+      console.error("Error fetching confirmation:", err.message);
+      return res.status(500).json({ error: "Error checking confirmation" });
+    }
+    if (result.length === 0)
+      return res.status(404).json({ error: "Report not found" });
+    res.status(200).json(result[0]);
+  });
+});
+
+app.delete("/api/code-expiration/:id", (req, res) => {
+  const reportId = req.params.id;
+
+  db.beginTransaction((err) => {
+    if (err) {
+      console.error("Error starting transaction:", err.message);
+      return res.status(500).json({ error: "Error starting transaction" });
+    }
+
+    // Delete from found_item_details using a subquery
+    const deleteDetailsSql = `
+      DELETE FROM found_item_details 
+      WHERE item_report_id = ? AND EXISTS (
+        SELECT 1 FROM item_reports2 WHERE id = ? AND confirmed = 0
+      )
+    `;
+    db.query(deleteDetailsSql, [reportId, reportId], (err, result) => {
+      if (err) {
+        console.error("Error deleting item details:", err.message);
+        return db.rollback(() => {
+          res.status(500).json({ error: "Error deleting item details" });
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return db.rollback(() => {
+          res.status(404).json({ error: "Item details not found or already confirmed" });
+        });
+      }
+
+      // Delete from item_reports2
+      const deleteReportSql = `
+        DELETE FROM item_reports2 
+        WHERE id = ? AND confirmed = 0
+      `;
+      db.query(deleteReportSql, [reportId], (err, result) => {
+        if (err) {
+          console.error("Error deleting from item_reports2:", err.message);
+          return db.rollback(() => {
+            res.status(500).json({ error: "Error deleting report" });
+          });
+        }
+
+        if (result.affectedRows === 0) {
+          return db.rollback(() => {
+            res.status(404).json({ error: "Report not found or already confirmed" });
+          });
+        }
+
+        // Commit the transaction
+        db.commit((err) => {
+          if (err) {
+            console.error("Error committing transaction:", err.message);
+            return db.rollback(() => {
+              res.status(500).json({ error: "Error committing transaction" });
+            });
+          }
+
+          res.status(200).json({ message: "Code expired and report deleted" });
+        });
+      });
+    });
+  });
+});
+
+
+app.get("/api/item-by-code/:code", (req, res) => {
+  const code = parseInt(req.params.code, 10);
+  const sql = `SELECT * FROM item_reports2 WHERE code = ?`;
+
+  db.query(sql, [code], (err, result) => {
+    if (err) {
+      console.error("Error fetching item:", err.message);
+      return res.status(500).json({ error: "Error fetching item" });
+    }
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+    res.status(200).json(result[0]); // Send the first matching item
+  });
+});
+// API endpoint to confirm the item
+app.put("/api/confirm-item/:id", (req, res) => {
+  const itemId = req.params.id;
+
+  const sql = `UPDATE item_reports2 SET confirmed = 1 WHERE id = ?`;
+  db.query(sql, [itemId], (err, result) => {
+    if (err) {
+      console.error("Error updating item confirmation:", err.message);
+      return res.status(500).json({ error: "Failed to update confirmation" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Item not found or already confirmed" });
+    }
+
+    res.status(200).json({ message: "Item confirmed successfully" });
+  });
+});
+
+
 
 
 const PORT = 3001;
