@@ -174,171 +174,120 @@ app.post("/api/report-lost-item", async (req, res) => {
     res.status(500).json({ message: "Server error while saving lost item" });
   }
 });
+
 app.post("/api/report-found-item", async (req, res) => {
   const {
+    code,
+    confirmed,
+    createdat,
+    holderid,
     category,
     brand,
     color,
-    objectName,
-    datelost,
-    timelost,
-    locationlost,
-    imageUrl,
-    holderid,
+    datefound,
+    timefound,
+    locationfound,
+    objectname,
+    imageurl,
+    type,
+    status,
   } = req.body;
+  const reportId = uuidv4();
 
-  try {
-    // Step 1: Validate if holder ID exists in userinfo table
-    const checkUserQuery = `SELECT id FROM userinfo WHERE id = ?`;
-    db.query(checkUserQuery, [holderid], (err, results) => {
-      if (err) {
-        console.error("Error checking holder ID:", err);
-        return res.status(500).json({ message: "Error validating user" });
-      }
-
-      if (results.length === 0) {
-        return res.status(400).json({ message: "Invalid holder ID" });
-      }
-
-      // Step 2: Generate unique ID for the report and a unique code
-      const reportId = uuidv4();
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // Step 3: Insert into main report table
-      const insertReportQuery = `
-          INSERT INTO item_reports2 (id, code, category, brand, color, objectname, imageurl, holderid, createdat, type, status, confirmed)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Found', 'pending', false);
-        `;
-      db.query(
-        insertReportQuery,
-        [
-          reportId,
-          code,
-          category,
-          brand,
-          color,
-          objectName,
-          imageUrl || null,
-          holderid,
-        ],
-        (err2) => {
-          if (err2) {
-            console.error("Error inserting report:", err2);
-            return res
-              .status(500)
-              .json({ message: "Error saving item report" });
-          }
-
-          console.log("Report inserted successfully with ID:", reportId);
-
-          // Step 4: Insert details (date, time, location)
-          const insertDetailQuery = `
-              INSERT INTO lost_item_details (datefound, timefound, locationfound, item_report_id)
-              VALUES (?, ?, ?, ?);
-            `;
-          db.query(
-            insertDetailQuery,
-            [datelost, timelost, locationlost, reportId],
-            (err3) => {
-              if (err3) {
-                console.error("Error inserting item details:", err3);
-                return res
-                  .status(500)
-                  .json({ message: "Error saving item details" });
-              }
-
-              console.log(
-                "Item details inserted successfully for report ID:",
-                reportId
-              );
-
-              // Step 5: Check code confirmation with interval
-              const checkConfirmation = () => {
-                const confirmQuery = `SELECT confirmed FROM item_reports2 WHERE id = ?`;
-                db.query(confirmQuery, [reportId], (err, result) => {
-                  if (err) {
-                    console.error("Error checking confirmation:", err);
-                    return;
-                  }
-
-                  if (result[0]?.confirmed) {
-                    clearInterval(intervalId);
-                    res
-                      .status(201)
-                      .json({ message: "Lost item reported and confirmed!" });
-                  }
-                });
-              };
-
-              // Run check every second, expire code if unconfirmed
-              const intervalId = setInterval(checkConfirmation, 1000);
-              setTimeout(() => clearInterval(intervalId), 30000);
-            }
-          );
-        }
-      );
-    });
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    res.status(500).json({ message: "Server error while saving lost item" });
-  }
-});
-
-app.post("/api/getItemData", (req, res) => {
-  const { itemId } = req.body;
-
-  // Fetch item data from the database
-  db.query(
-    "SELECT * FROM found_items WHERE id = ?",
-    [itemId],
-    (err, results) => {
-      if (err) {
-        console.error("Error fetching item data:", err);
-        return res.status(500).send("Database error");
-      }
-      if (results.length === 0) {
-        return res.status(404).send("Item not found");
-      }
-      res.json(results[0]); // Send back the first result since itemId is unique
-    }
-  );
-});
-
-// API Route: Get User Data (Owner Data)
-app.post("/api/getUserData", (req, res) => {
-  const { holderId } = req.body;
-
-  // Fetch user data from the database
-  db.query("SELECT * FROM users WHERE id = ?", [holderId], (err, results) => {
+  // First, check if holderid exists in the referenced table (e.g., users)
+  const checkHolderSql = "SELECT id FROM userinfo WHERE id = ?";
+  db.query(checkHolderSql, [holderid], (err, result) => {
     if (err) {
-      console.error("Error fetching user data:", err);
-      return res.status(500).send("Database error");
+      console.error("Error checking holderid:", err.message);
+      return res.status(500).json({ error: "Error checking holderid" });
     }
-    if (results.length === 0) {
-      return res.status(404).send("User not found");
+    if (result.length === 0) {
+      return res.status(400).json({ error: "Invalid holderid" });
     }
-    res.json(results[0]); // Send back the first result
+
+    // Insert into item_reports2 table
+    const sql = `INSERT INTO item_reports2 
+      (id, code, confirmed, createdat, holderid, category, brand, color, objectname, imageurl, type, status) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.query(
+      sql,
+      [
+        reportId,
+        code,
+        confirmed,
+        createdat,
+        holderid,
+        category,
+        brand,
+        color,
+
+        objectname,
+        imageurl,
+        type,
+        status,
+      ],
+      (err, result) => {
+        if (err) {
+          console.error("Error inserting item report:", err.message);
+          return res.status(500).json({ error: "Failed to save item report" });
+        }
+
+        const itemReportId = result.insertId;
+
+        // Now insert the details into found_item_details table
+        const detailsSql = `INSERT INTO found_item_details 
+          (datefound, timefound, locationfound, item_report_id) 
+          VALUES (?, ?, ?, ?)`;
+
+        db.query(
+          detailsSql,
+          [datefound, timefound, locationfound, reportId],
+          (err, result) => {
+            if (err) {
+              console.error("Error inserting found item details:", err.message);
+              return res
+                .status(500)
+                .json({ error: "Failed to save found item details" });
+            }
+
+            res.status(200).json({ id: itemReportId });
+          }
+        );
+      }
+    );
   });
 });
 
-// API Route: Update Item Notification
-app.post("/api/updateItemNotification", (req, res) => {
-  const { itemId, message } = req.body;
+app.get("/api/code-confirmation/:id", (req, res) => {
+  const reportId = req.params.id;
 
-  // Update the item to mark it as notified with a message
-  const updateFields = {
-    notified: true,
-    message,
-    notifdate: new Date(),
-  };
-
-  let query = "UPDATE found_items SET ? WHERE id = ?";
-  db.query(query, [updateFields, itemId], (err, result) => {
+  const sql = `SELECT confirmed FROM item_reports2 WHERE id = ?`;
+  db.query(sql, [reportId], (err, result) => {
     if (err) {
-      console.error("Error updating item notification:", err);
-      return res.status(500).send("Database error");
+      console.error("Error fetching confirmation:", err.message);
+      return res.status(500).json({ error: "Error checking confirmation" });
     }
-    res.json({ message: "Item notification updated successfully" });
+    if (result.length === 0)
+      return res.status(404).json({ error: "Report not found" });
+    res.status(200).json(result[0]);
+  });
+});
+
+app.delete("/api/code-expiration/:id", (req, res) => {
+  const reportId = req.params.id;
+
+  const sql = `DELETE FROM item_reports2 WHERE id = ? AND confirmed = false`;
+  db.query(sql, [reportId], (err, result) => {
+    if (err) {
+      console.error("Error expiring code:", err.message);
+      return res.status(500).json({ error: "Error expiring code" });
+    }
+    if (result.affectedRows === 0)
+      return res
+        .status(404)
+        .json({ error: "Report not found or already confirmed" });
+    res.status(200).json({ message: "Code expired and report deleted" });
   });
 });
 
