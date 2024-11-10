@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import "./Admin.css";
 import placeholder from "../assets/imgplaceholder.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBoxArchive, faCheck } from "@fortawesome/free-solid-svg-icons";
-import axios from 'axios';
+import axios from "axios";
 
 function LostItems() {
   const [reports, setReports] = useState([]); // State to store fetched data
@@ -21,19 +21,22 @@ function LostItems() {
     claimContactNumber: "",
     claimEmail: "",
   });
-
-  useEffect(() => {
-    // Fetch data when the component mounts
+  const fetchItems = () => {
     axios
-      .get('http://localhost:3001/api/founditem-reports')
+      .get("http://localhost:3001/api/founditem-reports")
       .then((response) => {
         setReports(response.data); // Update state with the fetched data
         setFilteredReports(response.data); // Initially show all reports
       })
       .catch((error) => {
         setError(error.message); // Handle error
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       });
+  };
+
+  useEffect(() => {
+    // Call the fetchItems function when the component mounts
+    fetchItems();
   }, []);
 
   // Filter reports based on the selected filters
@@ -64,33 +67,67 @@ function LostItems() {
   }, [categoryFilter, colorFilter, dateRange, reports]); // Re-run the filter whenever any filter changes
 
   // Handle archiving the item
-  const handleArchiveItem = () => {
+  const handleArchiveItem = async () => {
     if (!currentItemId || !remark.trim()) return; // Ensure itemId and remark are provided
-    setReports(reports.filter((item) => item.id !== currentItemId)); // Remove item from state
-    setFilteredReports(filteredReports.filter((item) => item.id !== currentItemId)); // Update filtered state
-    setShowRemoveModal(false); // Close the modal
-    setArchiveRemark(""); // Clear the remark input
-    console.log("Item archived successfully.");
+
+    try {
+      // Update the status of the item in the backend
+      await axios.put(`http://localhost:3001/api/archive-item/${currentItemId}`, {
+        status: "archived",
+      });
+
+      // Insert the item into the archived_items table
+      await axios.post("http://localhost:3001/api/add-to-archived", {
+        item_id: currentItemId, // Ensure this uses the correct ID
+        archiveremark: remark,
+        archivedate: new Date().toISOString(),
+      });
+
+      // Remove the archived item from the local state
+      setReports(reports.filter((item) => item.id !== currentItemId));
+      setFilteredReports(filteredReports.filter((item) => item.id !== currentItemId));
+      setShowRemoveModal(false); // Close the modal
+      setArchiveRemark(""); // Clear the remark input
+      console.log("Item archived successfully.");
+    } catch (error) {
+      console.error("Error archiving item:", error);
+    }
   };
+
+  
 
   // Handle claiming the item
   const handleClaimItem = () => {
-    if (
-      !claimerDetails.claimedBy.trim() ||
-      !claimerDetails.claimContactNumber.trim() ||
-      !claimerDetails.claimEmail.trim()
-    ) {
+    console.log("Current Item ID (Claim):", currentItemId); // Log to see the ID
+    const { claimedBy, claimContactNumber, claimEmail } = claimerDetails;
+
+    if (!claimedBy.trim() || !claimContactNumber.trim() || !claimEmail.trim()) {
       return; // Exit if any claim detail is missing
     }
-    console.log("Item successfully claimed.");
-    setShowClaimModal(false); // Close the claim modal
-    setClaimerDetails({
-      claimedBy: "",
-      claimContactNumber: "",
-      claimEmail: "",
-    }); // Reset claim details form
-  };
 
+    // Send claim details to backend
+    axios
+      .post("http://localhost:3001/api/set-claimed-items", {
+        itemId: currentItemId,
+        claimedBy,
+        claimEmail,
+        claimContactNumber,
+      })
+      .then((response) => {
+        console.log(response.data.message);
+        setShowClaimModal(false); // Close the modal
+        fetchItems();
+        setClaimerDetails({
+          claimedBy: "",
+          claimContactNumber: "",
+          claimEmail: "",
+        }); // Reset the form fields
+      })
+      .catch((error) => {
+        console.error("Error claiming item:", error);
+        alert("Failed to claim item.");
+      });
+  };
   return (
     <>
       <div className="adminnavbar">
@@ -153,7 +190,8 @@ function LostItems() {
             </div>
           </div>
         </div>
-        <label className="adminh2">{filteredReports.length}</label> {/* Display count of filtered reports */}
+        <label className="adminh2">{filteredReports.length}</label>{" "}
+        {/* Display count of filtered reports */}
       </div>
 
       <div className="containerlostdata">
@@ -185,8 +223,9 @@ function LostItems() {
                       className="lostitemimg2"
                       id="checklostitem"
                       onClick={() => {
-                        setCurrentItemId(item.id);
                         setShowClaimModal(true);
+                        // Directly pass the item ID to the claim handler
+                        setCurrentItemId(item.id);
                       }}
                     >
                       <FontAwesomeIcon icon={faCheck} />
@@ -204,7 +243,9 @@ function LostItems() {
                   </div>
                   <div className="lostitempanel1">
                     <label className="lostitemlabel2">Reported by:</label>
-                    <label className="lostitemlabel3">{item.firstName} {item.lastName}</label>
+                    <label className="lostitemlabel3">
+                      {item.firstName} {item.lastName}
+                    </label>
                     <label className="lostitemlabel2">Contact Number</label>
                     <label className="lostitemlabel3">{item.contact}</label>
                     <label className="lostitemlabel2">Email</label>
@@ -212,9 +253,14 @@ function LostItems() {
                   </div>
                   <div className="lostitempanel2">
                     <label className="lostitemlabel2">Date Found</label>
-                    <label className="lostitemlabel3">{new Date(item.datefound).toLocaleDateString("en-US")} at {item.timefound}</label>
+                    <label className="lostitemlabel3">
+                      {new Date(item.datefound).toLocaleDateString("en-US")} at{" "}
+                      {item.timefound}
+                    </label>
                     <label className="lostitemlabel2">Location Found</label>
-                    <label className="lostitemlabel3">{item.locationfound}</label>
+                    <label className="lostitemlabel3">
+                      {item.locationfound}
+                    </label>
                   </div>
                 </div>
               </div>
@@ -234,10 +280,7 @@ function LostItems() {
               onChange={(e) => setArchiveRemark(e.target.value)}
             />
             <div className="modalBtnDiv">
-              <button
-                onClick={handleArchiveItem}
-                disabled={!remark.trim()}
-              >
+              <button onClick={handleArchiveItem} disabled={!remark.trim()}>
                 Yes
               </button>
               <button onClick={() => setShowRemoveModal(false)}>No</button>

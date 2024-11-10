@@ -235,8 +235,8 @@ app.get("/api/get-found-items", async (req, res) => {
 
 
 app.get("/api/get-claimed-items", (req, res) => {
-  const sql = 
-   ` SELECT 
+  const sql =
+    ` SELECT 
       ir.id,
       ir.objectname,
       ir.imageurl,
@@ -265,28 +265,29 @@ app.get("/api/get-claimed-items", (req, res) => {
 // Route to get item reports along with user and lost item details
 app.get("/api/item-reports", (req, res) => {
   const query = `
-    SELECT 
-      ir.objectname,
-      ir.imageurl,
-      ir.category,
-      ir.brand,
-      ir.color,
-      ui.firstName,
-      ui.lastName,
-      ui.contact,
-      ui.email,
-      lid.datelost,
-      lid.timelost,
-      lid.locationlost
-    FROM 
-      item_reports2 ir
-    JOIN 
-      userinfo ui ON ir.holderid = ui.id
-    JOIN 
-      lost_item_details lid ON ir.id = lid.item_report_id
-    WHERE 
-      ir.type = 'lost' 
-      AND ir.status = 'pending';
+ SELECT 
+  ir.id, -- Include the ID here
+  ir.objectname,
+  ir.imageurl,
+  ir.category,
+  ir.brand,
+  ir.color,
+  ui.firstName,
+  ui.lastName,
+  ui.contact,
+  ui.email,
+  lid.datelost,
+  lid.timelost,
+  lid.locationlost
+FROM 
+  item_reports2 ir
+JOIN 
+  userinfo ui ON ir.holderid = ui.id
+JOIN 
+  lost_item_details lid ON ir.id = lid.item_report_id
+WHERE 
+  ir.type = 'lost' 
+  AND ir.status = 'pending';
   `;
 
   // Execute the query
@@ -516,8 +517,9 @@ app.delete("/api/code-expiration/:id", (req, res) => {
 
 
 app.get("/api/founditem-reports", (req, res) => {
-  const query = 
+  const query =
     `SELECT 
+      ir.id,
       ir.imageurl,
       ir.objectname,
       ir.category,
@@ -583,6 +585,106 @@ app.get("/api/count-lost-items", (req, res) => {
   });
 });
 
+app.put("/api/archive-item/:id", (req, res) => {
+  const itemId = req.params.id;
+  const { status } = req.body;
+
+  const sql = `UPDATE item_reports2 SET status = ? WHERE id = ?`;
+  db.query(sql, [status, itemId], (err, result) => {
+    if (err) {
+      console.error("Error updating item status:", err.message);
+      return res.status(500).json({ error: "Failed to update item status" });
+    }
+
+    res.status(200).json({ message: "Item status updated to archived" });
+  });
+});
+
+app.post("/api/add-to-archived", (req, res) => {
+  const { item_id, archiveremark, archivedate } = req.body;
+
+  const sql = `INSERT INTO archived_items (item_id, archiveremark, archivedate) VALUES (?, ?, ?)`;
+  db.query(sql, [item_id, archiveremark, archivedate], (err, result) => {
+    if (err) {
+      console.error("Error inserting into archived_items:", err.message);
+      return res.status(500).json({ error: "Failed to archive item" });
+    }
+
+    res.status(200).json({ message: "Item added to archived_items" });
+  });
+});
+
+app.post("/api/set-claimed-items", (req, res) => {
+  const { itemId, claimedBy, claimEmail, claimContactNumber } = req.body; // Extract from request body
+
+  // First query to update item status
+  const updateStatusQuery = `
+    UPDATE item_reports2
+    SET status = 'claimed'
+    WHERE id = ?;
+  `;
+
+  // Second query to insert or update the claimed item
+  const insertClaimedItemQuery = `
+    INSERT INTO claimed_items (item_id, claimedby, claimedemail, claimcontactnumber, dateclaimed)
+    VALUES (?, ?, ?, ?, NOW())
+    ON DUPLICATE KEY UPDATE 
+        claimedby = VALUES(claimedby),
+        claimedemail = VALUES(claimedemail),
+        claimcontactnumber = VALUES(claimcontactnumber),
+        dateclaimed = NOW();
+  `;
+
+  // Start a transaction to ensure both queries run successfully
+  db.beginTransaction((err) => {
+    if (err) {
+      console.error("Error starting transaction:", err);
+      return res.status(500).json({ error: "Failed to start transaction." });
+    }
+
+    // Execute the update status query
+    db.query(updateStatusQuery, [itemId], (err, results) => {
+      if (err) {
+        return db.rollback(() => {
+          console.error("Error updating item status:", err);
+          return res
+            .status(500)
+            .json({ error: "Failed to update item status." });
+        });
+      }
+
+      // Execute the insert or update claimed item query
+      db.query(
+        insertClaimedItemQuery,
+        [itemId, claimedBy, claimEmail, claimContactNumber],
+        (err, results) => {
+          if (err) {
+            return db.rollback(() => {
+              console.error("Error inserting/updating claimed item:", err);
+              return res.status(500).json({ error: "Failed to record claim." });
+            });
+          }
+
+          // Commit the transaction if both queries succeed
+          db.commit((err) => {
+            if (err) {
+              return db.rollback(() => {
+                console.error("Error committing transaction:", err);
+                return res
+                  .status(500)
+                  .json({ error: "Failed to commit transaction." });
+              });
+            }
+
+            res.json({
+              message: "Item status updated and claim recorded successfully.",
+            });
+          });
+        }
+      );
+    });
+  });
+});
 
 
 const PORT = 3001;
