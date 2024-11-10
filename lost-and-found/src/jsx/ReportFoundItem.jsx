@@ -27,6 +27,7 @@ function ReportFoundItem() {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const today = new Date().toLocaleDateString("en-CA");
+  const [otherColor, setOtherColor] = useState("");
 
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem("user"));

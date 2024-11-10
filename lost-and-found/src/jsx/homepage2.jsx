@@ -513,30 +513,6 @@ function Homepage2() {
           />
         </div>
 
-        <div className="Report2" id="Report3">
-          <div
-            className="Report2TextContainer fade-content2"
-            ref={(el) => (textRefs.current[3] = el)}
-          >
-            <h1>Edit your reports</h1>
-            <p>
-              You can update the details of your lost or found item report at
-              any time. Whether it's to provide a more accurate description,
-              update the item’s condition, or change your contact information,
-              simply select the report you wish to edit and make the necessary
-              adjustments. This helps us ensure the most up-to-date information
-              is available for matching lost and found items.
-            </p>
-            <button className="ReportLostbtn" onClick={GoToEditReportedItem}>
-              Edit or delete reports
-            </button>
-          </div>
-          <img
-            src={Report2Img}
-            className="Report2Img fade-content2"
-            ref={(el) => (imgRefs.current[4] = el)}
-          />
-        </div>
       </div>
     </div>
   );

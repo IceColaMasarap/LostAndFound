@@ -459,14 +459,16 @@ function All() {
                         (column) =>
                           visibleColumns[column] && (
                             <td key={column}>
-                              {column === "name"
-                                ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
-                                : column === "type"
-                                  ? getTypeDisplay(item[column])
-                                  : column === "datefound" || column === "datelost" || column === "dateclaimed" 
+                            {column === "name"
+                              ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
+                              : column === "type"
+                                ? getTypeDisplay(item[column])
+                                : column === "createdat" // Format the 'createdat' date
+                                  ? formatDate(item[column])
+                                  : column === "datefound" || column === "datelost" || column === "dateclaimed"
                                     ? formatDate(item[column]) // Format the date columns
                                     : item[column] || "N/A"}
-                            </td>
+                          </td>
                           )
                       )}
                     </tr>

@@ -458,7 +458,7 @@ function ReportLostItem() {
             </div>
 
             <div className="FormRow">
-              <label>Location Found:</label>
+              <label>Location Lost:</label>
               <input
                 className="FInput"
                 type="text"
