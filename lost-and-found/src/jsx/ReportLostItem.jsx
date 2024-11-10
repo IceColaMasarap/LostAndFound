@@ -37,7 +37,7 @@ function ReportLostItem() {
     if (user) {
       setUserData({
         firstname: user.firstName,
-        lastname: user.lastname,
+        lastname: user.lastName,
         email: user.email,
         contactnumber: user.contact,
         id: user.id,

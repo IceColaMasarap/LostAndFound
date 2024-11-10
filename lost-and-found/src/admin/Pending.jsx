@@ -38,6 +38,8 @@ function Pending() {
     setFoundItems([]);
   };
 
+
+
   // Filtering data based on user selections
   useEffect(() => {
     fetch("http://localhost:3001/api/item-reports")
@@ -45,14 +47,10 @@ function Pending() {
       .then((data) => {
         let filteredItems = data;
         if (categoryFilter) {
-          filteredItems = filteredItems.filter(
-            (item) => item.category === categoryFilter
-          );
+          filteredItems = filteredItems.filter((item) => item.category === categoryFilter);
         }
         if (colorFilter) {
-          filteredItems = filteredItems.filter(
-            (item) => item.color === colorFilter
-          );
+          filteredItems = filteredItems.filter((item) => item.color === colorFilter);
         }
         if (dateRange.start && dateRange.end) {
           filteredItems = filteredItems.filter((item) => {
@@ -69,16 +67,6 @@ function Pending() {
       });
   }, [categoryFilter, colorFilter, dateRange]);
 
-  useEffect(() => {
-    fetch("http://localhost:3001/api/item-reports")
-      .then((response) => response.json())
-      .then((data) => {
-        setFoundItems(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-  }, []);
 
   useEffect(() => {
     fetchFoundItems();
@@ -89,6 +77,9 @@ function Pending() {
     setCurrentItemId(id); // Keep using currentItemId in your state
     setShowRemoveModal(true);
   };
+
+
+
 
   const openNotifModal = (itemId, holderId) => {
     setCurrentItemId(itemId);
@@ -155,10 +146,15 @@ function Pending() {
     } catch (error) {
       console.error("Error archiving item:", error.message);
     } finally {
-      setShowRemoveModal(false);
       fetchFoundItems();
+      setShowRemoveModal(false);
     }
   };
+
+
+
+
+
 
   const handleClaimItem = () => {
     if (
@@ -244,9 +240,7 @@ function Pending() {
 
       <div className="containerlostdata">
         {foundItems.map((item, index) => (
-          <div key={item.id || index} className="lostitemcontainer">
-            {" "}
-            {/* Ensure a unique key */}
+          <div key={item.id || index} className="lostitemcontainer"> {/* Ensure a unique key */}
             <img
               className="lostitemimg"
               src={item.imageurl || placeholder}
@@ -267,7 +261,7 @@ function Pending() {
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
-                    onClick={() => openRemoveModal(item.id)} // Update `item.id` to the correct property name, if necessary
+                    onClick={() => openRemoveModal(item.id)}// Update `item.id` to the correct property name, if necessary
                   >
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
@@ -315,6 +309,8 @@ function Pending() {
         ))}
       </div>
 
+
+
       {showRemoveModal && (
         <div className="modal">
           <div className="modal-content">
@@ -335,6 +331,7 @@ function Pending() {
               >
                 Yes
               </button>
+
 
               <button onClick={() => setShowRemoveModal(false)}>No</button>
             </div>

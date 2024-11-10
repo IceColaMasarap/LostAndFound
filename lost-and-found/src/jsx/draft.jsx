@@ -1,683 +1,448 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "../styling/ReportFoundItem.css";
-import { supabase } from "../supabaseClient";
-import { v4 as uuidv4 } from "uuid";
+import "./Admin.css";
+import placeholder from "../assets/imgplaceholder.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBoxArchive,
+  faCheck,
+  faBell,
+} from "@fortawesome/free-solid-svg-icons";
+import emailjs from "emailjs-com";
 import axios from "axios";
 
-function ReportFoundItem() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [category, setCategory] = useState("");
-  const [otherCategory, setOtherCategory] = useState("");
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("");
-  const [userData, setUserData] = useState({});
-  const [docId, setDocId] = useState("");
-  const [codeExpired, setCodeExpired] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [confirmed, setConfirmed] = useState(false);
-  const [objectName, setObjectName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [color, setColor] = useState("");
-  const [dateFound, setDateFound] = useState("");
-  const [timeFound, setTimeFound] = useState("");
-  const [locationFound, setLocationFound] = useState("");
-  const [image, setImage] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
-  const today = new Date().toLocaleDateString("en-CA");
+function Pending() {
+  const [foundItems, setFoundItems] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [colorFilter, setColorFilter] = useState("");
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [currentItemId, setCurrentItemId] = useState(null);
+  const [currentHolderId, setCurrentHolderId] = useState(null);
+  const [userInfo, setUserInfo] = useState([]); // State for user info
+  const [notificationText, setNotificationText] = useState(
+    "Your lost item might have been matched."
+  );
+  const [showNotifModal, setShowNotifModal] = useState(false);
+
+  const [remark, setArchiveRemark] = useState("");
+  const [claimerDetails, setClaimerDetails] = useState({
+    claimedBy: "",
+    claimContactNumber: "",
+    claimEmail: "",
+  });
+
+  // Fetching found items placeholder function
+  const fetchFoundItems = () => {
+    // Placeholder logic for fetching items without Supabase
+    setFoundItems([]);
+  };
 
   useEffect(() => {
-    const user = JSON.parse(sessionStorage.getItem("user"));
-    if (user) {
-      setUserData({
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        contactNumber: user.contact,
-        id: user.id,
+    fetch("http://localhost:3001/api/item-reports")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Data received from API:", data);
+        // Check each item to confirm the structure
+        data.forEach((item, index) => {
+          console.log(`Item ${index}:`, item);
+        });
+        setFoundItems(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
       });
-    } else {
-      console.error("No user data found in sessionStorage.");
-    }
   }, []);
 
-  const handleImageChange = (e) => {
-    if (e.target.files[0]) {
-      setImage(e.target.files[0]);
-    }
-  };
-
-  const uploadImage = async () => {
-    if (image) {
-      try {
-        const uniqueFileName = `${uuidv4()}-${image.name}`;
-        const { data, error } = await supabase.storage
-          .from("lost-items")
-          .upload(`lost-items/${uniqueFileName}`, image, {
-            cacheControl: "3600",
-            upsert: false,
+  // Filtering data based on user selections
+  useEffect(() => {
+    fetch("http://localhost:3001/api/item-reports")
+      .then((response) => response.json())
+      .then((data) => {
+        let filteredItems = data;
+        if (categoryFilter) {
+          filteredItems = filteredItems.filter((item) => item.category === categoryFilter);
+        }
+        if (colorFilter) {
+          filteredItems = filteredItems.filter((item) => item.color === colorFilter);
+        }
+        if (dateRange.start && dateRange.end) {
+          filteredItems = filteredItems.filter((item) => {
+            const itemDate = new Date(item.datelost);
+            const startDate = new Date(dateRange.start);
+            const endDate = new Date(dateRange.end);
+            return itemDate >= startDate && itemDate <= endDate;
           });
-
-        if (error) {
-          console.error("Error uploading image:", error);
-          return null;
         }
-
-        const baseUrl =
-          "https://mxqzohhojkveomcyfxuv.supabase.co/storage/v1/object/public/lost-items/";
-        const imageUrl = `${baseUrl}${data.path}`;
-        setImageUrl(imageUrl);
-        return imageUrl;
-      } catch (err) {
-        console.error("Unexpected error during image upload:", err.message);
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const generateCode = async () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedCode(code);
-    setCodeExpired(false);
-    setTimeLeft(30);
-    setConfirmed(false);
-  
-    try {
-      const now = new Date();
-      const newDate = now.toISOString();
-      const validDateFound = dateFound || newDate.split("T")[0];
-      const validTimeFound = timeFound || "00:00:00";
-      const holderId = userData.id;
-  
-      const uploadedImageUrl = await uploadImage();
-      if (!uploadedImageUrl) {
-        console.error("Image upload failed. Code generation aborted.");
-        return;
-      }
-  
-      const response = await axios.post(
-        "http://localhost:3001/api/report-found-item",
-        {
-          code: parseInt(code, 10),
-          confirmed: false,
-          createdat: newDate,
-          holderid: holderId,
-          category,
-          brand,
-          color,
-          datefound: validDateFound,
-          timefound: validTimeFound,
-          locationfound: locationFound,
-          objectname: objectName,
-          imageurl: uploadedImageUrl,
-          type: "Found",
-          status: "pending",
-        }
-      );
-  
-      const data = response.data;
-      if (!data || !data.id) {
-        console.error("No valid data returned from the backend.");
-        return;
-      }
-  
-      setDocId(data.id);
-  
-      // Log that checkConfirmation and startCountdown are about to run
-      console.log("Calling checkConfirmation with docId:", data.id);
-      checkConfirmation(data.id);
-  
-      console.log("Calling startCountdown with docId:", data.id);
-      startCountdown(data.id);
-    } catch (err) {
-      console.error("Unexpected error:", err.message);
-    }
-  };
-  
-
-  const checkConfirmation = (docId) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:3001/api/code-confirmation/${docId}`
-        );
-        const itemData = response.data;
-  
-        // Log the document ID and the confirmation status
-        console.log(`Checking code for docId: ${docId}`);
-        console.log(`Confirmation status: ${itemData.confirmed}`);
-  
-        if (itemData && itemData.confirmed) {
-          console.log("Item confirmed! Setting confirmed to true.");
-          setConfirmed(true);
-          setCodeExpired(false);
-          clearInterval(interval);
-        }
-      } catch (err) {
-        console.error("Error checking confirmation:", err.message);
-      }
-    }, 2000); // Check every 2 seconds
-  };
-  
-
-  const expireCode = async (docId) => {
-    try {
-      // Using fetch instead of axios
-      const response = await fetch(`http://localhost:3001/api/code-expiration/${docId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        setFoundItems(filteredItems);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
       });
-  
-      if (!response.ok) {
-        // If the response status is not OK, throw an error
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to expire code");
-      }
-  
-      // Handle successful deletion
-      console.log("Code successfully expired.");
-      setCodeExpired(true);
-    } 
-    
-    
-    catch (error) {
-      console.error("Error expiring code:", error.message);
-    }
-  };
-  
-
-  const startCountdown = (docId) => {
-    let timer = 30;
-    setTimeLeft(timer);
-  
-    const countdownInterval = setInterval(() => {
-      timer -= 1;
-      setTimeLeft(timer);
-  
-      if (timer <= 0) {
-        clearInterval(countdownInterval);
-  
-        if (!confirmed) {
-          console.log("Timer expired, expiring the code now."); // Log for debugging
-          // Use the new expireCode function
-          expireCode(docId);
-        }
-      }
-    }, 1000); // Countdown interval: 1 second
-  };
-  
-  
-  
-  
-  
+  }, [categoryFilter, colorFilter, dateRange]);
 
   useEffect(() => {
-    if (step === 4 && !generatedCode) {
-      generateCode();
-    }
-  }, [step, generatedCode]);
+    fetch("http://localhost:3001/api/item-reports")
+      .then((response) => response.json())
+      .then((data) => {
+        setFoundItems(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
+  }, []);
 
-  const nextStep = () => {
-    if (step === 4 && !confirmed) {
-      alert(
-        "Your code is not yet confirmed by the admin. Please wait for confirmation."
+  useEffect(() => {
+    fetchFoundItems();
+  }, [categoryFilter, colorFilter, dateRange]);
+
+  const openRemoveModal = (id) => {
+    console.log("Opening remove modal for item ID:", id);
+    setCurrentItemId(id); // Keep using currentItemId in your state
+    setShowRemoveModal(true);
+  };
+
+
+
+
+  const openNotifModal = (itemId, holderId) => {
+    setCurrentItemId(itemId);
+    setCurrentHolderId(holderId);
+    setShowNotifModal(true);
+  };
+
+  const handleSendNotification = () => {
+    console.log(
+      `Notification sent for item ${currentItemId} to holder ${currentHolderId}`
+    );
+    sendEmail();
+    setNotificationText("Your lost item might have been matched.");
+    setShowNotifModal(false);
+  };
+
+  const sendEmail = () => {
+    emailjs
+      .send(
+        "service_qkeo7fe",
+        "template_0eal5kf",
+        {
+          message: notificationText,
+        },
+        "ukdUNXpTIsD5n9sfO"
+      )
+      .then(
+        (response) => {
+          console.log("SUCCESS!", response);
+        },
+        (err) => {
+          console.log("FAILED...", err);
+        }
       );
-    } else {
-      setStep(step + 1);
+  };
+
+  const openClaimModal = (itemId) => {
+    setCurrentItemId(itemId);
+    setShowClaimModal(true);
+  };
+
+  const handleArchiveItem = async (itemid) => {
+    if (!itemid || !remark.trim()) {
+      console.error("Item ID or remark is missing!");
+      return;
+    }
+
+    console.log("Archiving item with ID:", itemid);
+
+    try {
+      // Update the status of the item in item_reports2
+      await axios.put(`http://localhost:3001/api/archive-item/${itemid}`, {
+        status: "archived",
+      });
+
+      // Insert data into archived_items using itemid (lowercase)
+      await axios.post("http://localhost:3001/api/add-to-archived", {
+        item_id: itemid, // Using itemid as required by your database schema
+        archiveremark: remark,
+        archivedate: new Date().toISOString(),
+      });
+
+      console.log("Item archived successfully:", itemid);
+    } catch (error) {
+      console.error("Error archiving item:", error.message);
+    } finally {
+      setShowRemoveModal(false);
     }
   };
 
-  const prevStep = () => {
-    setStep(step - 1);
+
+
+
+
+
+  const handleClaimItem = () => {
+    if (
+      !claimerDetails.claimedBy.trim() ||
+      !claimerDetails.claimContactNumber.trim() ||
+      !claimerDetails.claimEmail.trim()
+    ) {
+      return;
+    }
+    console.log("Item successfully marked as claimed.");
+    setShowClaimModal(false);
+    setClaimerDetails({
+      claimedBy: "",
+      claimContactNumber: "",
+      claimEmail: "",
+    });
   };
 
   return (
     <>
-      <div className="report-found-item-container">
-        {step === 1 && (
-          <div className="step1">
-            <h2>REPORT A FOUND ITEM</h2>
-            <div className="ProgressIndi">
-              <div className="step active">1</div>
-              <div className="step">2</div>
-              <div className="step">3</div>
-              <div className="step">4</div>
-              <div className="step">5</div>
-            </div>
+      <div className="adminnavbar">
+        <div>
+          <p className="header">Missing Item Reports</p>
+          <div className="categoryx">
+            <p>Filter</p>
+            <select
+              className="categorybutton"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">All Categories</option>
+              <option value="Personal Belonging">Personal Belonging</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Documents">Documents</option>
+              <option value="Other">Others</option>
+            </select>
 
-            <div className="ReportFoundContainer">
-              <h3>TERMS AND CONDITIONS</h3>
-              <p>
-                We appreciate your willingness to turn in the items <br />{" "}
-                you've found. By providing your information, you agree <br /> to
-                these terms.
-              </p>
-              <p>
-                Your personal information will be kept confidential. It <br />{" "}
-                will only be used to help identify the item and will not <br />{" "}
-                be shared with anyone else without your permission.
-              </p>
-              <p>
-                Please note that NU Lost and Found DasmariÃ±as is not <br />{" "}
-                responsible for any damage to items you surrender. We <br />{" "}
-                sincerely appreciate your honesty in returning found <br />{" "}
-                items.
-              </p>
-              <p>
-                By surrendering a found item, you confirm that you have <br />{" "}
-                read and understood these terms.
-              </p>
-              <div className="CheckboxContainer">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={termsAccepted}
-                    onChange={() => setTermsAccepted(!termsAccepted)}
-                  />
-                  I understand and agree.
-                </label>
-              </div>
-            </div>
-            <div className="ButtonContainer">
-              <button
-                className="PrevBtn"
-                onClick={() => {
-                  navigate("/homepage"); // Navigates to the specified route
-                  setTimeout(() => {
-                    // Scroll to slightly above the bottom of the page
-                    const scrollOffset = 1800; // Adjust this value to change the scroll distance
-                    window.scrollTo(
-                      0,
-                      document.body.scrollHeight - scrollOffset
-                    );
-                  }, 100); // Delay in milliseconds before the scroll action is executed
+            <select
+              className="categorybutton"
+              value={colorFilter}
+              onChange={(e) => setColorFilter(e.target.value)}
+            >
+              <option value="">All Colors</option>
+              <option value="Red">Red</option>
+              <option value="Blue">Blue</option>
+              <option value="Green">Green</option>
+              <option value="Yellow">Yellow</option>
+              <option value="Orange">Orange</option>
+              <option value="Purple">Purple</option>
+              <option value="Pink">Pink</option>
+              <option value="Black">Black</option>
+              <option value="White">White</option>
+              <option value="Gray">Gray</option>
+            </select>
+
+            <div className="dateDiv">
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  setDateRange((prev) => ({
+                    ...prev,
+                    start: newStart,
+                    end: prev.end < newStart ? newStart : prev.end,
+                  }));
                 }}
-              >
-                Home
-              </button>
-              <button
-                className="NextBtn"
-                disabled={!termsAccepted}
-                onClick={nextStep}
-              >
-                Next
-              </button>
+              />
+              <label className="tolabel">–</label>
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, end: e.target.value })
+                }
+                min={dateRange.start}
+              />
             </div>
           </div>
-        )}
+        </div>
+        <label className="adminh2">{foundItems.length} </label>
+      </div>
 
-        {step === 2 && (
-          <div className="step2">
-            <h2>REPORT A FOUND ITEM</h2>
+      <div className="containerlostdata">
+        {foundItems.map((item, index) => (
+          <div key={item.id || index} className="lostitemcontainer"> {/* Ensure a unique key */}
+            <img
+              className="lostitemimg"
+              src={item.imageurl || placeholder}
+              alt="Lost Item"
+            />
+            <div className="lostitembody">
+              <div className="lostitemtop">
+                <label className="lostitemlabel">{item.objectname}</label>
+                <div className="buttonslost">
+                  <button
+                    className="lostitemimg2"
+                    id="notifyuser"
+                    onClick={() => openNotifModal(item.id, item.holderid)}
+                  >
+                    <FontAwesomeIcon icon={faBell} />
+                  </button>
+                  {/* Place your button for removing items here */}
+                  <button
+                    className="lostitemimg2"
+                    id="removelostitem"
+                    onClick={() => openRemoveModal(item.id)}// Update `item.id` to the correct property name, if necessary
+                  >
+                    <FontAwesomeIcon icon={faBoxArchive} />
+                  </button>
 
-            <div className="ProgressIndi">
-              <div className="step active">1</div>
-              <div className="step active">2</div>
-              <div className="step">3</div>
-              <div className="step">4</div>
-              <div className="step">5</div>
-            </div>
-
-            <div className="ReportLostContainer">
-              <h3>CHOOSE CATEGORY</h3>
-              <form>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Personal Belonging"
-                    checked={category === "Personal Belonging"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Personal Belonging
-                  <ul>
-                    <li>⦁ Wallet</li>
-                    <li>⦁ Bag</li>
-                    <li>⦁ Clothing</li>
-                    <li>⦁ Jewelry, etc...</li>
-                  </ul>
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Electronics"
-                    checked={category === "Electronics"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Electronics
-                  <ul>
-                    <li>⦁ Phones</li>
-                    <li>⦁ Laptop</li>
-                    <li>⦁ Charger</li>
-                    <li>⦁ Camera, etc...</li>
-                  </ul>
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Documents"
-                    checked={category === "Documents"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Documents
-                  <ul>
-                    <li>⦁ ID</li>
-                    <li>⦁ Cards</li>
-                    <li>⦁ Printed Materials</li>
-                    <li>⦁ School works, etc...</li>
-                  </ul>
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Other"
-                    checked={category === "Other"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Other (Specify)
-                  {category === "Other" && (
-                    <input
-                      type="text"
-                      className="FInput"
-                      placeholder="Other category"
-                      value={otherCategory}
-                      onChange={(e) => setOtherCategory(e.target.value)}
-                      required // Ensure this field is mandatory when "Other" is selected
-                    />
-                  )}
-                </label>
-              </form>
-            </div>
-            <div className="ButtonContainer">
-              <button className="PrevBtn" onClick={prevStep}>
-                Previous
-              </button>
-              <button
-                className="NextBtn"
-                onClick={nextStep}
-                disabled={!category || (category === "Other" && !otherCategory)} // Disable button if "Other" is selected and no input is provided
-              >
-                Next{" "}
-              </button>
+                  <button
+                    className="lostitemimg2"
+                    id="checklostitem"
+                    onClick={() => openClaimModal(item.id)}
+                  >
+                    <FontAwesomeIcon icon={faCheck} />
+                  </button>
+                </div>
+              </div>
+              <div className="lostitembody1">
+                <div className="lostitempanel1">
+                  <label className="lostitemlabel2">Category</label>
+                  <label className="lostitemlabel3">{item.category}</label>
+                  <label className="lostitemlabel2">Brand</label>
+                  <label className="lostitemlabel3">{item.brand}</label>
+                  <label className="lostitemlabel2">Color</label>
+                  <label className="lostitemlabel3">{item.color}</label>
+                </div>
+                <div className="lostitempanel1">
+                  <label className="lostitemlabel2">Reported by</label>
+                  <label className="lostitemlabel3">
+                    {item.firstName} {item.lastName}
+                  </label>
+                  <label className="lostitemlabel2">Contact Number</label>
+                  <label className="lostitemlabel3">{item.contact}</label>
+                  <label className="lostitemlabel2">Email</label>
+                  <label className="lostitemlabel3">{item.email}</label>
+                </div>
+                <div className="lostitempanel2">
+                  <label className="lostitemlabel2">Date Lost</label>
+                  <label className="lostitemlabel3">
+                    {new Date(item.datelost).toLocaleDateString("en-US")} at{" "}
+                    {item.timelost}
+                  </label>
+                  <label className="lostitemlabel2">Location Lost</label>
+                  <label className="lostitemlabel3">{item.locationlost}</label>
+                </div>
+              </div>
             </div>
           </div>
-        )}
+        ))}
+      </div>
 
-        {step === 3 && (
-          <div className="step3">
-            <h2>REPORT A FOUND ITEM</h2>
 
-            <div className="ProgressIndi">
-              <div className="step active">1</div>
-              <div className="step active">2</div>
-              <div className="step active">3</div>
-              <div className="step">4</div>
-              <div className="step">5</div>
-            </div>
 
-            <div className="ReportFoundContainer">
-              <h3>RESPONSE FORM</h3>
-              <div className="FormRow">
-                <label htmlFor="NameInp">Name:</label>
-                <input
-                  className="FInput"
-                  type="text"
-                  id="NameInp"
-                  value={userData?.name}
-                  readOnly
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="EmailInp">Email:</label>
-                <input
-                  className="FInput"
-                  type="text"
-                  id="EmailInp"
-                  value={userData?.email}
-                  readOnly
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="ContactNumInp">Contact Number:</label>
-                <input
-                  className="FInput"
-                  type="text"
-                  id="ContactNumInp"
-                  value={userData?.contactNumber}
-                  readOnly
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="ObjectNameInp">Object name:</label>
-                <input
-                  className="FInput"
-                  type="text"
-                  id="ObjectNameInp"
-                  value={objectName}
-                  onChange={(e) => setObjectName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="BrandInp">Brand:</label>
-                <input
-                  className="FInput"
-                  type="text"
-                  id="BrandInp"
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="ColorInp">Color:</label>
-                <select
-                  id="ColorInp"
-                  className="FInput"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  required
-                >
-                  <option value="">Select a color</option>
-                  <option value="Red">Red</option>
-                  <option value="Blue">Blue</option>
-                  <option value="Green">Green</option>
-                  <option value="Yellow">Yellow</option>
-                  <option value="Orange">Orange</option>
-                  <option value="Purple">Purple</option>
-                  <option value="Pink">Pink</option>
-                  <option value="Black">Black</option>
-                  <option value="White">White</option>
-                  <option value="Gray">Gray</option>
-                  <option value="Others">Other</option>
-                </select>
-
-                {color === "Others" && (
-                  <input
-                    className="FInput"
-                    type="text"
-                    placeholder="Specify color"
-                    value={otherColor}
-                    onChange={(e) => setOtherColor(e.target.value)}
-                    required
-                  />
-                )}
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="DateFoundInp">Date Found:</label>
-                <input
-                  className="FInput"
-                  type="date"
-                  id="DateFoundInp"
-                  value={dateFound}
-                  onChange={(e) => setDateFound(e.target.value)}
-                  required
-                  max={today} // Set the max attribute to today's date
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="TimeFoundInp">Time Found:</label>{" "}
-                {/* Added Time Found */}
-                <input
-                  className="FInput"
-                  type="time"
-                  id="TimeFoundInp"
-                  value={timeFound}
-                  onChange={(e) => setTimeFound(e.target.value)} // Update timeFound value
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="LocationFoundInp">Location Found:</label>
-                <input
-                  className="FInput"
-                  type="text"
-                  id="LocationFoundInp"
-                  value={locationFound}
-                  onChange={(e) => setLocationFound(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="FormRow">
-                <label htmlFor="ImageInp">Upload Image:</label>
-                <input
-                  className="FInput"
-                  type="file"
-                  id="ImageInp"
-                  onChange={handleImageChange}
-                  accept="image/*"
-                />
-              </div>
-              <div className="FormRow"></div>
-              {uploading && <p>Uploading image...</p>}
-            </div>
-
-            <div className="ButtonContainer">
-              <button className="PrevBtn" onClick={prevStep}>
-                Previous
-              </button>
+      {showRemoveModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <p>Archive this item?</p>
+            <input
+              placeholder="Archive Reason"
+              value={remark}
+              onChange={(e) => setArchiveRemark(e.target.value)}
+            />
+            <div className="modalBtnDiv">
               <button
-                className="NextBtn"
-                onClick={nextStep}
+                onClick={() => {
+                  console.log("Yes button clicked");
+                  handleArchiveItem(currentItemId); // Ensure this uses the correct state variable
+                  setShowRemoveModal(false);
+                }}
+                disabled={!remark.trim()}
+              >
+                Yes
+              </button>
+
+
+              <button onClick={() => setShowRemoveModal(false)}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClaimModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Claim Item</h2>
+
+            <label>Claimed By:</label>
+            <input
+              type="text"
+              value={claimerDetails.claimedBy}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimedBy: e.target.value,
+                })
+              }
+              required
+            />
+
+            <label>Contact Number:</label>
+            <input
+              type="number"
+              value={claimerDetails.claimContactNumber}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimContactNumber: e.target.value,
+                })
+              }
+              required
+            />
+
+            <label>Email Address:</label>
+            <input
+              type="email"
+              value={claimerDetails.claimEmail}
+              onChange={(e) =>
+                setClaimerDetails({
+                  ...claimerDetails,
+                  claimEmail: e.target.value,
+                })
+              }
+              required
+            />
+
+            <div className="modalBtnDiv">
+              <button
+                onClick={() => {
+                  handleClaimItem(currentItemId);
+                }}
                 disabled={
-                  !objectName ||
-                  !color ||
-                  !dateFound ||
-                  !locationFound ||
-                  !timeFound
+                  !claimerDetails.claimedBy.trim() ||
+                  !claimerDetails.claimContactNumber.trim() ||
+                  !claimerDetails.claimEmail.trim()
                 }
               >
-                Next
+                Confirm
               </button>
+              <button onClick={() => setShowClaimModal(false)}>Cancel</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {step === 4 && (
-          <div className="step4">
-            <h2>REPORT A FOUND ITEM</h2>
-
-            <div className="ProgressIndi">
-              <div className="step active">1</div>
-              <div className="step active">2</div>
-              <div className="step active">3</div>
-              <div className="step active">4</div>
-              <div className="step">5</div>
-            </div>
-
-            <div className="FReportFoundContainer">
-              <p>
-                PLEASE PROCEED TO THE DISCIPLINARY OFFICE TO SURRENDER FOUND
-                ITEMS.
-              </p>
-              <p>Show the Code</p>
-              <div>
-                {codeExpired ? (
-                  <div>
-                    <p>Code expired. Please generate a new code.</p>
-                    <button onClick={generateCode}>Generate New Code</button>
-                  </div>
-                ) : confirmed ? (
-                  <div>
-                    <p>Code confirmed</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p>Time left before code expires: {timeLeft} seconds</p>
-                    <h1>{generatedCode}</h1>
-                    <p>Admin needs to confirm this code.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="ButtonContainer">
-              <button
-                className="PrevBtn"
-                onClick={prevStep}
-                disabled={confirmed}
-              >
-                Previous
-              </button>
-              <button
-                className="Nextbtn"
-                onClick={nextStep}
-                disabled={!confirmed}
-              >
-                Next
-              </button>
+      {showNotifModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <p>Send Notification?</p>
+            <textarea
+              className="notifText"
+              value={notificationText}
+              onChange={(e) => setNotificationText(e.target.value)}
+            />
+            <div className="modalBtnDiv">
+              <button onClick={handleSendNotification}>Yes</button>
+              <button onClick={() => setShowNotifModal(false)}>No</button>
             </div>
           </div>
-        )}
-
-        {step === 5 && (
-          <div className="step5">
-            <h2>REPORT A FOUND ITEM</h2>
-
-            <div className="ProgressIndi">
-              <div className="step active">1</div>
-              <div className="step active">2</div>
-              <div className="step active">3</div>
-              <div className="step active">4</div>
-              <div className="step active">5</div>
-            </div>
-
-            <div className="FReportFoundContainer">
-              <h3>Thank You!</h3>
-              <p>
-                Your honesty and effort will greatly assist the owner in
-                retrieving their belongings.
-              </p>
-            </div>
-            <button
-              className="FinishBtn"
-              onClick={() => navigate("/homepage#body1")}
-            >
-              Finish
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
 
-export default ReportFoundItem;
+export default Pending;
