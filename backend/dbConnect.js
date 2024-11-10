@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: "http://localhost:5174", // Allow requests from this frontend origin
-    methods: ["GET", "POST"], // Allow specific HTTP methods
+    methods: ["GET", "POST", "DELETE", "PUT"], // Allow specific HTTP methods
     credentials: true, // Allow credentials to be included in requests
   })
 );
@@ -175,121 +175,45 @@ app.post("/api/report-lost-item", async (req, res) => {
   }
 });
 
-app.post("/api/report-found-item", async (req, res) => {
-  const {
-    code,
-    confirmed,
-    createdat,
-    holderid,
-    category,
-    brand,
-    color,
-    datefound,
-    timefound,
-    locationfound,
-    objectname,
-    imageurl,
-    type,
-    status,
-  } = req.body;
-  const reportId = uuidv4();
+app.get("/api/get-all-items", async (req, res) => {
+  const sql = `
+    SELECT 
+      ir.type, 
+      ir.category, 
+      ir.brand, 
+      ir.color, 
+      ir.objectname, 
+      u.firstName, 
+      u.lastName, 
+      u.email, 
+      u.contact, 
+      f.datefound, 
+      f.timefound, 
+      f.locationfound, 
+      l.datelost, 
+      l.timelost, 
+      l.locationlost, 
+      c.claimedby, 
+      c.claimedemail, 
+      c.claimcontactnumber, 
+      c.dateclaimed, 
+      ir.status
+    FROM item_reports2 ir
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+    LEFT JOIN lost_item_details l ON ir.id = l.item_report_id
+    LEFT JOIN found_item_details f ON ir.id = f.item_report_id
+    LEFT JOIN claimed_items c ON ir.id = c.item_id;
+  `;
 
-  // First, check if holderid exists in the referenced table (e.g., users)
-  const checkHolderSql = "SELECT id FROM userinfo WHERE id = ?";
-  db.query(checkHolderSql, [holderid], (err, result) => {
+  db.query(sql, (err, result) => {
     if (err) {
-      console.error("Error checking holderid:", err.message);
-      return res.status(500).json({ error: "Error checking holderid" });
+      console.error("Error fetching items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch items" });
     }
-    if (result.length === 0) {
-      return res.status(400).json({ error: "Invalid holderid" });
-    }
-
-    // Insert into item_reports2 table
-    const sql = `INSERT INTO item_reports2 
-      (id, code, confirmed, createdat, holderid, category, brand, color, objectname, imageurl, type, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    db.query(
-      sql,
-      [
-        reportId,
-        code,
-        confirmed,
-        createdat,
-        holderid,
-        category,
-        brand,
-        color,
-
-        objectname,
-        imageurl,
-        type,
-        status,
-      ],
-      (err, result) => {
-        if (err) {
-          console.error("Error inserting item report:", err.message);
-          return res.status(500).json({ error: "Failed to save item report" });
-        }
-
-        const itemReportId = result.insertId;
-
-        // Now insert the details into found_item_details table
-        const detailsSql = `INSERT INTO found_item_details 
-          (datefound, timefound, locationfound, item_report_id) 
-          VALUES (?, ?, ?, ?)`;
-
-        db.query(
-          detailsSql,
-          [datefound, timefound, locationfound, reportId],
-          (err, result) => {
-            if (err) {
-              console.error("Error inserting found item details:", err.message);
-              return res
-                .status(500)
-                .json({ error: "Failed to save found item details" });
-            }
-
-            res.status(200).json({ id: itemReportId });
-          }
-        );
-      }
-    );
+    res.status(200).json(result);
   });
 });
 
-app.get("/api/code-confirmation/:id", (req, res) => {
-  const reportId = req.params.id;
-
-  const sql = `SELECT confirmed FROM item_reports2 WHERE id = ?`;
-  db.query(sql, [reportId], (err, result) => {
-    if (err) {
-      console.error("Error fetching confirmation:", err.message);
-      return res.status(500).json({ error: "Error checking confirmation" });
-    }
-    if (result.length === 0)
-      return res.status(404).json({ error: "Report not found" });
-    res.status(200).json(result[0]);
-  });
-});
-
-app.delete("/api/code-expiration/:id", (req, res) => {
-  const reportId = req.params.id;
-
-  const sql = `DELETE FROM item_reports2 WHERE id = ? AND confirmed = false`;
-  db.query(sql, [reportId], (err, result) => {
-    if (err) {
-      console.error("Error expiring code:", err.message);
-      return res.status(500).json({ error: "Error expiring code" });
-    }
-    if (result.affectedRows === 0)
-      return res
-        .status(404)
-        .json({ error: "Report not found or already confirmed" });
-    res.status(200).json({ message: "Code expired and report deleted" });
-  });
-});
 app.get("/api/get-found-items", async (req, res) => {
   const sql = `
     SELECT 
@@ -304,6 +228,35 @@ app.get("/api/get-found-items", async (req, res) => {
     if (err) {
       console.error("Error fetching found items:", err.message);
       return res.status(500).json({ error: "Failed to fetch found items" });
+    }
+    res.status(200).json(result);
+  });
+});
+
+
+app.get("/api/get-claimed-items", (req, res) => {
+  const sql = 
+   ` SELECT 
+      ir.id,
+      ir.objectname,
+      ir.imageurl,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ci.claimedby,
+      ci.claimedemail,
+      ci.claimcontactnumber,
+      ci.dateclaimed,
+      u.firstname,
+      u.lastname
+    FROM item_reports2 ir
+    JOIN claimed_items ci ON ir.id = ci.item_id
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+    WHERE ir.status = 'claimed'`;
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching claimed items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch claimed items" });
     }
     res.status(200).json(result);
   });
@@ -347,42 +300,6 @@ app.get("/api/item-reports", (req, res) => {
   });
 });
 
-
-app.get("/api/founditem-reports", (req, res) => {
-  const query = `
-    SELECT 
-      ir.imageurl,
-      ir.objectname,
-      ir.category,
-      ir.brand,
-      ir.color,
-      ui.firstName,
-      ui.lastName,
-      ui.contact,
-      ui.email,
-      lid.datefound,
-      lid.timefound,
-      lid.locationfound
-    FROM 
-      item_reports2 ir
-    JOIN 
-      userinfo ui ON ir.holderid = ui.id
-    JOIN 
-      found_item_details lid ON ir.id = lid.item_report_id
-    WHERE 
-      ir.type = 'found' 
-      AND ir.status = 'pending';
-  `;
-
-  db.query(query, (err, result) => {
-    if (err) {
-      console.error("Error fetching item reports:", err.message);
-      return res.status(500).json({ error: "Internal Server Error" });
-    }
-    res.json(result); // Send the resulting data as a JSON response
-  });
-});
-
 app.post("/api/report-found-item", async (req, res) => {
   const {
     code,
@@ -408,7 +325,9 @@ app.post("/api/report-found-item", async (req, res) => {
     db.query(checkHolderSql, [holderid], (err, result) => {
       if (err) {
         console.error("Error checking holder ID:", err.message);
-        return res.status(500).json({ error: "Database error checking holder ID" });
+        return res
+          .status(500)
+          .json({ error: "Database error checking holder ID" });
       }
       if (result.length === 0) {
         return res.status(400).json({ error: "Invalid holder ID" });
@@ -438,7 +357,9 @@ app.post("/api/report-found-item", async (req, res) => {
         (err, result) => {
           if (err) {
             console.error("Error inserting into item_reports2:", err.message);
-            return res.status(500).json({ error: "Failed to insert item report" });
+            return res
+              .status(500)
+              .json({ error: "Failed to insert item report" });
           }
 
           // Insert into found_item_details table
@@ -451,8 +372,13 @@ app.post("/api/report-found-item", async (req, res) => {
             [datefound, timefound, locationfound, reportId],
             (err, result) => {
               if (err) {
-                console.error("Error inserting into found_item_details:", err.message);
-                return res.status(500).json({ error: "Failed to insert item details" });
+                console.error(
+                  "Error inserting into found_item_details:",
+                  err.message
+                );
+                return res
+                  .status(500)
+                  .json({ error: "Failed to insert item details" });
               }
 
               res.status(200).json({ id: reportId });
@@ -466,7 +392,6 @@ app.post("/api/report-found-item", async (req, res) => {
     res.status(500).json({ error: "Server error while saving found item" });
   }
 });
-
 
 app.get("/api/code-confirmation/:id", (req, res) => {
   const reportId = req.params.id;
@@ -482,72 +407,6 @@ app.get("/api/code-confirmation/:id", (req, res) => {
     res.status(200).json(result[0]);
   });
 });
-
-app.delete("/api/code-expiration/:id", (req, res) => {
-  const reportId = req.params.id;
-
-  db.beginTransaction((err) => {
-    if (err) {
-      console.error("Error starting transaction:", err.message);
-      return res.status(500).json({ error: "Error starting transaction" });
-    }
-
-    // Delete from found_item_details using a subquery
-    const deleteDetailsSql = `
-      DELETE FROM found_item_details 
-      WHERE item_report_id = ? AND EXISTS (
-        SELECT 1 FROM item_reports2 WHERE id = ? AND confirmed = 0
-      )
-    `;
-    db.query(deleteDetailsSql, [reportId, reportId], (err, result) => {
-      if (err) {
-        console.error("Error deleting item details:", err.message);
-        return db.rollback(() => {
-          res.status(500).json({ error: "Error deleting item details" });
-        });
-      }
-
-      if (result.affectedRows === 0) {
-        return db.rollback(() => {
-          res.status(404).json({ error: "Item details not found or already confirmed" });
-        });
-      }
-
-      // Delete from item_reports2
-      const deleteReportSql = `
-        DELETE FROM item_reports2 
-        WHERE id = ? AND confirmed = 0
-      `;
-      db.query(deleteReportSql, [reportId], (err, result) => {
-        if (err) {
-          console.error("Error deleting from item_reports2:", err.message);
-          return db.rollback(() => {
-            res.status(500).json({ error: "Error deleting report" });
-          });
-        }
-
-        if (result.affectedRows === 0) {
-          return db.rollback(() => {
-            res.status(404).json({ error: "Report not found or already confirmed" });
-          });
-        }
-
-        // Commit the transaction
-        db.commit((err) => {
-          if (err) {
-            console.error("Error committing transaction:", err.message);
-            return db.rollback(() => {
-              res.status(500).json({ error: "Error committing transaction" });
-            });
-          }
-
-          res.status(200).json({ message: "Code expired and report deleted" });
-        });
-      });
-    });
-  });
-});
-
 
 app.get("/api/item-by-code/:code", (req, res) => {
   const code = parseInt(req.params.code, 10);
@@ -576,7 +435,9 @@ app.put("/api/confirm-item/:id", (req, res) => {
     }
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Item not found or already confirmed" });
+      return res
+        .status(404)
+        .json({ error: "Item not found or already confirmed" });
     }
 
     res.status(200).json({ message: "Item confirmed successfully" });
@@ -584,6 +445,110 @@ app.put("/api/confirm-item/:id", (req, res) => {
 });
 
 
+app.delete("/api/code-expiration/:id", (req, res) => {
+  const reportId = req.params.id;
+
+  db.beginTransaction((err) => {
+    if (err) {
+      console.error("Error starting transaction:", err.message);
+      return res.status(500).json({ error: "Error starting transaction" });
+    }
+
+    // Delete from found_item_details using a subquery
+    const deleteDetailsSql = `
+      DELETE FROM found_item_details 
+      WHERE item_report_id = ? AND EXISTS (
+        SELECT 1 FROM item_reports2 WHERE id = ? AND confirmed = 0
+      )
+    `;
+    db.query(deleteDetailsSql, [reportId, reportId], (err, result) => {
+      if (err) {
+        console.error("Error deleting item details:", err.message);
+        return db.rollback(() => {
+          res.status(500).json({ error: "Error deleting item details" });
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return db.rollback(() => {
+          res
+            .status(404)
+            .json({ error: "Item details not found or already confirmed" });
+        });
+      }
+
+      // Delete from item_reports2
+      const deleteReportSql = `
+        DELETE FROM item_reports2 
+        WHERE id = ? AND confirmed = 0
+      `;
+      db.query(deleteReportSql, [reportId], (err, result) => {
+        if (err) {
+          console.error("Error deleting from item_reports2:", err.message);
+          return db.rollback(() => {
+            res.status(500).json({ error: "Error deleting report" });
+          });
+        }
+
+        if (result.affectedRows === 0) {
+          return db.rollback(() => {
+            res
+              .status(404)
+              .json({ error: "Report not found or already confirmed" });
+          });
+        }
+
+        // Commit the transaction
+        db.commit((err) => {
+          if (err) {
+            console.error("Error committing transaction:", err.message);
+            return db.rollback(() => {
+              res.status(500).json({ error: "Error committing transaction" });
+            });
+          }
+
+          res.status(200).json({ message: "Code expired and report deleted" });
+        });
+      });
+    });
+  });
+});
+
+
+app.get("/api/founditem-reports", (req, res) => {
+  const query = 
+    `SELECT 
+      ir.imageurl,
+      ir.objectname,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ui.firstName,
+      ui.lastName,
+      ui.contact,
+      ui.email,
+      lid.datefound,
+      lid.timefound,
+      lid.locationfound
+    FROM 
+      item_reports2 ir
+    JOIN 
+      userinfo ui ON ir.holderid = ui.id
+    JOIN 
+      found_item_details lid ON ir.id = lid.item_report_id
+    WHERE 
+      ir.type = 'found' 
+      AND ir.status = 'pending'`;
+  ;
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("Error fetching item reports:", err.message);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    res.json(result); // Send the resulting data as a JSON response
+  });
+});
 
 
 const PORT = 3001;

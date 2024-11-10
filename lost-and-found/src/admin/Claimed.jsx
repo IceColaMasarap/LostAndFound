@@ -7,7 +7,7 @@ import {
   faCheck,
   faBell,
 } from "@fortawesome/free-solid-svg-icons";
-import { supabase } from "../supabaseClient"; // Import Supabase client
+import axios from "axios"; // Import Axios
 
 function Claimed() {
   const [foundItems, setFoundItems] = useState([]);
@@ -28,54 +28,36 @@ function Claimed() {
     claimEmail: "",
   });
 
+  // Fetch claimed items using Axios
   const fetchFoundItems = async () => {
-    let query = supabase
-      .from("item_reports2")
-      .select(
-        `
-        *,
-        userinfo:holderid (firstname, lastname, email, contact)
-      `
-      )
-      .not("claimedby", "is", null) // Filter items where claimedby is not null
-      .order("dateclaimed", { ascending: false }); // Order by createdat in descending order
+    try {
+      const response = await axios.get(
+        "http://localhost:3001/api/get-claimed-items"
+      );
+      let items = response.data;
 
-    // Apply category and color filters
-    if (categoryFilter) query = query.eq("category", categoryFilter);
-    if (colorFilter) query = query.eq("color", colorFilter);
+      // Apply filters on the client side
+      if (categoryFilter) {
+        items = items.filter((item) => item.category === categoryFilter);
+      }
+      if (colorFilter) {
+        items = items.filter((item) => item.color === colorFilter);
+      }
+      if (dateRange.start) {
+        const startDate = new Date(dateRange.start).setHours(0, 0, 0, 0);
+        items = items.filter((item) => new Date(item.dateclaimed) >= startDate);
+      }
+      if (dateRange.end) {
+        const endDate = new Date(dateRange.end).setHours(23, 59, 59, 999);
+        items = items.filter((item) => new Date(item.dateclaimed) <= endDate);
+      }
 
-    // Apply date range filter for `dateclaimed`
-    if (dateRange.start) {
-      // Adjust the start date to the beginning of the day in local time
-      const startDate = new Date(dateRange.start);
-      startDate.setHours(0, 0, 0, 0); // Set to the beginning of the day
-      query = query.gte("dateclaimed", startDate.toISOString());
-    }
-
-    if (dateRange.end) {
-      // Adjust the end date to the end of the day in local time
-      const endDate = new Date(dateRange.end);
-      endDate.setHours(23, 59, 59, 999); // Set to the end of the day
-      query = query.lte("dateclaimed", endDate.toISOString());
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching found items:", error);
-    } else {
-      const items = data.map((item) => ({
-        ...item,
-        userName:
-          item.userinfo?.firstname && item.userinfo?.lastname
-            ? `${item.userinfo.firstname} ${item.userinfo.lastname}`
-            : "N/A",
-      }));
       setFoundItems(items);
+    } catch (error) {
+      console.error("Error fetching claimed items:", error);
     }
   };
 
-  // Fetch data using Supabase
   useEffect(() => {
     fetchFoundItems();
   }, [categoryFilter, colorFilter, dateRange]);
@@ -188,7 +170,7 @@ function Claimed() {
                     {item.claimcontactnumber}
                   </label>
                   <label className="lostitemlabel2">Email</label>
-                  <label className="lostitemlabel3">{item.claimemail}</label>
+                  <label className="lostitemlabel3">{item.claimedemail}</label>
                   <label className="lostitemlabel2">Date Claimed</label>
                   <label className="lostitemlabel3">
                     {formatDate(item.dateclaimed)}

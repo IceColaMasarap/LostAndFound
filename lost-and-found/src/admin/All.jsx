@@ -35,9 +35,67 @@ function All() {
   const handlePrint = () => {
     const printContent = document.getElementById("printable-table").outerHTML; // Get table HTML
     const newWindow = window.open("", "", "width=800, height=600");
+
+    newWindow.document.write("<html><head><title>Print Table</title>");
+
+    // Add CSS for styling the header and table
+    newWindow.document.write(`
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+        }
+        .header {
+          background-color: #003366; /* Navy Blue */
+          color: #003366;
+          text-align: center;
+          padding: 20px;
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 20px;
+          width: 100%;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        th, td {
+          padding: 8px 12px;
+          text-align: left;
+          border: 1px solid #ddd;
+        }
+        th {
+          background-color: #f4f4f4;
+          font-weight: bold;
+        }
+        tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        tr:hover {
+          background-color: #f1f1f1;
+        }
+        @media print {
+          body {
+            margin: 0;
+          }
+          table {
+            width: 100%;
+          }
+          th, td {
+            font-size: 14px;
+          }
+          .header {
+            font-size: 20px;
+          }
+        }
+      </style>
+    `);
+
+    newWindow.document.write("</head><body>");
     newWindow.document.write(
-      "<html><head><title>Print Table</title></head><body>"
-    );
+      '<div class="header">National University Lost and Found</div>'
+    ); // Add the header
     newWindow.document.write(printContent);
     newWindow.document.write("</body></html>");
     newWindow.document.close();
@@ -80,7 +138,7 @@ function All() {
   };
 
   const columnVisibilitySettings = {
-    lost: {
+    Lost: {
       type: true,
       category: true,
       brand: true,
@@ -89,8 +147,8 @@ function All() {
       name: true,
       contact: true,
       email: true,
-      datefound: false,
-      locationfound: false,
+      datefound: true,
+      locationfound: true,
       datelost: false,
       locationlost: false,
       claimedby: false,
@@ -99,7 +157,7 @@ function All() {
       dateclaimed: false,
       status: true,
     },
-    pending: {
+    Missing: {
       type: true,
       category: true,
       brand: true,
@@ -220,11 +278,10 @@ function All() {
   const filteredItems = Array.isArray(items)
     ? items.filter((item) => {
         const matchesType =
-          (filter === "lost" && item.type === "Found") ||
-          (filter === "pending" && item.type === "Lost") ||
+          (filter === "Lost" && item.type === "Found") ||
+          (filter === "Missing" && item.type === "Lost") ||
           (filter === "claimed" && item.status === "claimed") ||
           filter === "all";
-
         const matchesCategory =
           categoryFilter === "Others"
             ? !["Personal Belonging", "Electronics", "Documents"].includes(
@@ -256,7 +313,7 @@ function All() {
     : [];
 
   const getTypeDisplay = (type) => {
-    if (filter === "lost" && type === "Found") return "Lost";
+    if (filter === "pending" && type === "Found") return "Lost";
     if (filter === "pending" && type === "Lost") return "Missing";
     return type;
   };
@@ -269,8 +326,8 @@ function All() {
           <div className="categoryx">
             <p>Filter</p>
             <button onClick={() => handleFilterChange("all")}>All</button>
-            <button onClick={() => handleFilterChange("lost")}>Lost</button>
-            <button onClick={() => handleFilterChange("pending")}>
+            <button onClick={() => handleFilterChange("Lost")}>Lost</button>
+            <button onClick={() => handleFilterChange("Missing")}>
               Missing
             </button>
             <button onClick={() => handleFilterChange("claimed")}>
@@ -327,13 +384,6 @@ function All() {
                 min={dateRange.start}
               />
             </div>
-            <input
-              type="text"
-              className="searchbar"
-              placeholder="Search by object name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} // Update search term on input change
-            />
           </div>
         </div>
 
@@ -348,6 +398,13 @@ function All() {
             Toggle
           </button>{" "}
           <button onClick={handlePrint}>Print Table</button>
+          <input
+            type="text"
+            className="searchbar"
+            placeholder="Search by object name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)} // Update search term on input change
+          />
         </div>
       </div>
 

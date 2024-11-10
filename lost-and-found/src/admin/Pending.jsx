@@ -43,17 +43,19 @@ function Pending() {
       .then((data) => {
         // Apply filters here
         let filteredItems = data;
-  
+
         if (categoryFilter) {
           filteredItems = filteredItems.filter(
             (item) => item.category === categoryFilter
           );
         }
-  
+
         if (colorFilter) {
-          filteredItems = filteredItems.filter((item) => item.color === colorFilter);
+          filteredItems = filteredItems.filter(
+            (item) => item.color === colorFilter
+          );
         }
-  
+
         if (dateRange.start && dateRange.end) {
           filteredItems = filteredItems.filter((item) => {
             const itemDate = new Date(item.datelost);
@@ -62,7 +64,7 @@ function Pending() {
             return itemDate >= startDate && itemDate <= endDate;
           });
         }
-  
+
         setFoundItems(filteredItems);
       })
       .catch((error) => {
@@ -70,7 +72,6 @@ function Pending() {
       });
   }, [categoryFilter, colorFilter, dateRange]);
 
-  
   useEffect(() => {
     fetch("http://localhost:3001/api/item-reports")
       .then((response) => response.json())
@@ -81,8 +82,7 @@ function Pending() {
         console.error("Error fetching data:", error);
       });
   }, []);
-  
-  
+
   useEffect(() => {
     fetchFoundItems();
   }, [categoryFilter, colorFilter, dateRange]);
@@ -99,7 +99,9 @@ function Pending() {
   };
 
   const handleSendNotification = () => {
-    console.log(`Notification sent for item ${currentItemId} to holder ${currentHolderId}`);
+    console.log(
+      `Notification sent for item ${currentItemId} to holder ${currentHolderId}`
+    );
     sendEmail();
     setNotificationText("Your lost item might have been matched.");
     setShowNotifModal(false);
@@ -264,7 +266,9 @@ function Pending() {
                 </div>
                 <div className="lostitempanel1">
                   <label className="lostitemlabel2">Reported by</label>
-                  <label className="lostitemlabel3">{item.firstName} {item.lastName}</label>
+                  <label className="lostitemlabel3">
+                    {item.firstName} {item.lastName}
+                  </label>
                   <label className="lostitemlabel2">Contact Number </label>
                   <label className="lostitemlabel3">{item.contact}</label>
                   <label className="lostitemlabel2">Email</label>
@@ -273,7 +277,8 @@ function Pending() {
                 <div className="lostitempanel2">
                   <label className="lostitemlabel2">Date Lost</label>
                   <label className="lostitemlabel3">
-                     {new Date(item.datelost).toLocaleDateString("en-US")} at {item.timelost}
+                    {new Date(item.datelost).toLocaleDateString("en-US")} at{" "}
+                    {item.timelost}
                   </label>
                   <label className="lostitemlabel2">Location Lost</label>
                   <label className="lostitemlabel3">{item.locationlost}</label>
@@ -377,6 +382,7 @@ function Pending() {
           <div className="modal-content">
             <p>Send Notification?</p>
             <textarea
+              className="notifText"
               value={notificationText}
               onChange={(e) => setNotificationText(e.target.value)}
             />

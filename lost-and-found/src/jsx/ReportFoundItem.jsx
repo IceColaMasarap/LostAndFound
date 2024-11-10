@@ -83,26 +83,26 @@ function ReportFoundItem() {
     setCodeExpired(false);
     setTimeLeft(30);
     setConfirmed(false);
-  
+
     try {
+      const today = new Date().toLocaleDateString("en-CA"); // Using Canadian format 'YYYY-MM-DD' for local time
       const now = new Date();
       const newDate = now.toISOString();
       const validDateFound = dateFound || newDate.split("T")[0];
       const validTimeFound = timeFound || "00:00:00";
       const holderId = userData.id;
-  
+
       const uploadedImageUrl = await uploadImage();
       if (!uploadedImageUrl) {
         console.error("Image upload failed. Code generation aborted.");
         return;
       }
-  
+
       const response = await axios.post(
         "http://localhost:3001/api/report-found-item",
         {
           code: parseInt(code, 10),
           confirmed: false,
-          createdat: newDate,
           holderid: holderId,
           category,
           brand,
@@ -116,26 +116,25 @@ function ReportFoundItem() {
           status: "pending",
         }
       );
-  
+
       const data = response.data;
       if (!data || !data.id) {
         console.error("No valid data returned from the backend.");
         return;
       }
-  
+
       setDocId(data.id);
-  
+
       // Log that checkConfirmation and startCountdown are about to run
       console.log("Calling checkConfirmation with docId:", data.id);
       checkConfirmation(data.id);
-  
+
       console.log("Calling startCountdown with docId:", data.id);
       startCountdown(data.id);
     } catch (err) {
       console.error("Unexpected error:", err.message);
     }
   };
-  
 
   const checkConfirmation = (docId) => {
     const interval = setInterval(async () => {
@@ -144,11 +143,11 @@ function ReportFoundItem() {
           `http://localhost:3001/api/code-confirmation/${docId}`
         );
         const itemData = response.data;
-  
+
         // Log the document ID and the confirmation status
         console.log(`Checking code for docId: ${docId}`);
         console.log(`Confirmation status: ${itemData.confirmed}`);
-  
+
         if (itemData && itemData.confirmed) {
           console.log("Item confirmed! Setting confirmed to true.");
           setConfirmed(true);
@@ -160,47 +159,45 @@ function ReportFoundItem() {
       }
     }, 2000); // Check every 2 seconds
   };
-  
 
   const expireCode = async (docId) => {
     try {
       // Using fetch instead of axios
-      const response = await fetch(`http://localhost:3001/api/code-expiration/${docId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-  
+      const response = await fetch(
+        `http://localhost:3001/api/code-expiration/${docId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       if (!response.ok) {
         // If the response status is not OK, throw an error
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to expire code");
       }
-  
+
       // Handle successful deletion
       console.log("Code successfully expired.");
       setCodeExpired(true);
-    } 
-    
-    
-    catch (error) {
+    } catch (error) {
       console.error("Error expiring code:", error.message);
     }
   };
-  
 
   const startCountdown = (docId) => {
     let timer = 30;
     setTimeLeft(timer);
-  
+
     const countdownInterval = setInterval(() => {
       timer -= 1;
       setTimeLeft(timer);
-  
+
       if (timer <= 0) {
         clearInterval(countdownInterval);
-  
+
         if (!confirmed) {
           console.log("Timer expired, expiring the code now."); // Log for debugging
           // Use the new expireCode function
@@ -209,11 +206,6 @@ function ReportFoundItem() {
       }
     }, 1000); // Countdown interval: 1 second
   };
-  
-  
-  
-  
-  
 
   useEffect(() => {
     if (step === 4 && !generatedCode) {
