@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../styling/ReportFoundItem.css";
 import { supabase } from "../supabaseClient";
 import { v4 as uuidv4 } from "uuid";
+import axios from "axios";
 
 function ReportFoundItem() {
   const navigate = useNavigate();
@@ -89,6 +90,7 @@ function ReportFoundItem() {
   };
 
   const generateCode = async () => {
+    // Generate a six-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedCode(code);
     setCodeExpired(false);
@@ -98,113 +100,98 @@ function ReportFoundItem() {
 
     try {
       const now = new Date();
-      now.setDate(now.getDate() + 0); // Add 1 day
-      const newDate = now.toISOString(); // Convert to ISO string
-      const validDateFound = dateFound || now.split("T")[0];
+      const newDate = now.toISOString();
+      const validDateFound = dateFound || newDate.split("T")[0];
       const validTimeFound = timeFound || "00:00:00";
       const holderId = userData.id;
 
+      // Upload the image and get URL
       const uploadedImageUrl = await uploadImage();
       if (!uploadedImageUrl) {
         console.error("Image upload failed. Code generation aborted.");
         return;
       }
 
-      // Insert new data into the database
-      const { data, error } = await supabase
-        .from("item_reports2")
-        .insert([
-          {
-            code: parseInt(code, 10),
-            confirmed: false,
-            createdat: newDate,
-            holderid: holderId,
-            category,
-            brand,
-            color,
-            datefound: validDateFound,
-            timefound: validTimeFound,
-            locationfound: locationFound,
-            objectname: objectName,
-            imageurl: uploadedImageUrl,
-            type: "Found",
-            status: "pending",
-          },
-        ])
-        .select("id")
-        .single();
+      // Save the item report to the database
+      const response = await axios.post(
+        "http://localhost:3001/api/report-found-item",
+        {
+          code: parseInt(code, 10),
+          confirmed: false,
+          createdat: newDate,
+          holderid: holderId,
+          category,
+          brand,
+          color,
+          datefound: validDateFound,
+          timefound: validTimeFound,
+          locationfound: locationFound,
+          objectname: objectName,
+          imageurl: uploadedImageUrl,
+          type: "Found",
+          status: "pending",
+        }
+      );
 
-      if (error) {
-        console.error("Error inserting into database:", error.message);
-        return;
-      }
-
+      const data = response.data;
       if (!data || !data.id) {
-        console.error("No valid data returned from the database.");
+        console.error("No valid data returned from the backend.");
         return;
       }
 
-      // Save the document ID for later deletion
+      console.log("Data saved successfully with ID:", data.id);
       setDocId(data.id);
+      navigate("/success"); // Navigate to success page
 
       // Start countdown timer
-      let timer = 30;
-      const countdownInterval = setInterval(() => {
-        timer -= 1;
-        setTimeLeft(timer);
-        if (timer <= 0) {
-          clearInterval(countdownInterval);
-          expireCode(data.id);
-        }
-      }, 1000);
+      startCountdown(data.id);
 
-      // Check if the code has been confirmed
-      const checkConfirmation = async () => {
-        try {
-          const { data: itemData, error: getError } = await supabase
-            .from("item_reports2")
-            .select("confirmed")
-            .eq("id", data.id)
-            .single();
-
-          if (getError) throw getError;
-
-          if (itemData && itemData.confirmed) {
-            clearInterval(countdownInterval);
-            setConfirmed(true);
-            setCodeExpired(false);
-          } else if (timer > 0) {
-            setTimeout(checkConfirmation, 1000);
-          }
-        } catch (err) {
-          console.error("Error checking confirmation:", err.message);
-        }
-      };
-
-      checkConfirmation();
+      // Check if the code has been confirmed at intervals
+      checkConfirmation(data.id);
     } catch (err) {
       console.error("Unexpected error:", err.message);
     }
   };
 
+  const startCountdown = (docId) => {
+    let timer = 30;
+    const countdownInterval = setInterval(() => {
+      timer -= 1;
+      setTimeLeft(timer);
+      if (timer <= 0) {
+        clearInterval(countdownInterval);
+        expireCode(docId);
+      }
+    }, 1000);
+  };
+
+  const checkConfirmation = async (docId) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3001/api/code-confirmation/${docId}`
+      );
+      const itemData = response.data;
+
+      if (itemData && itemData.confirmed) {
+        setConfirmed(true);
+        setCodeExpired(false);
+      } else {
+        setTimeout(() => checkConfirmation(docId), 1000);
+      }
+    } catch (err) {
+      console.error("Error checking confirmation:", err.message);
+    }
+  };
+
   const expireCode = async (id) => {
     try {
-      // Delete the entire row if the code has not been confirmed
-      const { data, error } = await supabase
-        .from("item_reports2")
-        .select("confirmed")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
+      const response = await axios.get(
+        `http://localhost:3001/api/code-confirmation/${id}`
+      );
+      const data = response.data;
 
       if (!data.confirmed) {
-        const { error: deleteError } = await supabase
-          .from("item_reports2")
-          .delete()
-          .eq("id", id);
-
-        if (deleteError) throw deleteError;
+        await axios.delete(`http://localhost:3001/api/code-expiration/${id}`);
         setCodeExpired(true);
       }
     } catch (error) {
