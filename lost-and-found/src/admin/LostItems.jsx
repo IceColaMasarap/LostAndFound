@@ -41,30 +41,35 @@ function LostItems() {
 
   // Filter reports based on the selected filters
   useEffect(() => {
-    let filtered = [...reports]; // Start with the reports data
-
+    let filtered = [...reports];
+  
     // Filter by category
     if (categoryFilter) {
       filtered = filtered.filter((item) => item.category === categoryFilter);
     }
-
+  
     // Filter by color
     if (colorFilter) {
       filtered = filtered.filter((item) => item.color === colorFilter);
     }
-
+  
     // Filter by date range
     if (dateRange.start && dateRange.end) {
       filtered = filtered.filter((item) => {
-        const itemDate = new Date(item.datefound); // Assuming item.datefound is a valid date string
+        const itemDate = new Date(item.datefound);
         const startDate = new Date(dateRange.start);
         const endDate = new Date(dateRange.end);
+  
+        // Set the time for startDate and endDate
+        startDate.setHours(0, 0, 0, 0); // Start of the day
+        endDate.setHours(23, 59, 59, 999); // End of the day
+  
         return itemDate >= startDate && itemDate <= endDate;
       });
     }
-
-    setFilteredReports(filtered); // Update filtered reports state
-  }, [categoryFilter, colorFilter, dateRange, reports]); // Re-run the filter whenever any filter changes
+  
+    setFilteredReports(filtered);
+  }, [categoryFilter, colorFilter, dateRange, reports]);
 
   // Handle archiving the item
   const handleArchiveItem = async () => {

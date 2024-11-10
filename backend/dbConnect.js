@@ -269,29 +269,32 @@ app.get("/api/get-claimed-items", (req, res) => {
 // Route to get item reports along with user and lost item details
 app.get("/api/item-reports", (req, res) => {
   const query = `
- SELECT 
-  ir.id, -- Include the ID here
-  ir.objectname,
-  ir.imageurl,
-  ir.category,
-  ir.brand,
-  ir.color,
-  ui.firstName,
-  ui.lastName,
-  ui.contact,
-  ui.email,
-  lid.datelost,
-  lid.timelost,
-  lid.locationlost
-FROM 
-  item_reports2 ir
-JOIN 
-  userinfo ui ON ir.holderid = ui.id
-JOIN 
-  lost_item_details lid ON ir.id = lid.item_report_id
-WHERE 
-  ir.type = 'lost' 
-  AND ir.status = 'pending';
+    SELECT 
+      ir.id, -- Include the ID here
+      ir.objectname,
+      ir.imageurl,
+      ir.category,
+      ir.brand,
+      ir.color,
+      ui.firstName,
+      ui.lastName,
+      ui.contact,
+      ui.email,
+      lid.datelost,
+      lid.timelost,
+      lid.locationlost,
+      ir.createdat -- Include the createdat field
+    FROM 
+      item_reports2 ir
+    JOIN 
+      userinfo ui ON ir.holderid = ui.id
+    JOIN 
+      lost_item_details lid ON ir.id = lid.item_report_id
+    WHERE 
+      ir.type = 'lost' 
+      AND ir.status = 'pending'
+    ORDER BY 
+      ir.createdat DESC; -- Order by createdat in descending order
   `;
 
   // Execute the query
@@ -691,6 +694,71 @@ app.post("/api/set-claimed-items", (req, res) => {
         }
       );
     });
+  });
+});
+
+app.post("/api/insert-notification", (req, res) => {
+  const { item_id, user_id, message } = req.body; // Assuming these are the fields from the request body
+
+  const insertNotificationQuery = 
+    `INSERT INTO notifications (item_id, user_id, notified, message, notifdate)
+    VALUES (?, ?, TRUE, ?, NOW())`;
+  ;
+
+  db.query(
+    insertNotificationQuery,
+    [item_id, user_id, message],
+    (err, result) => {
+      if (err) {
+        console.error("Error inserting notification:", err);
+        return res.status(500).send("Server error");
+      }
+      res.status(200).send({ message: "Notification inserted successfully" });
+    }
+  );
+});
+
+
+app.get("/api/get-all-items2", async (req, res) => {
+  const sql = 
+    `SELECT    
+      ir.type, 
+      ir.category, 
+      ir.brand, 
+      ir.color, 
+      ir.objectname, 
+            ir.createdat, 
+      u.firstName, 
+      u.lastName, 
+      u.email, 
+      u.contact, 
+      f.datefound, 
+      f.timefound, 
+      f.locationfound, 
+      l.datelost, 
+      l.timelost, 
+      l.locationlost, 
+      c.claimedby, 
+      c.claimedemail, 
+      c.claimcontactnumber, 
+      c.dateclaimed, 
+      ir.status,
+      a.archiveremark,
+      a.archivedate
+    FROM item_reports2 ir
+    LEFT JOIN userinfo u ON ir.holderid = u.id
+    LEFT JOIN lost_item_details l ON ir.id = l.item_report_id
+    LEFT JOIN found_item_details f ON ir.id = f.item_report_id
+    LEFT JOIN claimed_items c ON ir.id = c.item_id
+    LEFT JOIN archived_items a ON ir.id = a.item_id;`
+  ;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching items:", err.message);
+      return res.status(500).json({ error: "Failed to fetch items" });
+    }
+    res.status(200).json(result);
   });
 });
 

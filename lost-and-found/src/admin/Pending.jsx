@@ -24,6 +24,7 @@ function Pending() {
     "Your lost item might have been matched."
   );
   const [showNotifModal, setShowNotifModal] = useState(false);
+  const [email, setCurrentEmail] = useState("");
 
   const [remark, setArchiveRemark] = useState("");
   const [claimerDetails, setClaimerDetails] = useState({
@@ -38,8 +39,6 @@ function Pending() {
     setFoundItems([]);
   };
 
-
-
   // Filtering data based on user selections
   useEffect(() => {
     fetch("http://localhost:3001/api/item-reports")
@@ -47,17 +46,27 @@ function Pending() {
       .then((data) => {
         let filteredItems = data;
         if (categoryFilter) {
-          filteredItems = filteredItems.filter((item) => item.category === categoryFilter);
+          filteredItems = filteredItems.filter(
+            (item) => item.category === categoryFilter
+          );
         }
         if (colorFilter) {
-          filteredItems = filteredItems.filter((item) => item.color === colorFilter);
+          filteredItems = filteredItems.filter(
+            (item) => item.color === colorFilter
+          );
         }
-        if (dateRange.start && dateRange.end) {
+         // Filter by date range based on datelost
+         if (dateRange.start && dateRange.end) {
           filteredItems = filteredItems.filter((item) => {
             const itemDate = new Date(item.datelost);
             const startDate = new Date(dateRange.start);
             const endDate = new Date(dateRange.end);
-            return itemDate >= startDate && itemDate <= endDate;
+
+             // Set time to the beginning and end of the day for comparison
+             startDate.setHours(0, 0, 0, 0);
+             endDate.setHours(23, 59, 59, 999);
+ 
+             return itemDate >= startDate && itemDate <= endDate;
           });
         }
         setFoundItems(filteredItems);
@@ -66,7 +75,6 @@ function Pending() {
         console.error("Error fetching data:", error);
       });
   }, [categoryFilter, colorFilter, dateRange]);
-
 
   useEffect(() => {
     fetchFoundItems();
@@ -78,22 +86,38 @@ function Pending() {
     setShowRemoveModal(true);
   };
 
-
-
-
-  const openNotifModal = (itemId, holderId) => {
+  const openNotifModal = (itemId, holderId, email) => {
     setCurrentItemId(itemId);
     setCurrentHolderId(holderId);
+    setCurrentEmail(email);
     setShowNotifModal(true);
   };
+  const handleSendNotification = async () => {
+    const notificationData = {
+      item_id: currentItemId,
+      user_id: currentHolderId, // Assuming currentHolderId is the ID of the holder
+      message: notificationText, // The notification message
+    };
 
-  const handleSendNotification = () => {
-    console.log(
-      `Notification sent for item ${currentItemId} to holder ${currentHolderId}`
-    );
-    sendEmail();
-    setNotificationText("Your lost item might have been matched.");
-    setShowNotifModal(false);
+    try {
+      // Sending the notification data to the backend API
+      const response = await axios.post(
+        "http://localhost:3001/api/insert-notification",
+        notificationData
+      );
+
+      // If the request is successful, log the response
+      console.log("Notification sent:", response.data);
+
+      // Call the email function (existing logic)
+      sendEmail();
+
+      // Update notification text and modal state
+      setNotificationText(notificationData.message);
+      setShowNotifModal(false);
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
   };
 
   const sendEmail = () => {
@@ -103,6 +127,8 @@ function Pending() {
         "template_0eal5kf",
         {
           message: notificationText,
+          to_name: "Nationallian",
+          email: email,
         },
         "ukdUNXpTIsD5n9sfO"
       )
@@ -150,11 +176,6 @@ function Pending() {
       setShowRemoveModal(false);
     }
   };
-
-
-
-
-
 
   const handleClaimItem = () => {
     if (
@@ -240,7 +261,9 @@ function Pending() {
 
       <div className="containerlostdata">
         {foundItems.map((item, index) => (
-          <div key={item.id || index} className="lostitemcontainer"> {/* Ensure a unique key */}
+          <div key={item.id || index} className="lostitemcontainer">
+            {" "}
+            {/* Ensure a unique key */}
             <img
               className="lostitemimg"
               src={item.imageurl || placeholder}
@@ -253,7 +276,9 @@ function Pending() {
                   <button
                     className="lostitemimg2"
                     id="notifyuser"
-                    onClick={() => openNotifModal(item.id, item.holderid)}
+                    onClick={() =>
+                      openNotifModal(item.id, item.userid, item.email)
+                    }
                   >
                     <FontAwesomeIcon icon={faBell} />
                   </button>
@@ -261,12 +286,10 @@ function Pending() {
                   <button
                     className="lostitemimg2"
                     id="removelostitem"
-                    onClick={() => openRemoveModal(item.id)}// Update `item.id` to the correct property name, if necessary
+                    onClick={() => openRemoveModal(item.id)} // Update `item.id` to the correct property name, if necessary
                   >
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
-
-             
                 </div>
               </div>
               <div className="lostitembody1">
@@ -303,8 +326,6 @@ function Pending() {
         ))}
       </div>
 
-
-
       {showRemoveModal && (
         <div className="modal">
           <div className="modal-content">
@@ -325,7 +346,6 @@ function Pending() {
               >
                 Yes
               </button>
-
 
               <button onClick={() => setShowRemoveModal(false)}>No</button>
             </div>

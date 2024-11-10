@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Admin.css";
 import { supabase } from "../supabaseClient"; // Adjust the path accordingly
-
+import axios from "axios";
 function Archive() {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -16,15 +16,17 @@ function Archive() {
     brand: true,
     color: true,
     objectname: true,
-    reportedbyname: true,
-    reportedbycontact: true,
-    reportedbyemail: true,
+    name: true,
+    contact: true,
+    email: true,
     datefound: true,
     locationfound: true,
     datelost: true,
     locationlost: true,
     status: true,
     archiveremark: true,
+    archivedate: true,
+    createdat: true,
   });
 
   const showCustomCheckbox = () => {
@@ -37,15 +39,17 @@ function Archive() {
     brand: "Brand",
     color: "Color",
     objectname: "Object Name",
-    reportedbyname: "Reported By Name",
-    reportedbycontact: "Reported By Contact",
-    reportedbyemail: "Reported By Email",
+    name: "Reported By Name",
+    contact: "Reported By Contact",
+    email: "Reported By Email",
     datefound: "Date Found",
     locationfound: "Location Found",
     datelost: "Date Lost",
     locationlost: "Location Lost",
     status: "Status",
     archiveremark: "Archive Reason",
+    archivedate: "Date Archived",
+    createdat: "Report Date"
   };
 
   const selectAllColumns = () => {
@@ -64,15 +68,17 @@ function Archive() {
       brand: true,
       color: true,
       objectname: true,
-      reportedbyname: true,
-      reportedbycontact: true,
-      reportedbyemail: true,
+      name: true,
+      contact: true,
+      email: true,
       datefound: true,
       locationfound: true,
       datelost: false,
       locationlost: false,
       status: true,
       archiveremark: true,
+      archivedate: true,
+      createdat: true,
     },
     pending: {
       type: true,
@@ -80,15 +86,17 @@ function Archive() {
       brand: true,
       color: true,
       objectname: true,
-      reportedbyname: true,
-      reportedbycontact: true,
-      reportedbyemail: true,
+      name: true,
+      contact: true,
+      email: true,
       datefound: false,
       locationfound: false,
       datelost: true,
       locationlost: true,
       status: true,
       archiveremark: true,
+      archivedate: true,
+      createdat: true,
     },
     claimed: {
       type: true,
@@ -96,15 +104,17 @@ function Archive() {
       brand: true,
       color: true,
       objectname: true,
-      reportedbyname: true,
-      reportedbycontact: true,
-      reportedbyemail: true,
+      name: true,
+      contact: true,
+      email: true,
       datefound: false,
       locationfound: false,
       datelost: false,
       locationlost: false,
       status: true,
       archiveremark: true,
+      archivedate: true,
+      createdat: true,
     },
     all: {
       type: true,
@@ -112,15 +122,17 @@ function Archive() {
       brand: true,
       color: true,
       objectname: true,
-      reportedbyname: true,
-      reportedbycontact: true,
-      reportedbyemail: true,
+      name: true,
+      contact: true,
+      email: true,
       datefound: true,
       locationfound: true,
       datelost: true,
       locationlost: true,
       status: true,
       remark: true,
+      archivedate: true,
+      createdat: true,
     },
   };
 
@@ -132,57 +144,24 @@ function Archive() {
       }, {})
     );
   };
-  const fetchUserInfo = async (userId) => {
-    const { data, error } = await supabase
-      .from("userinfo")
-      .select("firstname, lastname, contact, email")
-      .eq("id", userId)
-      .single(); // Ensure only one user info is fetched
-    if (error) {
-      console.error("Error fetching user data:", error);
-      return null;
-    }
-    return data;
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const result = await supabase.from("item_reports2").select("*");
-      const itemsWithUserInfo = await Promise.all(
-        result.data.map(async (item) => {
-          // Fetch user info based on the holderid
-          const userInfo = await fetchUserInfo(item.holderid);
-          return {
-            ...item,
-            reportedbyname: `${userInfo.firstname} ${userInfo.lastname}`,
-            reportedbycontact: userInfo.contact,
-            reportedbyemail: userInfo.email,
-          };
-        })
-      );
-      setItems(itemsWithUserInfo);
-    };
-    fetchData();
-  }, []);
-
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const { data, error } = await supabase
-          .from("item_reports2")
-          .select("*");
-
-        if (error) throw error;
-
-        setItems(data);
+        const response = await axios.get(
+          "http://localhost:3001/api/get-all-items2"
+        );
+        setItems(response.data);
+        console.log("items set:", response.data); // After setting state
       } catch (error) {
-        console.error("Error fetching items:", error);
+        console.error(
+          "Error fetching items:",
+          error.response || error.message || error
+        );
       }
     };
 
     fetchItems();
   }, []);
-
   const handleCheckboxChange = (column) => {
     setVisibleColumns((prev) => ({
       ...prev,
@@ -204,20 +183,26 @@ function Archive() {
   
     const matchesCategory =
       categoryFilter === "Others"
-        ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category)
+        ? !["Personal Belonging", "Electronics", "Documents"].includes(
+            item.category
+          )
         : categoryFilter
         ? item.category === categoryFilter
         : true;
   
     const matchesColor = colorFilter ? item.color === colorFilter : true;
   
-    // Adjust date parsing to ignore timezone
-    const itemDate = item.createdat ? new Date(item.createdat.split("T")[0]) : null; // Extract the date part only
-    const startDate = dateRange.start ? new Date(dateRange.start + "T00:00:00") : null;
-    const endDate = dateRange.end ? new Date(dateRange.end + "T23:59:59") : null;
+    // Adjust date parsing to ensure proper comparisons
+    const itemDate = item.archivedate ? new Date(item.archivedate) : null; // Parse 'archivedate'
+    const startDate = dateRange.start ? new Date(dateRange.start) : null;
+    const endDate = dateRange.end ? new Date(dateRange.end) : null;
+  
+    // Normalize the time for comparison
+    if (itemDate) itemDate.setHours(0, 0, 0, 0);
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
   
     const matchesDateRange =
-      itemDate &&
       (!startDate || itemDate >= startDate) &&
       (!endDate || itemDate <= endDate);
   
@@ -225,7 +210,11 @@ function Archive() {
   
     return matchesType && matchesCategory && matchesColor && matchesDateRange && archive;
   });
-
+  const getTypeDisplay = (type) => {
+    if (filter === "pending" && type === "Found") return "Lost";
+    if (filter === "pending" && type === "Lost") return "Missing";
+    return type;
+  };
   return (
     <>
       <div className="adminnavbar">
@@ -295,7 +284,6 @@ function Archive() {
                 min={dateRange.start}
               />
             </div>
-
           </div>
         </div>
 
@@ -347,7 +335,13 @@ function Archive() {
                       {Object.keys(visibleColumns).map(
                         (column) =>
                           visibleColumns[column] && (
-                            <td key={column}>{item[column]}</td>
+                            <td key={column}>
+                              {column === "name"
+                                ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
+                                : column === "type"
+                                ? getTypeDisplay(item[column])
+                                : item[column] || "N/A"}
+                            </td>
                           )
                       )}
                     </tr>
