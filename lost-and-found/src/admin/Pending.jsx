@@ -266,13 +266,7 @@ function Pending() {
                     <FontAwesomeIcon icon={faBoxArchive} />
                   </button>
 
-                  <button
-                    className="lostitemimg2"
-                    id="checklostitem"
-                    onClick={() => openClaimModal(item.id)}
-                  >
-                    <FontAwesomeIcon icon={faCheck} />
-                  </button>
+             
                 </div>
               </div>
               <div className="lostitembody1">

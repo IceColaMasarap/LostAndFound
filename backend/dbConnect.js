@@ -197,12 +197,14 @@ app.get("/api/get-all-items", async (req, res) => {
       c.claimedemail, 
       c.claimcontactnumber, 
       c.dateclaimed, 
-      ir.status
+      ir.status,
+      ir.createdat -- Include the createdat field
     FROM item_reports2 ir
     LEFT JOIN userinfo u ON ir.holderid = u.id
     LEFT JOIN lost_item_details l ON ir.id = l.item_report_id
     LEFT JOIN found_item_details f ON ir.id = f.item_report_id
-    LEFT JOIN claimed_items c ON ir.id = c.item_id;
+    LEFT JOIN claimed_items c ON ir.id = c.item_id
+    ORDER BY ir.createdat DESC; -- Order by createdat in descending order
   `;
 
   db.query(sql, (err, result) => {
@@ -235,8 +237,8 @@ app.get("/api/get-found-items", async (req, res) => {
 
 
 app.get("/api/get-claimed-items", (req, res) => {
-  const sql =
-    ` SELECT 
+  const sql = `
+    SELECT 
       ir.id,
       ir.objectname,
       ir.imageurl,
@@ -252,7 +254,9 @@ app.get("/api/get-claimed-items", (req, res) => {
     FROM item_reports2 ir
     JOIN claimed_items ci ON ir.id = ci.item_id
     LEFT JOIN userinfo u ON ir.holderid = u.id
-    WHERE ir.status = 'claimed'`;
+    WHERE ir.status = 'claimed'
+    ORDER BY ci.dateclaimed DESC`; // Order by dateclaimed in descending order
+
   db.query(sql, (err, result) => {
     if (err) {
       console.error("Error fetching claimed items:", err.message);
@@ -517,8 +521,8 @@ app.delete("/api/code-expiration/:id", (req, res) => {
 
 
 app.get("/api/founditem-reports", (req, res) => {
-  const query =
-    `SELECT 
+  const query = `
+    SELECT 
       ir.id,
       ir.imageurl,
       ir.objectname,
@@ -541,8 +545,10 @@ app.get("/api/founditem-reports", (req, res) => {
     WHERE 
       ir.type = 'found' 
       AND ir.status = 'pending'
+      AND ir.confirmed = 1  -- Add this line to check if the item is confirmed
     ORDER BY 
-      ir.createdat DESC`; // Add ORDER BY clause to order by createdat column
+      ir.createdat DESC
+  `;
 
   db.query(query, (err, result) => {
     if (err) {
@@ -552,6 +558,7 @@ app.get("/api/founditem-reports", (req, res) => {
     res.json(result); // Send the resulting data as a JSON response
   });
 });
+
 
 
 // Endpoint to get the count of 'found' items with 'pending' status

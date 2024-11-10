@@ -31,6 +31,7 @@ function All() {
     claimcontactnumber: true,
     dateclaimed: true,
     status: true,
+    createdat: true,
   });
   const handlePrint = () => {
     const printContent = document.getElementById("printable-table").outerHTML; // Get table HTML
@@ -125,6 +126,7 @@ function All() {
     claimcontactnumber: "Claimer's Contact",
     dateclaimed: "Date Claimed",
     status: "Status",
+    createdat: "Report Date",
   };
 
   // Select all columns
@@ -156,6 +158,7 @@ function All() {
       claimcontactnumber: false,
       dateclaimed: false,
       status: true,
+      createdat: true,
     },
     Missing: {
       type: true,
@@ -175,6 +178,7 @@ function All() {
       claimcontactnumber: false,
       dateclaimed: false,
       status: true,
+      createdat: true,
     },
 
     claimed: {
@@ -195,6 +199,7 @@ function All() {
       claimcontactnumber: true,
       dateclaimed: true,
       status: true,
+      createdat: true,
     },
 
     all: {
@@ -215,12 +220,21 @@ function All() {
       claimcontactnumber: true,
       dateclaimed: true,
       status: true,
+      createdat: true,
     },
   };
   const formatDate = (date) => {
+    if (!date) return "N/A"; // Handle null or undefined dates
     const d = new Date(date);
-    return d.toLocaleDateString("en-CA"); // 'en-CA' is the locale for yyyy-mm-dd format
+    if (isNaN(d.getTime())) return "Invalid Date"; // Check for invalid dates
+
+    const month = String(d.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+    const day = String(d.getDate()).padStart(2, "0");
+    const year = d.getFullYear();
+
+    return `${month}/${day}/${year}`;
   };
+
   // Deselect all columns
   const deselectAllColumns = () => {
     setVisibleColumns(
@@ -276,42 +290,43 @@ function All() {
   };
 
   const filteredItems = Array.isArray(items)
-    ? items.filter((item) => {
-        const matchesType =
-          (filter === "Lost" && item.type === "Found") ||
-          (filter === "Missing" && item.type === "Lost") ||
-          (filter === "claimed" && item.status === "claimed") ||
-          filter === "all";
-        const matchesCategory =
-          categoryFilter === "Others"
-            ? !["Personal Belonging", "Electronics", "Documents"].includes(
-                item.category
-              )
-            : categoryFilter
-            ? item.category === categoryFilter
-            : true;
+  ? items.filter((item) => {
+      const matchesType =
+        (filter === "Lost" && item.type === "Found") ||
+        (filter === "Missing" && item.type === "Lost") ||
+        (filter === "claimed" && item.status === "claimed") ||
+        filter === "all";
 
-        const matchesColor = colorFilter ? item.color === colorFilter : true;
-        const itemDate = new Date(item.dateclaimed);
-        const matchesDateRange =
-          (!dateRange.start || itemDate >= new Date(dateRange.start)) &&
-          (!dateRange.end || itemDate <= new Date(dateRange.end));
+      const matchesCategory =
+        categoryFilter === "Others"
+          ? !["Personal Belonging", "Electronics", "Documents"].includes(item.category)
+          : categoryFilter
+          ? item.category === categoryFilter
+          : true;
 
-        const matchesSearchTerm = item.objectname
-          ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
-          : false;
+      const matchesColor = colorFilter ? item.color === colorFilter : true;
 
-        return (
-          matchesType &&
-          matchesCategory &&
-          matchesColor &&
-          matchesDateRange &&
-          matchesSearchTerm &&
-          item.confirmed !== false
-        );
-      })
-    : [];
+      // Parsing and normalizing dates to remove the time part
+      const itemDate = new Date(item.createdat);
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
 
+      // Set time to the beginning of the day for comparison
+      itemDate.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999); // Set to the end of the day
+
+      const matchesDateRange =
+        (!dateRange.start || itemDate >= startDate) &&
+        (!dateRange.end || itemDate <= endDate);
+
+      const matchesSearchTerm = item.objectname
+        ? item.objectname.toLowerCase().includes(searchTerm.toLowerCase())
+        : false;
+
+      return matchesType && matchesCategory && matchesColor && matchesDateRange && matchesSearchTerm;
+    })
+  : [];
   const getTypeDisplay = (type) => {
     if (filter === "pending" && type === "Found") return "Lost";
     if (filter === "pending" && type === "Lost") return "Missing";
@@ -383,7 +398,7 @@ function All() {
                 }
                 min={dateRange.start}
               />
-            </div>
+            </div>;
           </div>
         </div>
 
@@ -447,8 +462,10 @@ function All() {
                               {column === "name"
                                 ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
                                 : column === "type"
-                                ? getTypeDisplay(item[column])
-                                : item[column] || "N/A"}
+                                  ? getTypeDisplay(item[column])
+                                  : column === "datefound" || column === "datelost" || column === "dateclaimed"
+                                    ? formatDate(item[column]) // Format the date columns
+                                    : item[column] || "N/A"}
                             </td>
                           )
                       )}
