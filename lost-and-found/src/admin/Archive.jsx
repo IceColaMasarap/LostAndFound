@@ -349,7 +349,7 @@ function Archive() {
                           visibleColumns[column] && (
                             <td key={column}>
                               {column === "name"
-                                ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname
+                                ? `${item.firstName} ${item.lastName}` // Combine firstname and lastname aaaa
                                 : column === "type"
                                   ? getTypeDisplay(item[column])
                                   : column === "createdat"
